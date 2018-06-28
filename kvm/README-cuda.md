@@ -1,11 +1,9 @@
 
-Prerequisites
--------------
+# Prerequisites
 
-See README-vms.md
+See [README-vms](README-vms.md)
 
-Setting up and installing CUDA within a VM instance
----------------------------------------------------
+# Setting up and installing CUDA within a VM instance
 
 In the following, instructions from
 
@@ -13,8 +11,8 @@ In the following, instructions from
 
 are applied within VM instances.
 
-Cuda 9.2 on Ubuntu 16.04
-++++++++++++++++++++++++
+## Cuda 9.2 on Ubuntu 16.04
+
 ```
 virsh start ubuntu1604-gpu
 ssh `vm_ip ubuntu1604-gpu`
@@ -58,8 +56,8 @@ make
 bin/x86_64/linux/release/deviceQuery
 bin/x86_64/linux/release/bandwidthTest
 ```
-Cuda 9.2 on Centos 7
-++++++++++++++++++++
+
+## Cuda 9.2 on Centos 7
 
 ```
 virsh start centos70-gpu
