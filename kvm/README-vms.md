@@ -153,7 +153,7 @@ SSH to VM and run
 ```
 wget https://repo.continuum.io/miniconda/Miniconda3-latest-Linux-x86_64.sh
 bash Miniconda3-latest-Linux-x86_64.sh
-echo ". $HOME/anaconda3/etc/profile.d/conda.sh" >> ~/.bashrc
+echo ". $HOME/miniconda3/etc/profile.d/conda.sh" >> ~/.bashrc
 git config --global user.email "<YOUR EMAIL AT GITHUB>"
 git config --global user.name "<YOUR NAME>"
 ```
