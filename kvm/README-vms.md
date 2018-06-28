@@ -10,12 +10,13 @@ sudo virt-clone --original <base VM name> --auto-clone -n <development VM name>
 
 where base VM name is one node from the following tree:
 
-ubuntu1604
-  ubuntu1604-mconda36
-  ubuntu1604-gpu
-centos70
-  centos70-mconda36
-  centos70-gpu
+* ubuntu1604
+  * ubuntu1604-mconda36
+  * ubuntu1604-gpu
+    * ubuntu1604-gpu-mconda36
+* centos70
+  * centos70-mconda36
+  * centos70-gpu
   
 # Creating specific base VM instances
 
