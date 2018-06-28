@@ -15,7 +15,7 @@ are applied within VM instances.
 
 Cuda 9.2 on Ubuntu 16.04
 ++++++++++++++++++++++++
-
+```
 virsh start ubuntu1604-gpu
 ssh `vm_ip ubuntu1604-gpu`
 
@@ -34,13 +34,15 @@ sudo reboot
 ssh `vm_ip ubuntu1604-gpu`
 lsmod | grep nouveau # should show nothing
 ls /dev/nvidia* # should show nvidia devices
-
-Append to .bashrc:
+```
+Append to `.bashrc`:
+```
 export PATH=/usr/local/cuda-9.2/bin${PATH:+:${PATH}}
 export LD_LIBRARY_PATH=/usr/local/cuda-9.2/lib64${LD_LIBRARY_PATH:+:${LD_LIBRARY_PATH}}
-
+```
 
 RECOMMENDED: test driver and samples
+```
 /usr/bin/nvidia-persistenced --verbose
 cuda-install-samples-9.2.sh cuda-9.2-samples
 cat /proc/driver/nvidia/version
@@ -55,10 +57,11 @@ cd cuda-9.2-samples/NVIDIA_CUDA-9.2_Samples/
 make
 bin/x86_64/linux/release/deviceQuery
 bin/x86_64/linux/release/bandwidthTest
-
+```
 Cuda 9.2 on Centos 7
 ++++++++++++++++++++
 
+```
 virsh start centos70-gpu
 ssh `vm_ip centos70-gpu`
 
@@ -76,22 +79,29 @@ sudo yum install kernel-devel-$(uname -r) kernel-headers-$(uname -r)
 wget https://developer.download.nvidia.com/compute/cuda/repos/rhel7/x86_64/cuda-repo-rhel7-9.2.88-1.x86_64.rpm
 sudo rpm -i cuda-repo-rhel7-9.2.88-1.x86_64.rpm
 sudo yum clean all
+```
 
-# To fix 'Requires: dkms' error
+To fix 'Requires: dkms' error
+```
 sudo yum install epel-release
 sudo yum install dkms
-
+```
+```
 sudo yum install cuda
+```
 
-Append to .bashrc:
+Append to `.bashrc`:
+```
 export PATH=/usr/local/cuda-9.2/bin${PATH:+:${PATH}}
 export LD_LIBRARY_PATH=/usr/local/cuda-9.2/lib64${LD_LIBRARY_PATH:+:${LD_LIBRARY_PATH}}
 
 sudo reboot
 
 ssh `vm_ip centos70-gpu`
+```
 
 Apply https://docs.nvidia.com/cuda/cuda-installation-guide-linux/index.html#runfile-verifications
+```
 nano mk_dev_nvidia.sh # copy the script content from the docs
 sudo bash mk_dev_nvidia.sh
 ls /dev/nvidia* # should show nvidia devices
@@ -112,3 +122,4 @@ cd NVIDIA_CUDA-9.2_Samples/
 make
 bin/x86_64/linux/release/deviceQuery
 bin/x86_64/linux/release/bandwidthTest
+```
