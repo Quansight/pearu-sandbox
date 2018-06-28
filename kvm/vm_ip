@@ -1,0 +1,24 @@
+#!/bin/sh
+#
+# Outputs the IP of running VM instances.
+#
+# Make sure that the location of vm_ip is in PATH
+#
+# Author: Pearu Peterson
+# Created: June 2018
+#
+
+NAME=$1
+MAC=`virsh domiflist $NAME | tail -n 2 | col5`
+if [ "$MAC" ]; then
+  IP=`grep $MAC /var/log/syslog | grep DHCPACK | tail -n 1 | col7`
+else
+  echo "NO_SUCH_VM_DOMAIN_$1"
+  exit 1
+fi
+if [ "$IP" ]; then
+  echo "$IP"
+else
+  echo "IP_NOT_AVAILABLE_FOR_$1_MAC_IS_$MAC"
+  exit 1
+fi
