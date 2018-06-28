@@ -62,7 +62,7 @@ sudo file /servers/images/ubuntu1604.img
 
 ## CentOS 7 (64-bit)
 
-Fix the location parameter in `virt-install-centos7.sh` and run
+Fix the location parameter in [`virt-install-centos7.sh`](virt-install-centos7.sh) and run
 
 ```
 sudo bash virt-install-centos7.sh
