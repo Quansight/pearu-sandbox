@@ -156,4 +156,11 @@ bash Miniconda3-latest-Linux-x86_64.sh
 echo ". $HOME/miniconda3/etc/profile.d/conda.sh" >> ~/.bashrc
 git config --global user.email "<YOUR EMAIL AT GITHUB>"
 git config --global user.name "<YOUR NAME>"
+sudo apt-get install xclip
+ssh-keygen -t rsa -b 4096 -C "<YOUR EMAIL AT GITHUB>"
+eval "$(ssh-agent -s)"
+ssh-add ~/.ssh/id_rsa
 ```
+Follow instructions in 
+  https://help.github.com/articles/adding-a-new-ssh-key-to-your-github-account/
+  
