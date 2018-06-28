@@ -1,10 +1,8 @@
-Prerequisites
--------------
+# Prerequisites
 
-See README-setup.md
+See [README-setup](README-setup.md)
 
-Creating development VM instances
----------------------------------
+# Creating development VM instances
 
 ```
 sudo virt-clone --original <base VM name> --auto-clone -n <development VM name>
@@ -19,11 +17,9 @@ centos70
   centos70-mconda36
   centos70-gpu
   
-Creating specific base VM instances
------------------------------------
+# Creating specific base VM instances
 
-Setup development environment in VM instances
-+++++++++++++++++++++++++++++++++++++++++++++
+## Setup development environment in VM instances
 
 SSH to VM and run
 ```
@@ -34,8 +30,7 @@ git config --global user.email "<YOUR EMAIL AT GITHUB>"
 git config --global user.name "<YOUR NAME>"
 ```
 
-Miniconda 3.6 for Ubuntu
-++++++++++++++++++++++++
+## Miniconda 3.6 for Ubuntu
 
 ```
 sudo virt-clone --original ubuntu1604 --auto-clone -n ubuntu1604-mconda36
@@ -45,8 +40,7 @@ ssh `vm_ip ubuntu1604-mconda36`
 sudo shutdown -h now
 ```
 
-Miniconda 3.6 for Centos
-++++++++++++++++++++++++
+## Miniconda 3.6 for Centos
 
 ```
 sudo virt-clone --original centos70 --auto-clone -n centos70-mconda36
@@ -56,8 +50,7 @@ ssh `vm_ip centos70-mconda36`
 sudo shutdown -h now
 ```
 
-Setup Ubuntu host for CUDA VM instances
-+++++++++++++++++++++++++++++++++++++++
+## Setup Ubuntu host for CUDA VM instances
 
 To passthrough CUDA enabled GPU card to VM, I followed instructions from
 https://arrayfire.com/using-gpus-kvm-virutal-machines/
@@ -116,8 +109,7 @@ sudo virsh nodedev-detach pci_0000_01_00_0
 sudo virsh nodedev-detach pci_0000_01_00_1
 ```
 
-Attaching GPU to VM instance
-++++++++++++++++++++++++++++++++
+## Attaching GPU to VM instance
 
 ```
 sudo virt-clone --original ubuntu1604 --auto-clone -n ubuntu1604-gpu
@@ -153,8 +145,7 @@ lspci | grep -i nvidia
 00:08.0 VGA compatible controller: NVIDIA Corporation GP106GL [Quadro P2000] (rev a1)
 ```
 
-Setup development environment in VM instances
-+++++++++++++++++++++++++++++++++++++++++++++
+## Setup development environment in VM instances
 
 SSH to VM and run
 
