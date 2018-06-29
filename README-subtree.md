@@ -5,7 +5,14 @@ For development that might involve changing external libraries, I'll use git sub
 ## libgdf
 
 ```
-
 git remote add -f goai_libgdf https://github.com/gpuopenanalytics/libgdf.git
 git subtree add -P libgdf goai_libgdf master
+cat libgdf/.gitmodules >> .gitmodules
+nano .gitmodules # prepend libgdf/ to thirdparty
+git submodule init
+git remote add -f goai_libgdf_tp_cub 
+git submodule update --remote --merge
+git add -u .
+git commit -m "add libgdf submodules"
+git push
 ```
