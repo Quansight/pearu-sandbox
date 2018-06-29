@@ -23,3 +23,12 @@ git submodule update --recursive --remote
 # to clone pearu-sandbox:
 git clone --recurse-submodules  git@github.com:Quansight/pearu-sandbox.git
 ```
+
+## pygdf
+
+```
+git pull
+git remote add -f goai_pygdf https://github.com/gpuopenanalytics/pygdf.git
+git subtree add -P pygdf goai_pygdf master
+git push
+```
