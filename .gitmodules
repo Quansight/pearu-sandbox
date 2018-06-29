@@ -1,3 +1,6 @@
-[submodule "external"]
-	path = external
-	url = ./external
+[submodule "libgdf/thirdparty/cub"]
+	path = libgdf/thirdparty/cub
+	url = https://github.com/NVlabs/cub.git
+[submodule "libgdf/thirdparty/moderngpu"]
+	path = libgdf/thirdparty/moderngpu
+	url = https://github.com/moderngpu/moderngpu.git
