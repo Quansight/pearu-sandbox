@@ -1,3 +1,0 @@
-[submodule "libgdf"]
-	path = libgdf
-	url = https://github.com/gpuopenanalytics/libgdf.git
