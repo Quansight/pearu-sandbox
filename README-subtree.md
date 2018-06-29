@@ -5,7 +5,7 @@ For development that might involve changing external libraries, I'll use git sub
 ## libgdf
 
 ```
-git remote add libgdf https://github.com/gpuopenanalytics/libgdf.git
-git subtree add -P external/ libgdf master
 
+git remote add -f goai_libgdf https://github.com/gpuopenanalytics/libgdf.git
+git subtree add -P libgdf goai_libgdf master
 ```
