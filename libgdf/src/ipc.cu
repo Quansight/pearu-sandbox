@@ -19,6 +19,8 @@ namespace {
 
 using namespace arrow;
 
+#ifdef ARROW_METADATA_VERSION_V3
+  
 static std::string GetBufferTypeName(BufferType type) {
   switch (type) {
     case BufferType::DATA:
@@ -35,6 +37,7 @@ static std::string GetBufferTypeName(BufferType type) {
   return "UNKNOWN";
 }
 
+#endif
 
 static std::string GetTypeName(Type::type id) {
     switch (id) {
@@ -184,8 +187,15 @@ public:
     const std::string& get_schema_json() {
         if ( _json_schema_output.size() == 0 ) {
             // To JSON
+#ifdef ARROW_METADATA_VERSION_V3       
             std::unique_ptr<arrow::ipc::JsonWriter> json_writer;
             arrow::ipc::JsonWriter::Open(_schema, &json_writer);
+#endif
+#ifdef ARROW_METADATA_VERSION_V4       
+            std::unique_ptr<arrow::ipc::internal::json::JsonWriter> json_writer;
+            arrow::ipc::internal::json::JsonWriter::Open(_schema, &json_writer);
+#endif
+	    
             json_writer->Finish(&_json_schema_output);
         }
         return _json_schema_output;
@@ -245,7 +255,7 @@ protected:
         if (_fields.size() || _nodes.size()) {
             throw ParseError("cannot open more than once");
         }
-
+#ifdef ARROW_METADATA_VERSION_V3
         // Use Arrow to load the schema
         const auto payload = std::make_shared<arrow::Buffer>(schema_buf, length);
         auto buffer = std::make_shared<io::BufferReader>(payload);
@@ -256,6 +266,7 @@ protected:
         if (!_schema) throw ParseError("failed to parse schema");
         // Parse the schema
         parse_schema(_schema);
+#endif
     }
 
     void read_record_batch(const uint8_t *recordbatches, size_t length) {
@@ -295,7 +306,7 @@ protected:
 
             out_field.name = field->name();
             out_field.type = GetTypeName(field->type()->id());
-
+#ifdef ARROW_METADATA_VERSION_V3
             auto layouts = field->type()->GetBufferLayout();
             for ( int j=0; j < layouts.size(); ++j ) {
                 auto layout = layouts[j];
@@ -305,6 +316,7 @@ protected:
                 layout_desc.vectortype = GetBufferTypeName(layout.type());
                 out_field.layouts.push_back(layout_desc);
             }
+#endif
         }
     }
 

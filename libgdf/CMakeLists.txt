@@ -35,6 +35,18 @@ cuda_add_library(gdf SHARED
 
 target_link_libraries(gdf arrow)
 
+# arrow metadata version option
+OPTION(ARROW_METADATA_VERSION "Specify ARROW Metadata version (default is 3). 3 for arrow==0.7.1, 4 for arrow>=0.8." [3])
+
+IF(ARROW_METADATA_VERSION EQUAL 4)
+  ADD_DEFINITIONS(-DARROW_METADATA_VERSION_V4)
+ELSEIF(ARROW_METADATA_VERSION EQUAL 3)
+  ADD_DEFINITIONS(-DARROW_METADATA_VERSION_V3)
+ELSE()
+  ADD_DEFINITIONS(-DARROW_METADATA_VERSION_V3)
+  message(WARNING "ARROW_METADATA_VERSION=${ARROW_METADATA_VERSION} not supported, resetting to 3.")
+ENDIF()
+
 # Command to symlink files into the build directory
 
 add_custom_command(  # link the include directory
