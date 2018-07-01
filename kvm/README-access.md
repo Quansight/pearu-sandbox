@@ -15,6 +15,10 @@ To access vm instance from REMOTE via ssh, run
 ```
 ssh HOST -p 2222 # this should give GUEST prompt
 ```
+For instance, when using tramp mode in Emacs (in REMOTE), you can open GUEST file using
+```
+  C-x C-f /localhost#2222:<path to GUEST file>
+```
 
 # Access VM instance via second NIC
 
