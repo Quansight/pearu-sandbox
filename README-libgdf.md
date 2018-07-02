@@ -15,4 +15,8 @@ cd build-libgdf
 cmake -DARROW_METADATA_VERSION=4 -DCMAKE_INSTALL_PREFIX=$CONDA_PREFIX ../libgdf/
 make
 make pytest
+
+# install for pygdf
+make install
+python setup.py install
 ```
