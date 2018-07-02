@@ -12,7 +12,7 @@ conda activate libgdf_dev-arrow090
 conda update arrow-cpp # otherwise expect './libgdf.so: undefined symbol: _ZN5arrow3ipc8internal4json10JsonWriter6FinishEPNSt7__cxx1112basic_stringIcSt11char_traitsIcESaIcEEE'
 mkdir build-libgdf
 cd build-libgdf
-cmake -DARROW_METADATA_VERSION=4 ../libgdf/
+cmake -DARROW_METADATA_VERSION=4 -DCMAKE_INSTALL_PREFIX=$CONDA_PREFIX ../libgdf/
 make
 make pytest
 ```
