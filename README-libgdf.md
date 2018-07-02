@@ -20,3 +20,7 @@ make pytest
 make install
 python setup.py install
 ```
+
+# Next
+
+[Building/testing pygdf](README-pygdf.md)
