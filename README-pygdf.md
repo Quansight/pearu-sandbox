@@ -2,7 +2,7 @@
 
 [Building/testing libgdf with arrow version 0.9.0](README-libgdf.md)
 
-Assuming that libgdf_dev090 conda environment has been activated.
+Assuming that libgdf_dev-arrow090 conda environment has been activated.
 
 # Building/testing pygdf
 
