@@ -6,6 +6,7 @@ succesfully build and test libgdf using the recent version of arrow (currently i
 
 # Building libgdf against arrow-0.7.1 and Python 3.6
 
+```
 conda env create --name libgdf_dev-arrow071 --file libgdf/conda_environments/dev_py36.yml
 conda activate libgdf_dev-arrow071
 conda install arrow-cpp=0.7.1 pyarrow=0.7.1 -c conda-forge # downgrades arrow
@@ -18,6 +19,8 @@ make
 make pytest
 make install
 python setup.py install
+```
+
 
 # Building libgdf against arrow 0.9.0 and Python 3.6
 
