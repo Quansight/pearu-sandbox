@@ -1,0 +1,12 @@
+name: gdf
+channels:
+- numba
+- conda-forge
+- defaults
+dependencies:
+- pip
+- setuptools
+# Update based on your host's CUDA driver version
+- cudatoolkit
+- numba
+- pandas
