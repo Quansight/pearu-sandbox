@@ -15,6 +15,11 @@ git add -u .
 git commit -m "add libgdf submodules"
 git push
 
+# to update libgdf from goai:
+git subtree pull -P libgdf goai_libgdf master
+# build/test/install libgdf
+git push
+
 # to update already cloned pearu-sandbox:
 git pull
 git submodule init
@@ -31,4 +36,7 @@ git pull
 git remote add -f goai_pygdf https://github.com/gpuopenanalytics/pygdf.git
 git subtree add -P pygdf goai_pygdf master
 git push
+
+# to update pygdf from goai:
+git subtree pull -P pygdf goai_pygdf master
 ```

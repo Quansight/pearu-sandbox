@@ -4,6 +4,21 @@ libgdf was developed with arrow 0.7.1. In arrow >= 0.8 the ipc code changed in a
 In pearu-sandbox/libgdf the corresponding code is disabled along with test_ipc. This alone allows one to
 succesfully build and test libgdf using the recent version of arrow (currently it is 0.9.0).
 
+# Building libgdf against arrow-0.7.1 and Python 3.6
+
+conda env create --name libgdf_dev-arrow071 --file libgdf/conda_environments/dev_py36.yml
+conda activate libgdf_dev-arrow071
+conda install arrow-cpp=0.7.1 pyarrow=0.7.1 -c conda-forge # downgrades arrow
+cd build-libgdf/
+rm -rf . # clean up
+cd ../libgdf/thirdparty/cub && git checkout b165e1f && cd -
+cd ../libgdf/thirdparty/moderngpu && git checkout c1fd31d && cd -
+cmake -DARROW_METADATA_VERSION=3 -DCMAKE_INSTALL_PREFIX=$CONDA_PREFIX ../libgdf/
+make
+make pytest
+make install
+python setup.py install
+
 # Building libgdf against arrow 0.9.0 and Python 3.6
 
 ```
