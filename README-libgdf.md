@@ -1,10 +1,28 @@
 # Introduction
 
+# Building libgdf against arrow-master and Python 3.7
+
+```
+conda create -n libgdf-arrow011 python=3.7 pytest cmake setuptools numpy cffi -c conda-forge
+conda activate libgdf-arrow011
+cd git/libgdf
+git submodule update --init --recursive
+mkdir build
+cd build
+export PARQUET_ARROW_VERSION=master
+cmake -DCMAKE_INSTALL_PREFIX=$CONDA_PREFIX ..
+make
+make pytest
+make install
+python setup.py install
+```
+
+# Building libgdf against arrow-0.7.1 and Python 3.6
+
 libgdf was developed with arrow 0.7.1. In arrow >= 0.8 the ipc code changed in a way that broke libgdf.
 In pearu-sandbox/libgdf the corresponding code is disabled along with test_ipc. This alone allows one to
 succesfully build and test libgdf using the recent version of arrow (currently it is 0.9.0).
 
-# Building libgdf against arrow-0.7.1 and Python 3.6
 
 ```
 conda env create --name libgdf_dev-arrow071 --file libgdf/conda_environments/dev_py36.yml
