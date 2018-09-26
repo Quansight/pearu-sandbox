@@ -15,7 +15,7 @@ export PARQUET_ARROW_VERSION=master
 cmake -DCMAKE_INSTALL_PREFIX=$CONDA_PREFIX ..
 make
 make test
-make pytest
+make pytest # expect test_arrow_availability to fail because pyarrow is not installed
 make install
 python setup.py develop
 ```
