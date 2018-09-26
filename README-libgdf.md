@@ -3,7 +3,7 @@
 # Building libgdf against arrow-master and Python 3.7
 
 ```
-conda create -n libgdf-arrow011 python=3.7 pytest cmake setuptools numpy cffi numba -c conda-forge
+conda create -n libgdf-arrow011 python=3.7 pytest cmake setuptools numpy cffi numba pandas -c conda-forge
 conda activate libgdf-arrow011
 cd git
 git clone git@github.com:Quansight/libgdf.git
