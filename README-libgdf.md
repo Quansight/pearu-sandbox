@@ -14,7 +14,7 @@ mkdir build
 cd build
 export PARQUET_ARROW_VERSION=master
 # For pyarrow, in cmake/Templates/Arrow.CMakeList.txt one must use:
-#  -DARROW_BUILD_SHARED=ON -DARROW_GPU=ON -DARROW_COMPUTE=ON -DARROW_PYTHON=ON
+#  -DARROW_BUILD_SHARED=ON -DARROW_GPU=ON -DARROW_COMPUTE=ON -DARROW_PYTHON=ON -DARROW_HDFS=ON
 cmake -DCMAKE_INSTALL_PREFIX=$CONDA_PREFIX ..
 make
 make test
