@@ -3,7 +3,7 @@
 # Building libgdf against arrow-master and Python 3.7
 
 ```
-conda create -n libgdf-arrow011 python=3.7 pytest cmake setuptools numpy cffi numba pandas -c conda-forge
+conda create -n libgdf-arrow011 python=3.7 pytest cmake setuptools numpy cffi numba pandas cython -c conda-forge
 conda activate libgdf-arrow011
 cd git
 git clone git@github.com:Quansight/libgdf.git
@@ -12,6 +12,7 @@ git submodule update --init --recursive
 mkdir build
 cd build
 export PARQUET_ARROW_VERSION=master
+# for pyarrow, `-DARROW_GPU=ON -DARROW_PYTHON=ON` must be used in cmake/Templates/Arrow.CMakeList.txt
 cmake -DCMAKE_INSTALL_PREFIX=$CONDA_PREFIX ..
 make
 make test
