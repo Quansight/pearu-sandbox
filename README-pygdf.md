@@ -6,11 +6,13 @@ Assuming that the conda environment that has been used for installing libgdf (li
 
 # Building pyarrow with CUDA support
 
-This requires that libgdf build uses `-DARROW_GPU -DARROW_PYTHON`.
+This requires that libgdf build uses ` -DARROW_BUILD_SHARED=ON -DARROW_HDFS=ON -DARROW_GPU=ON -DARROW_COMPUTE=ON -DARROW_PYTHON=ON`.
 ```
 cd libgdf/build/
 cd CMakeFiles/thirdparty/arrow-download/arrow-prefix/src/arrow/python/
-python setup.py develop --with-cuda
+ARROW_HOME=../../arrow-install/usr/local/ python setup.py build_ext --with-cuda develop
+cd -
+
 ```
 
 # Building/testing pygdf
