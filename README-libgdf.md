@@ -13,7 +13,8 @@ git submodule update --init --recursive
 mkdir build
 cd build
 export PARQUET_ARROW_VERSION=master
-# for pyarrow, `-DARROW_GPU=ON -DARROW_COMPUTE=ON -DARROW_PYTHON=ON` must be used in cmake/Templates/Arrow.CMakeList.txt
+# For pyarrow, in cmake/Templates/Arrow.CMakeList.txt one must use:
+#  -DARROW_BUILD_SHARED=ON -DARROW_GPU=ON -DARROW_COMPUTE=ON -DARROW_PYTHON=ON
 cmake -DCMAKE_INSTALL_PREFIX=$CONDA_PREFIX ..
 make
 make test
