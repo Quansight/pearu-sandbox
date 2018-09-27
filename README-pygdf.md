@@ -1,13 +1,21 @@
 # Prerequisites
 
-[Building/testing libgdf with arrow version 0.9.0](README-libgdf.md)
+[Building/testing libgdf with the latest arrow version](README-libgdf.md)
 
-Assuming that libgdf_dev-arrow090 conda environment has been activated.
+Assuming that the conda environment that has been used for installing libgdf (libgdf-arrow011, for instance) has been activated.
+
+# Building pyarrow with CUDA support
+
+This requires that libgdf build uses `-DARROW_GPU -DARROW_PYTHON`.
+```
+cd libgdf/build/
+cd CMakeFiles/thirdparty/arrow-download/arrow-prefix/src/arrow/python/
+python setup.py develop --with-cuda
+```
 
 # Building/testing pygdf
 
 ```
-conda install pandas
 cd pygdf/
 python setup.py develop
 # required by numba:
