@@ -12,6 +12,12 @@ cd libgdf/build/
 cd CMakeFiles/thirdparty/arrow-download/arrow-prefix/src/arrow/python/
 ARROW_HOME=../../arrow-install/usr/local/ python setup.py build_ext --with-cuda develop
 cd -
+export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:`pwd`/CMakeFiles/thirdparty/arrow-download/arrow-prefix/src/arrow-install/usr/local/lib
+cd ../pygdf
+export NUMBAPRO_LIBDEVICE=/usr/local/cuda-9.2/nvvm/libdevice
+export NUMBAPRO_NVVM=/usr/local/cuda-9.2/nvvm/lib64/libnvvm.so
+python setup.py develop
+py.test -sv . # most tests should pass ok
 
 ```
 
