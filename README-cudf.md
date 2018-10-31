@@ -4,7 +4,7 @@ Recently, arrow CUDA support has been improved:
 
 + [ARROW-1424](https://github.com/apache/arrow/pull/2536) - add cuda support to pyarrow [MERGED]
 + [ARROW-3451](https://github.com/apache/arrow/pull/2732) - support numba.cuda and pyarrow.cuda interoperability [MERGED]
-+ [ARROW-3624](https://github.com/apache/arrow/pull/2844) - support zero-sized device buffers and device-to-device copies [APPROVED]
++ [ARROW-3624](https://github.com/apache/arrow/pull/2844) - support zero-sized device buffers and device-to-device copies [MERGED]
 
 The above makes it possbile to use arrow CudaBuffer for 
 managing device memory within cudf (former pygdf) so 
@@ -30,8 +30,8 @@ cd pygdf
 git submodule update --init --recursive
 git checkout cudf-arrow
 
-export ARROW_GITHUB=https://github.com/Quansight/arrow
-export PARQUET_ARROW_VERSION=cuda-buffer  # change to master when PR 2844 is merged
+export ARROW_GITHUB=https://github.com/apache/arrow
+export PARQUET_ARROW_VERSION=master
 
 # Adjust if needed:
 #export LD_LIBRARY_PATH=/usr/local/cuda-9.2/lib64
