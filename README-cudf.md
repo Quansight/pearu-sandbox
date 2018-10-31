@@ -90,8 +90,7 @@ make pytest  # now all tests should pass
 Testing results:
 ```
 cudf in master:
-# 4 failed, 1020 passed, 18 skipped, 2 xfailed, 108 warnings in 117.85 seconds
-
-
+  4 failed, 1020 passed, 18 skipped, 2 xfailed, 108 warnings in 117.85 seconds
+patched cudf with pyarrow.cuda backend:
+  3 failed, 1030 passed, 18 skipped, 2 xfailed, 104 warnings in 97.97 seconds
 ```
-
