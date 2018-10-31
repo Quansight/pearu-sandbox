@@ -78,6 +78,9 @@ python setup.py develop
 
 # Testing cudf and libgdf
 
+Note: Before running cudf tests when using pyarrow.cuda backend, make sure that open file soft limit is larger than default 1024. See how to [increase open files limit](https://easyengine.io/tutorials/linux/increase-open-files-limit/).
+This restriction is due to how dummyarray.py is implemented (using numpy.memmap), another implementation would eliminate this issue.
+
 ```
 py.test -sv cudf
 cd build-libgdf
