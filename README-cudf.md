@@ -62,8 +62,8 @@ python setup.py develop
 # Building pyarrow with CUDA support
 
 ```
+export ARROW_HOME=`pwd`/CMakeFiles/thirdparty/arrow-download/arrow-prefix/src/arrow-install/usr/local/
 cd CMakeFiles/thirdparty/arrow-download/arrow-prefix/src/arrow/python/
-export ARROW_HOME=`pwd`/../../arrow-install/usr/local/
 python setup.py build_ext --with-cuda develop
 cd -
 export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:$ARROW_HOME/lib
@@ -72,14 +72,23 @@ export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:$ARROW_HOME/lib
 # Building cudf
 
 ```
-cd ../cudf
+cd ..
 python setup.py develop
 ```
 
 # Testing cudf and libgdf
 
 ```
-py.test -sv .
-cd ../build-libgdf
+py.test -sv cudf
+cd build-libgdf
 make pytest  # now all tests should pass
 ```
+
+Testing results:
+```
+cudf in master:
+# 4 failed, 1020 passed, 18 skipped, 2 xfailed, 108 warnings in 117.85 seconds
+
+
+```
+
