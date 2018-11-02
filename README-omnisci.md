@@ -24,6 +24,7 @@ cd build-mapd-core
 ## Run cmake
 
 ```
+export PREFIX=$CONDA_PREFIX
 export CXXFLAGS="-std=c++14 -D_GLIBCXX_USE_CXX11_ABI=0"
 export LDFLAGS="-L$PREFIX/lib -Wl,-rpath,$PREFIX/lib"
 
