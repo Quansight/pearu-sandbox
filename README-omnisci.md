@@ -47,3 +47,9 @@ cmake \
 ```
 make -j4
 ```
+
+## Testing
+
+```
+make sanity_tests
+```
