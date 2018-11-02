@@ -8,7 +8,8 @@ conda create -n omnisci-dev python>=3.6 pytest cmake setuptools numpy numba>=0.4
   clangdev=6 llvmdev=6 arrow-cpp>=0.11 boost-cpp=1.67 boost=1.67 go gperftools gdal \
   thrift-cpp=0.11.0 thrift=0.11.0 gflags glog libarchive maven bisonpp flex \
   gxx_linux-64 doxygen -c conda-forge
-# here gxx_linux-64 provides g++ 7.2, could we remove clangdev deps?
+# here gxx_linux-64 provides g++ 7.2
+# even when using g++ for compilation, clangdev dependency is still required
 conda activate omnisci-dev
 ```
 
