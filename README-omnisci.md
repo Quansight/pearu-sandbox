@@ -16,7 +16,7 @@ conda create -n omnisci-dev python>=3.6 pytest cmake setuptools numpy numba>=0.4
   thrift-cpp=0.11.0 thrift=0.11.0 gflags glog libarchive maven bisonpp flex \
   doxygen -c conda-forge
 conda activate omnisci-dev
-# Ubuntu 16.04:
+# Ubuntu 16.04: it has g++ 5.4
 conda install gxx_linux-64 # provides g++ 7.2
 # Ubuntu 18.04: it already has g++ 7.3
 # even when using g++ for compilation, clangdev dependency is still required
