@@ -38,6 +38,11 @@ export PREFIX=$CONDA_PREFIX
 export CXXFLAGS="-std=c++14 -D_GLIBCXX_USE_CXX11_ABI=0"
 export LDFLAGS="-L$PREFIX/lib -Wl,-rpath,$PREFIX/lib"
 
+# Centos 7.0:
+export CMAKE_COMPILERS="-DCMAKE_C_COMPILER=clang -DCMAKE_CXX_COMPILER=clang++"
+# Ubuntu 16.04, 18.04:
+export CMAKE_COMPILERS=""
+
 cmake \
       -DCMAKE_INSTALL_PREFIX=$PREFIX \
       -DCMAKE_BUILD_TYPE=debug \
@@ -48,6 +53,7 @@ cmake \
       -DMAPD_DOCS_DOWNLOAD=off \
       -DPREFER_STATIC_LIBS=off \
       -DENABLE_CUDA=off \
+      $CMAKE_COMPILERS \
   ../mapd-core
 ```
 
