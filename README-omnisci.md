@@ -20,8 +20,8 @@ conda activate omnisci-dev
 conda install gxx_linux-64 -c conda-forge # provides g++ 7.2
 # Ubuntu 18.04: it already has g++ 7.3
 
-# Centos 7.0
-conda install zlib -c conda-forge
+# Centos 7.0: it has g++ 4.8.5
+conda install zlib gxx_linux-64 -c conda-forge
 
 # even when using g++ for compilation, clangdev dependency is still required
 ```
@@ -43,7 +43,7 @@ export CXXFLAGS="-std=c++14 -D_GLIBCXX_USE_CXX11_ABI=0"
 export LDFLAGS="-L$PREFIX/lib -Wl,-rpath,$PREFIX/lib"
 
 # Centos 7.0:
-export CMAKE_COMPILERS="-DCMAKE_C_COMPILER=clang -DCMAKE_CXX_COMPILER=clang++"
+export CMAKE_COMPILERS="" #"-DCMAKE_C_COMPILER=clang -DCMAKE_CXX_COMPILER=clang++"
 export ZLIB_ROOT=$PREFIX
 # Ubuntu 16.04, 18.04:
 export CMAKE_COMPILERS=""
