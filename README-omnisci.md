@@ -1,5 +1,12 @@
 
-# Building mapd-core in Ubuntu 16.04 and 18.04 while using conda dependencies
+# Building mapd-core while using conda dependencies
+
+Testing on the following platforms:
+
+1. Ubuntu 16.04, Quadro P2000
+2. KVM client Ubuntu 16.04
+3. KVM client Ubuntu 18.04
+4. KVM client Centos 7
 
 ## Prepare conda environment with mapd-core dependencies
 
@@ -7,7 +14,7 @@
 conda create -n omnisci-dev python>=3.6 pytest cmake setuptools numpy numba>=0.40 \
   clangdev=6 llvmdev=6 arrow-cpp>=0.11 boost-cpp=1.67 boost=1.67 go gperftools gdal \
   thrift-cpp=0.11.0 thrift=0.11.0 gflags glog libarchive maven bisonpp flex \
-  gxx_linux-64 doxygen -c conda-forge
+  doxygen -c conda-forge
 conda activate omnisci-dev
 # Ubuntu 16.04:
 conda install gxx_linux-64 # provides g++ 7.2
