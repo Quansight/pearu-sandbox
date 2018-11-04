@@ -1,5 +1,5 @@
 
-# Building mapd-core in Ubuntu 16.04 while using conda dependencies
+# Building mapd-core in Ubuntu 16.04 and 18.04 while using conda dependencies
 
 ## Prepare conda environment with mapd-core dependencies
 
@@ -8,9 +8,11 @@ conda create -n omnisci-dev python>=3.6 pytest cmake setuptools numpy numba>=0.4
   clangdev=6 llvmdev=6 arrow-cpp>=0.11 boost-cpp=1.67 boost=1.67 go gperftools gdal \
   thrift-cpp=0.11.0 thrift=0.11.0 gflags glog libarchive maven bisonpp flex \
   gxx_linux-64 doxygen -c conda-forge
-# here gxx_linux-64 provides g++ 7.2
-# even when using g++ for compilation, clangdev dependency is still required
 conda activate omnisci-dev
+# Ubuntu 16.04:
+conda install gxx_linux-64 # provides g++ 7.2
+# Ubuntu 18.04: it already has g++ 7.3
+# even when using g++ for compilation, clangdev dependency is still required
 ```
 
 ## Check out mapd-core and prepare the build directory
@@ -51,5 +53,17 @@ make -j4
 ## Testing
 
 ```
+# in another terminal run:
+bin/initdb data
+bin/mapd_server
+#
 make sanity_tests
+# here 6 out of 14 tests fail.., both Ubuntu 16.04 and 18.04:
+The following tests FAILED:
+	  2 - UpdelStorageTest (Failed)
+	  3 - ImportTest (SEGFAULT)
+	  4 - AlterColumnTest (Failed)
+	  6 - ExecuteTest (SEGFAULT)
+	 13 - TopKTest (Failed)
+	 18 - CtasTest (Failed)
 ```
