@@ -45,6 +45,8 @@ export LDFLAGS="-L$PREFIX/lib -Wl,-rpath,$PREFIX/lib"
 # Centos 7.0:
 export CMAKE_COMPILERS="" #"-DCMAKE_C_COMPILER=clang -DCMAKE_CXX_COMPILER=clang++"
 export ZLIB_ROOT=$PREFIX
+export CXXFLAGS="$CXXFLAGS -msse4.1"
+
 # Ubuntu 16.04, 18.04:
 export CMAKE_COMPILERS=""
 
