@@ -1,9 +1,9 @@
 
 # Building mapd-core while using conda dependencies
 
-Testing on the following platforms:
+Testing on the following platforms (all have GPU card Quadro P2000):
 
-1. Ubuntu 16.04, Quadro P2000
+1. Ubuntu 16.04
 2. KVM client Ubuntu 16.04
 3. KVM client Ubuntu 18.04
 4. KVM client Centos 7
