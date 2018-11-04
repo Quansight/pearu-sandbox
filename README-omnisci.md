@@ -44,6 +44,8 @@ cmake \
   ../mapd-core
 ```
 
+Setting `-DENABLE_CUDA=on` fails on Ubuntu 16.04 (not finding librt) but works on Ubuntu 18.04.
+
 ## Compile and build
 
 ```
