@@ -121,3 +121,14 @@ make
 bin/x86_64/linux/release/deviceQuery
 bin/x86_64/linux/release/bandwidthTest
 ```
+
+## Cuda 9.2 on Ubuntu 18.04
+
+```
+sudo virt-clone --original ubuntu1604-gpu --name ubuntu1804-gpu --auto-clone
+virsh start ubuntu1804-gpu
+ssh `vm_ip ubuntu1804-gpu`
+sudo do-release-upgrade
+# after succesful upgrade, test driver and samples, see above
+sudo /usr/bin/nvidia-persistenced --verbose
+```
