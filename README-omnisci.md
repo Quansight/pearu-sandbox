@@ -56,7 +56,7 @@ make -j4
 
 ```
 # in another terminal run:
-bin/initdb data
+mkdir data && bin/initdb data
 bin/mapd_server
 #
 make sanity_tests
