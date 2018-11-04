@@ -17,8 +17,12 @@ conda create -n omnisci-dev python>=3.6 pytest cmake setuptools numpy numba>=0.4
   doxygen -c conda-forge
 conda activate omnisci-dev
 # Ubuntu 16.04: it has g++ 5.4
-conda install gxx_linux-64 # provides g++ 7.2
+conda install gxx_linux-64 -c conda-forge # provides g++ 7.2
 # Ubuntu 18.04: it already has g++ 7.3
+
+# Centos 7.0
+conda install zlib -c conda-forge
+
 # even when using g++ for compilation, clangdev dependency is still required
 ```
 
@@ -40,9 +44,11 @@ export LDFLAGS="-L$PREFIX/lib -Wl,-rpath,$PREFIX/lib"
 
 # Centos 7.0:
 export CMAKE_COMPILERS="-DCMAKE_C_COMPILER=clang -DCMAKE_CXX_COMPILER=clang++"
+export ZLIB_ROOT=$PREFIX
 # Ubuntu 16.04, 18.04:
 export CMAKE_COMPILERS=""
 
+#
 cmake \
       -DCMAKE_INSTALL_PREFIX=$PREFIX \
       -DCMAKE_BUILD_TYPE=debug \
