@@ -60,7 +60,7 @@ mkdir data && bin/initdb data
 bin/mapd_server
 #
 make sanity_tests
-# here 6 out of 14 tests fail.., both Ubuntu 16.04 and 18.04:
+# here 6 out of 14 tests fail in: Ubuntu 16.04 (CPU), 18.04 (CPU), 18.04 (GPU)
 The following tests FAILED:
 	  2 - UpdelStorageTest (Failed)
 	  3 - ImportTest (SEGFAULT)
