@@ -75,6 +75,7 @@ make -j4
 ## Testing
 
 ```
+mkdir tmp && bin/initdb tmp
 make sanity_tests
 # here 6 out of 14 tests fail in: Ubuntu 16.04 (CPU), 18.04 (CPU), 18.04 (GPU), Centos 7.0 (CPU)
 The following tests FAILED:
