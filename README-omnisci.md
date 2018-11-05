@@ -80,9 +80,20 @@ make sanity_tests
 # here 6 out of 14 tests fail in: Ubuntu 16.04 (CPU), 18.04 (CPU), 18.04 (GPU), Centos 7.0 (CPU)
 The following tests FAILED:
 	  2 - UpdelStorageTest (Failed)
-	  3 - ImportTest (SEGFAULT)
+	  3 - ImportTest (Failed)
 	  4 - AlterColumnTest (Failed)
 	  6 - ExecuteTest (SEGFAULT)
 	 13 - TopKTest (Failed)
 	 18 - CtasTest (Failed)
+```
+
+Test logs show that many of the above failing tests acctually pass OK but there seems to be issues with logging, for instance:
+```
+18: pure virtual method called
+18: terminate called without an active exception
+18: E1105 19:14:28.051285  8062 QueryRunner.cpp:111] Interrupt signal (6) received.
+18: WARNING: Logging before InitGoogleLogging() is written to STDERR
+18: I1105 19:14:28.056200  8062 Calcite.cpp:447] Destroy Calcite Class
+18: I1105 19:14:28.056221  8062 Calcite.cpp:449] End of Calcite Destructor 
+14/14 Test #18: CtasTest .........................***Failed  280.83 sec
 ```
