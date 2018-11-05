@@ -76,8 +76,8 @@ make -j4
 ## Testing
 
 ```
+mkdir tmp && bin/initdb tmp
 # in another terminal run:
-mkdir data && bin/initdb data
 bin/mapd_server
 #
 make sanity_tests
