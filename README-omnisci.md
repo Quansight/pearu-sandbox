@@ -71,6 +71,8 @@ cmake \
 
 Setting `-DENABLE_CUDA=on` fails on Ubuntu 16.04 (not finding `librt`) but works on Ubuntu 18.04.
 
+Ubuntu 18.04, using `-DPREFER_STATIC_LIBS=on` requires `LDFLAGS="-ldl"`
+
 ## Compile and build
 
 ```
