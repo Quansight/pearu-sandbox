@@ -31,8 +31,7 @@ conda install zlib gxx_linux-64 -c conda-forge
 ```
 cd git
 git clone https://github.com/Quansight/mapd-core
-mkdir build-mapd-core
-cd build-mapd-core
+mkdir mapd-core/build && cd mapd-core/build   # note: build directory must be inside mapd-core for tests
 ```
 
 ## Run cmake
@@ -62,7 +61,7 @@ cmake \
       -DPREFER_STATIC_LIBS=off \
       -DENABLE_CUDA=off \
       $CMAKE_COMPILERS \
-  ../mapd-core
+  ..
 ```
 
 Setting `-DENABLE_CUDA=on` fails on Ubuntu 16.04 (not finding librt) but works on Ubuntu 18.04.
@@ -76,10 +75,6 @@ make -j4
 ## Testing
 
 ```
-mkdir tmp && bin/initdb tmp
-# in another terminal run:
-bin/mapd_server
-#
 make sanity_tests
 # here 6 out of 14 tests fail in: Ubuntu 16.04 (CPU), 18.04 (CPU), 18.04 (GPU), Centos 7.0 (CPU)
 The following tests FAILED:
