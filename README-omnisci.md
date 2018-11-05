@@ -46,8 +46,13 @@ export CMAKE_COMPILERS="" #"-DCMAKE_C_COMPILER=clang -DCMAKE_CXX_COMPILER=clang+
 export ZLIB_ROOT=$PREFIX
 export CXXFLAGS="$CXXFLAGS -msse4.1"
 
-# Ubuntu 16.04, 18.04:
+# Ubuntu 16.04:
 export CMAKE_COMPILERS=""
+
+# Ubuntu 18.04:
+export CXXFLAGS="-D_GLIBCXX_USE_CXX11_ABI=0"
+export CMAKE_COMPILERS=""
+export LDFLAGS=""
 
 #
 cmake \
@@ -64,7 +69,7 @@ cmake \
   ..
 ```
 
-Setting `-DENABLE_CUDA=on` fails on Ubuntu 16.04 (not finding librt) but works on Ubuntu 18.04.
+Setting `-DENABLE_CUDA=on` fails on Ubuntu 16.04 (not finding `librt`) but works on Ubuntu 18.04.
 
 ## Compile and build
 
