@@ -105,3 +105,21 @@ Test logs show that many of the above failing tests acctually pass OK but there 
 18: I1105 19:14:28.056221  8062 Calcite.cpp:449] End of Calcite Destructor 
 14/14 Test #18: CtasTest .........................***Failed  280.83 sec
 ```
+
+## Using mapd-core via pymapd
+
+```
+conda install -c conda-forge pymapd
+
+mkdir data && bin/initdb data
+# in another terminal, run the server: bin/mapd_server
+bash ../insert_sample_data # select table flights_2008_10k
+```
+In Python, execute
+```
+from pymapd import connect
+con = connect(user="mapd", password= "HyperInteractive", host="localhost", dbname="mapd")
+c = con.cursor()
+c.execute("SELECT * FROM flights_2008_10k LIMIT 100")
+print(list(c)[0])
+```
