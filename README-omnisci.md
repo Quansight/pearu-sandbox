@@ -51,9 +51,9 @@ export CXXFLAGS="$CXXFLAGS -msse4.1"
 export CMAKE_COMPILERS=""
 
 # Ubuntu 18.04:
-export CXXFLAGS="-D_GLIBCXX_USE_CXX11_ABI=0"
 export CMAKE_COMPILERS=""
-export LDFLAGS=""
+export CXXFLAGS="-std=c++14 -D_GLIBCXX_USE_CXX11_ABI=0"
+export LDFLAGS="-L$PREFIX/lib -Wl,-rpath,$PREFIX/lib"
 
 #
 cmake \
