@@ -159,7 +159,7 @@ git clone https://github.com/conda-forge/clangdev-feedstock.git
 
 # Edit llvmdev-feedstock/recipe/build.sh to include `-DLLVM_TARGETS_TO_BUILD="X86;NVPTX"` cmake argument
 # and increment build number in llvmdev-feedstock/recipe/meta.yaml
-conda build llvmdev-feedstock/recipe
+conda build llvmdev-feedstock/recipe   # takes about 96m (user)
 
 # Edit clangdev-feedstock/recipe/meta.yaml to include the following two lines:
 {% set version = "7.0.1" %}
