@@ -14,18 +14,22 @@ Testing on the following platforms (all have GPU card Quadro P2000):
 conda create -n omnisci-dev python>=3.6 pytest cmake setuptools numpy numba>=0.40 \
   clangdev=6 llvmdev=6 arrow-cpp>=0.11 boost-cpp=1.67 boost=1.67 go gperftools gdal \
   thrift-cpp=0.11.0 thrift=0.11.0 gflags glog libarchive maven bisonpp flex \
-  cython pyarrow>=0.11 parquet-cpp \
+  cython pyarrow>=0.11 parquet-cpp bloscs \
   doxygen -c conda-forge
 conda activate omnisci-dev
 # Ubuntu 16.04: it has g++ 5.4
 conda install gxx_linux-64 -c conda-forge # provides g++ 7.2
-# Ubuntu 18.04: it already has g++ 7.3
+
+# Ubuntu 18.04: it already has g++ 7.3 and using conda gxx_linux-64 will lead
+# to build failures (not finding librt)
 
 # Centos 7.0: it has g++ 4.8.5
 conda install zlib gxx_linux-64 -c conda-forge
 
 # even when using g++ for compilation, clangdev dependency is still required
 ```
+
+If GPU enabled mapd server is required then skip installing `clangdev=6 llvmdev=6`, see below.
 
 ## Check out mapd-core and prepare the build directory
 
@@ -38,19 +42,22 @@ mkdir mapd-core/build && cd mapd-core/build   # note: build directory must be in
 ## Run cmake
 
 ```
+# Centos 7.0:
 export PREFIX=$CONDA_PREFIX
+export CMAKE_COMPILERS="" #"-DCMAKE_C_COMPILER=clang -DCMAKE_CXX_COMPILER=clang++"
 export CXXFLAGS="-std=c++14 -D_GLIBCXX_USE_CXX11_ABI=0"
 export LDFLAGS="-L$PREFIX/lib -Wl,-rpath,$PREFIX/lib"
-
-# Centos 7.0:
-export CMAKE_COMPILERS="" #"-DCMAKE_C_COMPILER=clang -DCMAKE_CXX_COMPILER=clang++"
 export ZLIB_ROOT=$PREFIX
 export CXXFLAGS="$CXXFLAGS -msse4.1"
 
 # Ubuntu 16.04:
+export PREFIX=$CONDA_PREFIX
+export CXXFLAGS="-std=c++14 -D_GLIBCXX_USE_CXX11_ABI=0"
+export LDFLAGS="-L$PREFIX/lib -Wl,-rpath,$PREFIX/lib"
 export CMAKE_COMPILERS=""
 
 # Ubuntu 18.04:
+export PREFIX=$CONDA_PREFIX
 export CMAKE_COMPILERS=""
 export CXXFLAGS="-std=c++14 -D_GLIBCXX_USE_CXX11_ABI=0"
 export LDFLAGS="-L$PREFIX/lib -Wl,-rpath,$PREFIX/lib"
@@ -122,4 +129,60 @@ con = connect(user="mapd", password= "HyperInteractive", host="localhost", dbnam
 c = con.cursor()
 c.execute("SELECT * FROM flights_2008_10k LIMIT 100")
 print(list(c)[0])
+```
+
+## GPU enabled mapd-core
+
+GPU enabled mapd-core requires
+1. using `-DENABLE_CUDA=on` in mapd-core cmake configuration
+2. llvm that supports `NVPTX` target.
+
+At the moment of writing this, conda-forge provided llvmdev does not include the `NVPTX` target support 
+and accessing mapd server will result with the following failure:
+```
+F0106 16:50:27.459915 18721 NativeCodegen.cpp:675] No available targets are compatible with this triple.
+*** Check failure stack trace: ***
+```
+
+To verify whether a llvm installation has the required target support, run
+```
+llvm-config --targets-built
+```
+If the output contains `NVPTX`, then llvm is good. Otherwise, one must obtain llvm that supports `NVPTX` target.
+
+I chosed to rebuild conda-forge [llvmdev-feedstock](https://github.com/conda-forge/llvmdev-feedstock) and [clangdev-feedstock](https://github.com/conda-forge/clangdev-feedstock) locally:
+
+```
+conda activate base
+git clone https://github.com/conda-forge/llvmdev-feedstock
+git clone https://github.com/conda-forge/clangdev-feedstock.git
+
+# Edit llvmdev-feedstock/recipe/build.sh to include `-DLLVM_TARGETS_TO_BUILD="X86;NVPTX"` cmake argument
+# and increment build number in llvmdev-feedstock/recipe/meta.yaml
+conda build llvmdev-feedstock/recipe
+
+# Edit clangdev-feedstock/recipe/meta.yaml to include the following two lines:
+{% set version = "7.0.1" %}
+{% set sha256 = "a45b62dde5d7d5fdcdfa876b0af92f164d434b06e9e89b5d0b1cbc65dfe3f418" %}
+
+conda build clangdev-feedstock/recipe
+```
+To install the build llvmdev and clangdev, run
+```
+conda install -n omnisci-dev --use-local llvmdev=7.0.1 clangdev=7.0.1
+```
+Now continue with mapd-core building (see above) with the following cmake command:
+```
+cmake \
+      -DCMAKE_INSTALL_PREFIX=$PREFIX \
+      -DCMAKE_BUILD_TYPE=debug \
+      -DENABLE_AWS_S3=off \
+      -DENABLE_FOLLY=off \
+      -DENABLE_JAVA_REMOTE_DEBUG=off \
+      -DMAPD_IMMERSE_DOWNLOAD=off \
+      -DMAPD_DOCS_DOWNLOAD=off \
+      -DPREFER_STATIC_LIBS=off \
+      -DENABLE_CUDA=on \
+      $CMAKE_COMPILERS \
+  ..
 ```
