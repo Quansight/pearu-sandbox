@@ -184,5 +184,6 @@ cmake \
       -DPREFER_STATIC_LIBS=off \
       -DENABLE_CUDA=on \
       $CMAKE_COMPILERS \
+      -DMAPD_EDITION=CE \
   ..
 ```
