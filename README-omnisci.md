@@ -165,7 +165,7 @@ conda build llvmdev-feedstock/recipe   # takes about 96m (user)
 {% set version = "7.0.1" %}
 {% set sha256 = "a45b62dde5d7d5fdcdfa876b0af92f164d434b06e9e89b5d0b1cbc65dfe3f418" %}
 
-conda build clangdev-feedstock/recipe
+conda build clangdev-feedstock/recipe  # takes about 84m (user)
 ```
 To install the build llvmdev and clangdev, run
 ```
