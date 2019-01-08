@@ -14,7 +14,7 @@ Testing on the following platforms (all have GPU card Quadro P2000):
 conda create -n omnisci-dev python>=3.6 pytest cmake setuptools numpy numba>=0.40 \
   clangdev=6 llvmdev=6 arrow-cpp>=0.11 boost-cpp=1.67 boost=1.67 go gperftools gdal \
   thrift-cpp=0.11.0 thrift=0.11.0 gflags glog libarchive maven bisonpp flex \
-  cython pyarrow>=0.11 parquet-cpp bloscs \
+  cython pyarrow>=0.11 parquet-cpp blosc \
   doxygen -c conda-forge
 conda activate omnisci-dev
 # Ubuntu 16.04: it has g++ 5.4
