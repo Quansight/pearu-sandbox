@@ -157,6 +157,8 @@ conda activate base
 git clone https://github.com/conda-forge/llvmdev-feedstock
 git clone https://github.com/conda-forge/clangdev-feedstock.git
 
+export CXXFLAGS="-std=c++14 -D_GLIBCXX_USE_CXX11_ABI=0"
+
 # Edit llvmdev-feedstock/recipe/build.sh to include `-DLLVM_TARGETS_TO_BUILD="X86;NVPTX"` cmake argument
 # and increment build number in llvmdev-feedstock/recipe/meta.yaml
 conda build llvmdev-feedstock/recipe   # takes about 96m (user)
@@ -187,3 +189,16 @@ cmake \
       -DMAPD_EDITION=CE \
   ..
 ```
+
+## Possible issues and solutions
+
+mapd-core build fails:
+```
+[ 88%] Linking CXX executable bin/mapd_server
+
+QueryEngine/libQueryEngine.a(NativeCodegen.cpp.o): In function `Executor::initializeNVPTXBackend() const':
+/home/pearu/git/omnisci/mapd-core-internal/QueryEngine/NativeCodegen.cpp:673: undefined reference to `llvm::TargetRegistry::lookupTarget(std::string const&, std::string&)'
+collect2: error: ld returned 1 exit status
+```
+This problem appears when linking together libraries using different C++ ABI verions.
+
