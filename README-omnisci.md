@@ -7,6 +7,7 @@ Testing on the following platforms (all have GPU card Quadro P2000):
 2. KVM client Ubuntu 16.04
 3. KVM client Ubuntu 18.04
 4. KVM client Centos 7
+5. Darwin 18.0 
 
 ## Prepare conda environment with mapd-core dependencies
 
@@ -25,6 +26,9 @@ conda install gxx_linux-64 -c conda-forge # provides g++ 7.2
 
 # Centos 7.0: it has g++ 4.8.5
 conda install zlib gxx_linux-64 -c conda-forge
+
+# Darwin 18.0
+conda install openjdk=8 -c conda-forge
 
 # even when using g++ for compilation, clangdev dependency is still required
 ```
@@ -46,6 +50,7 @@ mkdir mapd-core/build && cd mapd-core/build   # note: build directory must be in
 export PREFIX=$CONDA_PREFIX
 export CMAKE_COMPILERS="" #"-DCMAKE_C_COMPILER=clang -DCMAKE_CXX_COMPILER=clang++"
 export CXXFLAGS="-std=c++14 -D_GLIBCXX_USE_CXX11_ABI=0"
+# with the latest conda use _GLIBCXX_USE_CXX11_ABI default 1
 export LDFLAGS="-L$PREFIX/lib -Wl,-rpath,$PREFIX/lib"
 export ZLIB_ROOT=$PREFIX
 export CXXFLAGS="$CXXFLAGS -msse4.1"
@@ -53,6 +58,7 @@ export CXXFLAGS="$CXXFLAGS -msse4.1"
 # Ubuntu 16.04:
 export PREFIX=$CONDA_PREFIX
 export CXXFLAGS="-std=c++14 -D_GLIBCXX_USE_CXX11_ABI=0"
+# with the latest conda use _GLIBCXX_USE_CXX11_ABI default 1
 export LDFLAGS="-L$PREFIX/lib -Wl,-rpath,$PREFIX/lib"
 export CMAKE_COMPILERS=""
 
@@ -60,7 +66,16 @@ export CMAKE_COMPILERS=""
 export PREFIX=$CONDA_PREFIX
 export CMAKE_COMPILERS=""
 export CXXFLAGS="-std=c++14 -D_GLIBCXX_USE_CXX11_ABI=0"
+# with the latest conda use _GLIBCXX_USE_CXX11_ABI default 1
 export LDFLAGS="-L$PREFIX/lib -Wl,-rpath,$PREFIX/lib"
+
+# Darwin 18.0:
+export PREFIX=$CONDA_PREFIX
+export CMAKE_COMPILERS="-DCMAKE_C_COMPILER=clang -DCMAKE_CXX_COMPILER=clang++"
+export CXXFLAGS="-std=c++14"
+export LDFLAGS="-L$PREFIX/lib -Wl,-rpath,$PREFIX/lib"
+export ZLIB_ROOT=$PREFIX
+export LibArchive_ROOT=$PREFIX
 
 #
 cmake \
@@ -75,6 +90,7 @@ cmake \
       -DENABLE_CUDA=off \
       $CMAKE_COMPILERS \
   ..
+# make sure that cmake finds all required packages from conda environment
 ```
 
 Setting `-DENABLE_CUDA=on` fails on Ubuntu 16.04 (not finding `librt`) but works on Ubuntu 18.04.
