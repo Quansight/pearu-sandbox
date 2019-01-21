@@ -218,3 +218,22 @@ collect2: error: ld returned 1 exit status
 ```
 This problem appears when linking together libraries using different C++ ABI verions.
 
+mapd-core build fails:
+```
+[ERROR] COMPILATION ERROR : 
+[ERROR] /Users/user/dev/pearu/git/mapd-core/java/thrift/src/gen/com/mapd/thrift/server/TRenderParseResult.java:[10,18] package javax.annotation does not exist
+...
+```
+As a solution, use `openjdk=8` when installing conda packages.
+
+mapd-core build fails:
+```
+[ 55%] Linking CXX executable bin/initdb
+Undefined symbols for architecture x86_64:
+  "_archive_read_free", referenced from:
+      Archive::~Archive() in libCsvImport.a(Importer.cpp.o)
+  "_archive_read_support_filter_bzip2", referenced from:
+      Archive::Archive(std::__1::basic_string<char, std::__1::char_traits<char>, std::__1::allocator<char> >, bool) in libCsvImport.a(Importer.cpp.o)
+...
+```
+As a solution, use `export LibArchive_ROOT=$PREFIX` prior `cmake`.
