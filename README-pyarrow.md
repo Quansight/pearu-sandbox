@@ -7,7 +7,7 @@ conda install python numpy six setuptools cython pandas pytest \
       cmake flatbuffers rapidjson boost-cpp thrift-cpp snappy zlib \
       gflags brotli jemalloc lz4-c zstd \
       double-conversion glog autoconf hypothesis numba \
-      clangdev=6 flake8 \
+      clangdev=6 flake8 gtest \
       -c conda-forge
 cd git/Quansight
 git clone https://github.com/quansight/arrow.git
