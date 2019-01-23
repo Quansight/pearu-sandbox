@@ -290,3 +290,11 @@ In file included from /home/pearu/git/Quansight/mapd-core/QueryEngine/RuntimeFun
 /home/pearu/git/Quansight/mapd-core/QueryEngine/DecodersImpl.h:86:69: note: called from here
    return SUFFIX(fixed_width_int_decode)(byte_stream, byte_width, pos);
 ```
+
+### fail
+
+```
+[ 58%] Linking CXX executable bin/mapd_server
+CMakeFiles/mapd_server.dir/MapDServer.cpp.o: In function `boost::system::system_category()':
+/home/pearu/miniconda3/envs/omnisci-conda/include/boost/system/error_code.hpp:472: undefined reference to `boost::system::detail::system_category_instance'
+```
