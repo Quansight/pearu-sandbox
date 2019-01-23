@@ -19,7 +19,7 @@ For instance,
 will show all libraries that use pre-CXX11ABI
 """
 # Author: Pearu Peterson
-# Created: 
+# Created: Janyary 2019
 
 
 import os
