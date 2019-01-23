@@ -272,3 +272,21 @@ CMakeFiles/mapd_server.dir/MapDServer.cpp.o: In function `file_delete(std::atomi
 /home/pearu/git/Quansight/mapd-core/Shared/file_delete.h:43: undefined reference to `boost::system::detail::system_category_instance'
 CMakeFiles/mapd_server.dir/MapDServer.cpp.o: In function `boost::system::generic_category()':
 ```
+Solution:?
+
+### mapd-code build fail
+
+```
+In file included from /home/pearu/git/Quansight/mapd-core/QueryEngine/DecodersImpl.h:28:0,
+                 from /home/pearu/git/Quansight/mapd-core/QueryEngine/RuntimeFunctions.cpp:37:
+/home/pearu/git/Quansight/mapd-core/QueryEngine/DecodersImpl.h: In function 'int64_t fixed_width_int_decode_noinline(const int8_t*, int32_t, int64_t)':
+/home/pearu/git/Quansight/mapd-core/QueryEngine/DecodersImpl.h:31:8: error: inlining failed in call to always_inline 'int64_t fixed_width_int_decode(const int8_t*, int32_t, int64_t)': function body can be overwritten at link time
+ SUFFIX(fixed_width_int_decode)(const int8_t* byte_stream,
+        ^
+/home/pearu/git/Quansight/mapd-core/QueryEngine/../Shared/funcannotations.h:63:22: note: in definition of macro 'SUFFIX'
+ #define SUFFIX(name) name
+                      ^~~~
+In file included from /home/pearu/git/Quansight/mapd-core/QueryEngine/RuntimeFunctions.cpp:37:0:
+/home/pearu/git/Quansight/mapd-core/QueryEngine/DecodersImpl.h:86:69: note: called from here
+   return SUFFIX(fixed_width_int_decode)(byte_stream, byte_width, pos);
+```
