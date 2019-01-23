@@ -208,7 +208,7 @@ cmake \
 
 ## Possible issues and solutions
 
-mapd-core build fails:
+### mapd-core build fail
 ```
 [ 88%] Linking CXX executable bin/mapd_server
 
@@ -218,7 +218,7 @@ collect2: error: ld returned 1 exit status
 ```
 This problem appears when linking together libraries using different C++ ABI verions.
 
-mapd-core build fails:
+### mapd-core build fails
 ```
 [ERROR] COMPILATION ERROR : 
 [ERROR] /Users/user/dev/pearu/git/mapd-core/java/thrift/src/gen/com/mapd/thrift/server/TRenderParseResult.java:[10,18] package javax.annotation does not exist
@@ -226,7 +226,7 @@ mapd-core build fails:
 ```
 As a solution, use `openjdk=8` when installing conda packages.
 
-mapd-core build fails:
+### mapd-core build fails
 ```
 [ 55%] Linking CXX executable bin/initdb
 Undefined symbols for architecture x86_64:
@@ -237,3 +237,16 @@ Undefined symbols for architecture x86_64:
 ...
 ```
 As a solution, use `export LibArchive_ROOT=$PREFIX` prior `cmake`.
+
+### conda CC env
+
+```
+$ echo $CC
+/use/the/cgo/conda/package/instead
+```
+Solution?
+```
+conda install -c conda-forge go-cgo
+```
+
+### 
