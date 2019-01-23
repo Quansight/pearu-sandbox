@@ -244,9 +244,22 @@ As a solution, use `export LibArchive_ROOT=$PREFIX` prior `cmake`.
 $ echo $CC
 /use/the/cgo/conda/package/instead
 ```
-Solution?
+Solution:
+```
+export CC=
+export CXX=
+```
+
+
+### mapd-core build fail
+
+```
+[ 53%] Generating ../libjwt.a, ../libjwt.h
+can't load package: package main: build constraints exclude all Go files in /home/pearu/git/omnisci/mapd-core-internal/Licensing
+Licensing/CMakeFiles/Licensing.dir/build.make:61: recipe for target 'libjwt.a' failed
+make[2]: *** [libjwt.a] Error 1
+```
+Solution?:
 ```
 conda install -c conda-forge go-cgo
 ```
-
-### 
