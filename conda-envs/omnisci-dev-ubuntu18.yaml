@@ -52,7 +52,6 @@ dependencies:
   - boost-cpp=1.68
   - boost=1.68
   - thrift-cpp=0.12.0
-#  - thrift=0.12.0
   - gdal
   - gflags
   - glog
@@ -61,17 +60,3 @@ dependencies:
   - blosc
 #  doxygen
 #  gperftools  # installs tcmalloc with pre-CXX11 ABI, disable using -DENABLE_PROFILE=off
-
-#create conda environment:
-#  
-
-
-
-#mapd-core build environment: |
-#  
-#  export CMAKE_COMPILERS=""
-#  export CXXFLAGS="-std=c++14"
-#  
-
-#mapd-core build command: |
-#  cmake -DCMAKE_INSTALL_PREFIX=$PREFIX -DCMAKE_BUILD_TYPE=debug -DENABLE_AWS_S3=off -DENABLE_FOLLY=off -DENABLE_JAVA_REMOTE_DEBUG=off -DMAPD_IMMERSE_DOWNLOAD=off -DMAPD_DOCS_DOWNLOAD=off -DPREFER_STATIC_LIBS=off -DENABLE_CUDA=off -DCMAKE_C_COMPILER=gcc -DCMAKE_CXX_COMPILER=g++ -DENABLE_PROFILE=off ..
