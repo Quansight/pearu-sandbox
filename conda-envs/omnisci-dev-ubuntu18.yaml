@@ -1,0 +1,77 @@
+#
+# Ubuntu 18.04, using new CXX11 ABI
+#
+#
+# Install system dependecies:
+#  sudo apt-get install libc6-dev gcc g++
+#
+# Create environment:
+#   conda env create --file=omnisci-dev-ubuntu18.yaml -n omnisci-dev-test
+#
+# Build mapd-core:
+#   export PREFIX=$CONDA_PREFIX
+#   export CXXFLAGS="$CXXFLAGS -DBOOST_ERROR_CODE_HEADER_ONLY"
+#   export LDFLAGS="-L$PREFIX/lib -Wl,-rpath,$PREFIX/lib"
+#   cmake -DCMAKE_INSTALL_PREFIX=$PREFIX -DCMAKE_BUILD_TYPE=debug -DENABLE_AWS_S3=off -DENABLE_FOLLY=off -DENABLE_JAVA_REMOTE_DEBUG=off -DMAPD_IMMERSE_DOWNLOAD=off -DMAPD_DOCS_DOWNLOAD=off -DPREFER_STATIC_LIBS=off -DENABLE_CUDA=off -DCMAKE_C_COMPILER=gcc -DCMAKE_CXX_COMPILER=g++ -DENABLE_PROFILER=off ..
+#   make -j `nproc`
+#
+# Test mapd-core build:
+#   mkdir tmp && bin/initdb tmp
+#   make sanity_tests
+#
+#   mkdir data && bin/initdb data
+#   # run bin/mapd_server
+#   bash ../insert_sample_data # select table flights_2008_10k
+#   bin/mapdql -p HyperInteractive
+#
+#
+# Author: Pearu Peterson
+# Created: January 2019
+#
+name: omnisci-dev
+channels:
+  - conda-forge
+  - nodefaults
+dependencies:
+  - cmake
+  - make
+  - python>=3.6
+  - cython
+  - setuptools
+  - pytest
+  - numpy
+  - numba>=0.40
+  - bisonpp
+  - flex
+  - go
+  - maven
+  - clangdev=6
+  - llvmdev=6
+  - arrow-cpp=0.12
+  - pyarrow=0.12
+  - boost-cpp=1.68
+  - boost=1.68
+  - thrift-cpp=0.12.0
+#  - thrift=0.12.0
+  - gdal
+  - gflags
+  - glog
+  - libarchive
+  - parquet-cpp
+  - blosc
+#  doxygen
+#  gperftools  # installs tcmalloc with pre-CXX11 ABI, disable using -DENABLE_PROFILE=off
+
+#create conda environment:
+#  
+
+
+
+#mapd-core build environment: |
+#  
+#  export CMAKE_COMPILERS=""
+#  export CXXFLAGS="-std=c++14"
+#  
+
+#mapd-core build command: |
+#  cmake -DCMAKE_INSTALL_PREFIX=$PREFIX -DCMAKE_BUILD_TYPE=debug -DENABLE_AWS_S3=off -DENABLE_FOLLY=off -DENABLE_JAVA_REMOTE_DEBUG=off -DMAPD_IMMERSE_DOWNLOAD=off -DMAPD_DOCS_DOWNLOAD=off -DPREFER_STATIC_LIBS=off -DENABLE_CUDA=off -DCMAKE_C_COMPILER=gcc -DCMAKE_CXX_COMPILER=g++ -DENABLE_PROFILE=off ..
