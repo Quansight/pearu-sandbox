@@ -298,3 +298,7 @@ In file included from /home/pearu/git/Quansight/mapd-core/QueryEngine/RuntimeFun
 CMakeFiles/mapd_server.dir/MapDServer.cpp.o: In function `boost::system::system_category()':
 /home/pearu/miniconda3/envs/omnisci-conda/include/boost/system/error_code.hpp:472: undefined reference to `boost::system::detail::system_category_instance'
 ```
+Solution:
+```
+export CXXFLAGS="$CXXFLAGS -DBOOST_ERROR_CODE_HEADER_ONLY"
+```
