@@ -1,5 +1,72 @@
 
-# Building mapd-core while using conda dependencies
+# Building mapd-core while using conda dependencies: CXX11ABI packages
+
+```
+cd git
+git clone https://github.com/Quansight/mapd-core
+```
+
+## KVM client Ubuntu 18.04 - CUDA disabled
+
+```
+# Install system dependencies:
+sudo apt-get install libc6-dev gcc g++
+# Setup conda environment:
+wget https://raw.githubusercontent.com/Quansight/pearu-sandbox/master/conda-envs/omnisci-dev-ubuntu18.yaml
+conda env create --file=omnisci-dev-ubuntu18.yaml -n omnisci-dev-cpu
+conda activate omnisci-dev-cpu
+# Build mapd-core:
+cd git/mapd-core/
+mkdir build-cpu && cd build-cpu
+cmake -DCMAKE_INSTALL_PREFIX=$PREFIX -DCMAKE_BUILD_TYPE=debug \
+  -DENABLE_AWS_S3=off -DENABLE_FOLLY=off -DENABLE_JAVA_REMOTE_DEBUG=off \
+  -DMAPD_IMMERSE_DOWNLOAD=off -DMAPD_DOCS_DOWNLOAD=off -DPREFER_STATIC_LIBS=off \
+  -DENABLE_CUDA=off -DCMAKE_C_COMPILER=gcc -DCMAKE_CXX_COMPILER=g++ \
+  -DENABLE_PROFILER=off ..
+make -j `nproc`
+# Run sanity tests:
+mkdir tmp && bin/initdb tmp
+make sanity_tests
+# Basic usage:
+mkdir data && bin/initdb data
+# run bin/mapd_server in another console
+bash ../insert_sample_data # select table flights_2008_10k
+bin/mapdql -p HyperInteractive
+```
+## KVM client Ubuntu 18.04 - CUDA enabled
+
+Make sure that the output of `llvm-config --targets-built` contains `NVPTX`.
+
+Follow instructions above with the following modifications:
+1. `conda env create --file=omnisci-dev-ubuntu18.yaml -n omnisci-dev-cuda`
+2. `mkdir build-cuda && cd build-cuda`
+3. `cmake ... -DENABLE_CUDA=on ...`.
+
+## Building llvmdev and clangdev with NVPTX target support
+
+If [llvmdev-feedstock PR 59](https://github.com/conda-forge/llvmdev-feedstock/pull/59) has not been merged then rebuild `llvmdev` and `clangdev` conda packages as follows:
+
+```
+conda activate base
+git clone https://github.com/conda-forge/llvmdev-feedstock
+git clone https://github.com/conda-forge/clangdev-feedstock.git
+
+# Edit llvmdev-feedstock/recipe/build.sh by removing line `-DLLVM_TARGETS_TO_BUILD=host`
+# and increment build number in llvmdev-feedstock/recipe/meta.yaml
+conda build llvmdev-feedstock/recipe   # takes about 96m (user)
+
+# Edit clangdev-feedstock/recipe/meta.yaml to include the following two lines:
+{% set version = "7.0.1" %}
+{% set sha256 = "a45b62dde5d7d5fdcdfa876b0af92f164d434b06e9e89b5d0b1cbc65dfe3f418" %}
+
+conda build clangdev-feedstock/recipe  # takes about 84m (user)
+```
+To install the build llvmdev and clangdev, run
+```
+conda install -n omnisci-dev-gpu llvmdev=7.0.1 clangdev=7.0.1 -c local
+```
+
+# Building mapd-core while using conda dependencies: pre-CXX11ABI packages
 
 Testing on the following platforms (all have GPU card Quadro P2000):
 
