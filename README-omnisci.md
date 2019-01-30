@@ -1,14 +1,11 @@
 
 # Building mapd-core while using conda dependencies: CXX11ABI packages
 
+## Setup
+
 ```
 cd git
 git clone https://github.com/Quansight/mapd-core
-```
-
-## KVM client Ubuntu 18.04 - CUDA disabled
-
-```
 # Install system dependencies:
 sudo apt-get install libc6-dev gcc g++
 # Setup conda environment:
@@ -17,12 +14,34 @@ conda env create --file=omnisci-dev-ubuntu18.yaml -n omnisci-dev-cpu
 conda activate omnisci-dev-cpu
 # Build mapd-core:
 cd git/mapd-core/
+```
+
+## KVM client Ubuntu 18.04 - CUDA disabled
+
+```
 mkdir build-cpu && cd build-cpu
 cmake -DCMAKE_INSTALL_PREFIX=$PREFIX -DCMAKE_BUILD_TYPE=debug \
   -DENABLE_AWS_S3=off -DENABLE_FOLLY=off -DENABLE_JAVA_REMOTE_DEBUG=off \
   -DMAPD_IMMERSE_DOWNLOAD=off -DMAPD_DOCS_DOWNLOAD=off -DPREFER_STATIC_LIBS=off \
   -DENABLE_CUDA=off -DCMAKE_C_COMPILER=gcc -DCMAKE_CXX_COMPILER=g++ \
   -DENABLE_PROFILER=off ..
+```
+## KVM client Ubuntu 18.04 - CUDA enabled
+
+Make sure that the output of `llvm-config --targets-built` contains `NVPTX`. If not, see below how to rebuild `llvmdev` and `clangdev`.
+
+```
+mkdir build-cuda && cd build-cuda
+cmake -DCMAKE_INSTALL_PREFIX=$PREFIX -DCMAKE_BUILD_TYPE=debug \
+  -DENABLE_AWS_S3=off -DENABLE_FOLLY=off -DENABLE_JAVA_REMOTE_DEBUG=off \
+  -DMAPD_IMMERSE_DOWNLOAD=off -DMAPD_DOCS_DOWNLOAD=off -DPREFER_STATIC_LIBS=off \
+  -DENABLE_CUDA=on -DCMAKE_C_COMPILER=gcc -DCMAKE_CXX_COMPILER=g++ \
+  -DENABLE_PROFILER=off ..
+```
+
+## Building and testing mapd-core
+
+```
 make -j `nproc`
 # Run sanity tests:
 mkdir tmp && bin/initdb tmp
@@ -33,14 +52,6 @@ mkdir data && bin/initdb data
 bash ../insert_sample_data # select table flights_2008_10k
 bin/mapdql -p HyperInteractive
 ```
-## KVM client Ubuntu 18.04 - CUDA enabled
-
-Make sure that the output of `llvm-config --targets-built` contains `NVPTX`.
-
-Follow instructions above with the following modifications:
-1. `conda env create --file=omnisci-dev-ubuntu18.yaml -n omnisci-dev-cuda`
-2. `mkdir build-cuda && cd build-cuda`
-3. `cmake ... -DENABLE_CUDA=on ...`.
 
 ## Building llvmdev and clangdev with NVPTX target support
 
