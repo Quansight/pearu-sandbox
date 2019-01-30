@@ -51,19 +51,16 @@ conda activate base
 git clone https://github.com/conda-forge/llvmdev-feedstock
 git clone https://github.com/conda-forge/clangdev-feedstock.git
 
-# Edit llvmdev-feedstock/recipe/build.sh by removing line `-DLLVM_TARGETS_TO_BUILD=host`
+# Edit llvmdev-feedstock/recipe/build.sh by removing `-DLLVM_TARGETS_TO_BUILD=host`
 # and increment build number in llvmdev-feedstock/recipe/meta.yaml
-conda build llvmdev-feedstock/recipe   # takes about 96m (user)
+conda build llvmdev-feedstock/recipe   # takes about 147m (user)
 
-# Edit clangdev-feedstock/recipe/meta.yaml to include the following two lines:
-{% set version = "7.0.1" %}
-{% set sha256 = "a45b62dde5d7d5fdcdfa876b0af92f164d434b06e9e89b5d0b1cbc65dfe3f418" %}
-
+# Increment build number in clangdev-feedstock/recipe/meta.yaml
 conda build clangdev-feedstock/recipe  # takes about 84m (user)
 ```
 To install the build llvmdev and clangdev, run
 ```
-conda install -n omnisci-dev-gpu llvmdev=7.0.1 clangdev=7.0.1 -c local
+conda install -n omnisci-dev-cuda llvmdev=7.0.1 clangdev=7.0.1 -c local
 ```
 
 # Building mapd-core while using conda dependencies: pre-CXX11ABI packages
