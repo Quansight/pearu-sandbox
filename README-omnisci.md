@@ -16,7 +16,7 @@ conda activate omnisci-dev-cpu
 cd git/mapd-core/
 ```
 
-## KVM client Ubuntu 18.04 - CUDA disabled
+### KVM client Ubuntu 18.04 - CUDA disabled
 
 ```
 mkdir build-cpu && cd build-cpu
@@ -26,7 +26,7 @@ cmake -DCMAKE_INSTALL_PREFIX=$PREFIX -DCMAKE_BUILD_TYPE=debug \
   -DENABLE_CUDA=off -DCMAKE_C_COMPILER=gcc -DCMAKE_CXX_COMPILER=g++ \
   -DENABLE_PROFILER=off ..
 ```
-## KVM client Ubuntu 18.04 - CUDA enabled
+### KVM client Ubuntu 18.04 - CUDA enabled
 
 Make sure that the output of `llvm-config --targets-built` contains `NVPTX`. If not, see below how to rebuild `llvmdev` and `clangdev`.
 
