@@ -37,5 +37,5 @@ GIT_DESCRIBE_NUMBER=2000 conda build numba/buildscripts/condarecipe.local/
 
 ### Installing the built packages
 ```
-conda install -n remote-numba-dev llvmdev=7.0.1 clangdev=7.0.1 -c local
+conda install -n remote-numba-dev llvmdev=7.0.1 clangdev=7.0.1 llvmlite=0.27.1 numba -c local
 ```
