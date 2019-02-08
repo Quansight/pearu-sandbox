@@ -59,7 +59,8 @@ If [llvmdev-feedstock PR 59](https://github.com/conda-forge/llvmdev-feedstock/pu
 
 ```
 conda activate base
-git clone https://github.com/conda-forge/llvmdev-feedstock
+conda install make cmake conda-build -c conda-forge
+git clone https://github.com/conda-forge/llvmdev-feedstock.git
 git clone https://github.com/conda-forge/clangdev-feedstock.git
 
 # Edit llvmdev-feedstock/recipe/build.sh by removing `-DLLVM_TARGETS_TO_BUILD=host`
