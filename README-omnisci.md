@@ -65,7 +65,7 @@ git clone https://github.com/conda-forge/clangdev-feedstock.git
 
 # Edit llvmdev-feedstock/recipe/build.sh by removing `-DLLVM_TARGETS_TO_BUILD=host`
 # and increment build number in llvmdev-feedstock/recipe/meta.yaml
-conda build llvmdev-feedstock/recipe   # takes about 147m (user)
+conda build llvmdev-feedstock/recipe   # takes about 191m (user)
 
 # Increment build number in clangdev-feedstock/recipe/meta.yaml
 conda build clangdev-feedstock/recipe  # takes about 84m (user)
