@@ -7,7 +7,7 @@ conda install python numpy six setuptools cython pandas pytest \
       cmake flatbuffers rapidjson boost-cpp thrift-cpp snappy zlib \
       gflags brotli jemalloc lz4-c zstd \
       double-conversion glog autoconf hypothesis numba \
-      clangdev=6 flake8 gtest \
+      clangdev=6 flake8 gtest gmock \
       -c conda-forge
 cd git/Quansight
 git clone https://github.com/quansight/arrow.git
@@ -37,4 +37,16 @@ cd ../../python
 python setup.py build_ext --build-type=$ARROW_BUILD_TYPE --with-cuda develop
 py.test -sv pyarrow/
 
+```
+
+For debugging, use
+```
+export ARROW_BUILD_TYPE=releas
+cmake -DCMAKE_BUILD_TYPE=$ARROW_BUILD_TYPE \
+      -DCMAKE_INSTALL_PREFIX=$ARROW_HOME \
+      -DARROW_PARQUET=off  -DARROW_PYTHON=on  \
+      -DARROW_PLASMA=off -DARROW_BUILD_TESTS=ON \
+      -DARROW_CUDA=on \
+      -DCLANG_FORMAT_BIN=`which clang-format` \
+      ..
 ```
