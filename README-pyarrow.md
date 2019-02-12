@@ -39,9 +39,9 @@ py.test -sv pyarrow/
 
 ```
 
-For debugging, use
+For development, use
 ```
-export ARROW_BUILD_TYPE=releas
+export ARROW_BUILD_TYPE=debug
 cmake -DCMAKE_BUILD_TYPE=$ARROW_BUILD_TYPE \
       -DCMAKE_INSTALL_PREFIX=$ARROW_HOME \
       -DARROW_PARQUET=off  -DARROW_PYTHON=on  \
