@@ -3,6 +3,7 @@
 
 ```
 conda create -n pyarrow-dev
+conda activate pyarrow-dev
 conda install python numpy six setuptools cython pandas pytest \
       cmake flatbuffers rapidjson boost-cpp thrift-cpp snappy zlib \
       gflags brotli jemalloc lz4-c zstd \
