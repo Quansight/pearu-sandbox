@@ -46,7 +46,10 @@ git rebase upstream/master
 ```
 or
 ```
+git log --graph --decorate --pretty=oneline --abbrev-commit
 git rebase -i <current upstream parent commit for newfeature branch>
+# editor is openend, replace all `pick` with `squash` except the first one, close editor
+# another editor is opened, remove all unnecessary commit lines
 ```
 
 ### Implementing a new feature
