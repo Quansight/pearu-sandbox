@@ -18,4 +18,13 @@ conda build reciepe/
 # remember the generated tar.bz2 file path
 anaconda login
 anaconda upload /home/pearu/miniconda3/conda-bld/linux-64/numba-0.42.1-py37hf484d3e_0.tar.bz2
+
+# Testing
+conda env create -n test-env1
+conda activate test-env1
+conda install -c pearu numba
+conda list  # the output:
+...
+numba                     0.42.1           py37hf484d3e_0    pearu
+...
 ```
