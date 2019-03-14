@@ -378,3 +378,4 @@ Solution:
 ```
 export CXXFLAGS="$CXXFLAGS -DBOOST_ERROR_CODE_HEADER_ONLY"
 ```
+and rerun cmake and make.
