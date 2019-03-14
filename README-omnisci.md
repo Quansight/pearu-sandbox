@@ -386,6 +386,6 @@ This leads to a crash when running `initdb tmp`, for instance.
 
 Solution:
 ```
-sed -i 's/\/usr\/bin\/java/java/g' Calcite/Calcite.cpp
+sed -i 's/\/usr\/bin\/java/'`which java|sed 's/\//\\\\\//g'`'/g' Calcite/Calcite.cpp
 ```
-and rebuild.
+and rebuild. Or grap mapd-core from its git repo.
