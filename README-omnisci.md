@@ -379,3 +379,13 @@ Solution:
 export CXXFLAGS="$CXXFLAGS -DBOOST_ERROR_CODE_HEADER_ONLY"
 ```
 and rerun cmake and make.
+
+### Using mapd-core version 4.5.0 or older and /usr/bin/java is missing
+
+This leads to a crash when running `initdb tmp`, for instance.
+
+Solution:
+```
+sed -i 's/\/usr\/bin\/java/java/g' Calcite/Calcite.cpp
+```
+and rebuild.
