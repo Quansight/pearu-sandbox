@@ -30,7 +30,7 @@ sudo virt-filesystems --all --long -h  -d $VM
 sudo cp $VMFILE $VMFILE-orig
 
 # Expand the file system
-sudo virt-resize –expand /dev/sda1 $VMFILE-orig $VMFILE
+sudo virt-resize --expand /dev/sda1 $VMFILE-orig $VMFILE
 
 # Check the results:
 sudo qemu-img info $VMFILE
