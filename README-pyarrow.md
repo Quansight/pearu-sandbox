@@ -8,8 +8,9 @@ conda install python numpy six setuptools cython pandas pytest \
       cmake flatbuffers rapidjson boost-cpp thrift-cpp snappy zlib \
       gflags brotli jemalloc lz4-c zstd \
       double-conversion glog autoconf hypothesis numba \
-      clangdev=6 flake8 gtest gmock \
+      clangdev=6 flake8 gtest gmock make \
       -c conda-forge
+# clangdev=6 is required for clang-format
 cd git/Quansight
 git clone https://github.com/quansight/arrow.git
 ```
@@ -26,9 +27,9 @@ export NUMBAPRO_NVVM=/usr/local/cuda-9.2/nvvm/lib64/libnvvm.so
 
 cmake -DCMAKE_BUILD_TYPE=$ARROW_BUILD_TYPE \
       -DCMAKE_INSTALL_PREFIX=$ARROW_HOME \
-      -DARROW_PARQUET=off  -DARROW_PYTHON=on  \
-      -DARROW_PLASMA=off -DARROW_BUILD_TESTS=OFF \
-      -DARROW_CUDA=on \
+      -DARROW_PARQUET=OFF  -DARROW_PYTHON=ON  \
+      -DARROW_PLASMA=OFF -DARROW_BUILD_TESTS=OFF \
+      -DARROW_CUDA=ON \
       -DCLANG_FORMAT_BIN=`which clang-format` \
       ..
 make -j3
