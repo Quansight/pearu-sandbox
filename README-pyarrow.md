@@ -24,7 +24,8 @@ export ARROW_HOME=$CONDA_PREFIX
 export PARQUET_HOME=$CONDA_PREFIX
 export NUMBAPRO_LIBDEVICE=/usr/local/cuda-9.2/nvvm/libdevice
 export NUMBAPRO_NVVM=/usr/local/cuda-9.2/nvvm/lib64/libnvvm.so
-
+mkdir build
+cd build
 cmake -DCMAKE_BUILD_TYPE=$ARROW_BUILD_TYPE \
       -DCMAKE_INSTALL_PREFIX=$ARROW_HOME \
       -DARROW_PARQUET=OFF  -DARROW_PYTHON=ON  \
