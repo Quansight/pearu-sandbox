@@ -338,7 +338,8 @@ make[2]: *** [libjwt.a] Error 1
 ```
 Solution?:
 ```
-conda install -c conda-forge go-cgo
+conda install -c conda-forge go-cgo  # ???
+CGO_ENABLED=1 CC=clang CGO_LDFLAGS= CGO_CFLAGS= CGO_CPPFLAGS=  make
 ```
 
 ### mapd-core build fail
