@@ -36,6 +36,7 @@
 name: omnisci-dev
 channels:
   - conda-forge
+  - defaults
 dependencies:
   - cmake
   - make
@@ -63,6 +64,8 @@ dependencies:
   - parquet-cpp
   - blosc
   - double-conversion
+  - openldap
 #  - cudatoolkit-dev
+#  - compilers
 #  doxygen
 #  gperftools  # installs tcmalloc with pre-CXX11 ABI, disable using -DENABLE_PROFILE=off
