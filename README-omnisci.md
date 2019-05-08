@@ -360,7 +360,10 @@ In file included from /home/pearu/git/Quansight/mapd-core/QueryEngine/RuntimeFun
    return SUFFIX(fixed_width_int_decode)(byte_stream, byte_width, pos);
 ```
 
-Solution: ?
+Solution:
+```
+export CXXFLAGS="$CXXFLAGS -msse4.1"  # ?
+```
 
 ### mapd-code build fail
 
