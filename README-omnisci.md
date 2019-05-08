@@ -342,15 +342,6 @@ conda install -c conda-forge go-cgo  # ???
 CGO_ENABLED=1 CC=clang CGO_LDFLAGS= CGO_CFLAGS= CGO_CPPFLAGS=  make
 ```
 
-### mapd-core build fail
-
-```
-[ 59%] Linking CXX executable bin/mapd_server
-CMakeFiles/mapd_server.dir/MapDServer.cpp.o: In function `file_delete(std::atomic<bool>&, unsigned int, std::__cxx11::basic_string<char, std::char_traits<char>, std::allocator<char> >)':
-/home/pearu/git/Quansight/mapd-core/Shared/file_delete.h:43: undefined reference to `boost::system::detail::system_category_instance'
-CMakeFiles/mapd_server.dir/MapDServer.cpp.o: In function `boost::system::generic_category()':
-```
-Solution:?
 
 ### mapd-code build fail
 
@@ -369,7 +360,9 @@ In file included from /home/pearu/git/Quansight/mapd-core/QueryEngine/RuntimeFun
    return SUFFIX(fixed_width_int_decode)(byte_stream, byte_width, pos);
 ```
 
-### fail
+Solution: ?
+
+### mapd-code build fail
 
 ```
 [ 58%] Linking CXX executable bin/mapd_server
