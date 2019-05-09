@@ -387,3 +387,26 @@ Solution:
 sed -i 's/\/usr\/bin\/java/'`which java|sed 's/\//\\\\\//g'`'/g' Calcite/Calcite.cpp
 ```
 and rebuild. Or grap mapd-core from its git repo.
+
+### cmake warning
+
+```
+CMake Warning at /home/pearu/miniconda3/envs/omnisci-gpu-dev/share/cmake-3.14/Modules/FindCUDA.cmake:893 (message):
+  Expecting to find librt for libcudart_static, but didn't find it.
+```
+Solution:
+```
+ln -s /usr/lib/x86_64-linux-gnu/librt.a $CONDA_PREFIX/lib/
+```
+
+### cmake failure
+
+```
+CMake Error: The following variables are used in this project, but they are set to NOTFOUND.
+Please set them or make sure they are set and tested correctly in the CMake files:
+CUDA_CUDA_LIBRARY (ADVANCED)
+```
+Solution:
+```
+ln -s /usr/lib/x86_64-linux-gnu/libcuda.so $CONDA_PREFIX/lib/
+```
