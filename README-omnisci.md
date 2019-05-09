@@ -410,3 +410,25 @@ Solution:
 ```
 ln -s /usr/lib/x86_64-linux-gnu/libcuda.so $CONDA_PREFIX/lib/
 ```
+
+### mapd-core build failure
+
+```
+ 44%] Building CXX object Tests/CMakeFiles/StringDictionaryTest.dir/StringDictionaryTest.cpp.o
+/home/pearu/miniconda3/envs/omnisci-gpu-dev/bin/ld: /home/pearu/miniconda3/envs/omnisci-gpu-dev/bin/../x86_64-conda_cos6-linux-gnu/sysroot/lib/librt.so.1: undefined reference to `__vdso_clock_gettime@GLIBC_PRIVATE'
+clang-7: error: linker command failed with exit code 1 (use -v to see invocation)
+```
+Solution: ?
+
+### mapd-core build failure
+
+```
+[ 46%] Linking CXX executable ../bin/omnisci_sd_server
+/home/pearu/miniconda3/envs/omnisci-gpu-dev/bin/ld: ../Shared/libShared.a(File.cpp.o): in function `boost::system::error_code::error_code()':
+/home/pearu/miniconda3/envs/omnisci-gpu-dev/include/boost/system/error_code.hpp:636: undefined reference to `boost::system::detail::system_category_instance'
+/home/pearu/miniconda3/envs/omnisci-gpu-dev/bin/ld: /home/pearu/miniconda3/envs/omnisci-gpu-dev/include/boost/system/error_code.hpp:636: undefined reference to `boost::system::detail::system_category_instance'
+/home/pearu/miniconda3/envs/omnisci-gpu-dev/bin/ld: /home/pearu/miniconda3/envs/omnisci-gpu-dev/include/boost/system/error_code.hpp:636: undefined reference to `boost::system::detail::system_category_instance'
+/home/pearu/miniconda3/envs/omnisci-gpu-dev/bin/ld: /home/pearu/miniconda3/envs/omnisci-gpu-dev/bin/../x86_64-conda_cos6-linux-gnu/sysroot/lib/librt.so.1: undefined reference to `__vdso_clock_gettime@GLIBC_PRIVATE'
+clang-7: error: linker command failed with exit code 1 (use -v to see invocation)
+```
+Solution: ?
