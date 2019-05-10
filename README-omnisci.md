@@ -362,7 +362,7 @@ In file included from /home/pearu/git/Quansight/mapd-core/QueryEngine/RuntimeFun
 
 Solution[when using gcc as compiler]: In `Shared/funcannotations.h` use
 ```
-#define ALWAYS_INLINE inline __attribute__((always_inline))
+#define ALWAYS_INLINE
 ```
 
 ### mapd-code build fail
