@@ -360,9 +360,9 @@ In file included from /home/pearu/git/Quansight/mapd-core/QueryEngine/RuntimeFun
    return SUFFIX(fixed_width_int_decode)(byte_stream, byte_width, pos);
 ```
 
-Solution[when using gcc as compiler]: In `Shared/funcannotations.h` use
+Solution: make sure that `-fPIC` is not specified in `CXXFLAGS`
 ```
-#define ALWAYS_INLINE
+export CXXFLAGS="`echo $CXXFLAGS | sed 's/-fPIC//'`"
 ```
 
 ### mapd-code build fail
