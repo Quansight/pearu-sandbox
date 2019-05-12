@@ -12,13 +12,14 @@
 #
 # Build mapd-core:
 #   export PREFIX=$CONDA_PREFIX
-#   export CXXFLAGS="$CXXFLAGS -DBOOST_ERROR_CODE_HEADER_ONLY"
-#   export LDFLAGS="-L$PREFIX/lib -Wl,-rpath,$PREFIX/lib"
+#   export CXXFLAGS="`echo $CXXFLAGS | sed 's/-fPIC//'` -DBOOST_ERROR_CODE_HEADER_ONLY"
 #  FOR CPU ONLY:
+#   export LDFLAGS="-L$PREFIX/lib -Wl,-rpath,$PREFIX/lib"
 #   cmake -DCMAKE_INSTALL_PREFIX=$PREFIX -DCMAKE_BUILD_TYPE=debug -DENABLE_AWS_S3=off -DENABLE_FOLLY=off -DENABLE_JAVA_REMOTE_DEBUG=off -DMAPD_IMMERSE_DOWNLOAD=off -DMAPD_DOCS_DOWNLOAD=off -DPREFER_STATIC_LIBS=off -DENABLE_CUDA=off -DCMAKE_C_COMPILER=gcc -DCMAKE_CXX_COMPILER=g++ -DENABLE_PROFILER=off -DMAPD_EDITION=OS ..
 #  FOR ENABLE GPU:
-#   cmake -DCMAKE_INSTALL_PREFIX=$PREFIX -DCMAKE_BUILD_TYPE=debug -DENABLE_AWS_S3=off -DENABLE_FOLLY=off -DENABLE_JAVA_REMOTE_DEBUG=off -DMAPD_IMMERSE_DOWNLOAD=off -DMAPD_DOCS_DOWNLOAD=off -DPREFER_STATIC_LIBS=off -DENABLE_CUDA=on -DCMAKE_C_COMPILER=gcc -DCMAKE_CXX_COMPILER=g++ -DENABLE_PROFILER=off -DMAPD_EDITION=OS ..
-#   make -j
+#   export LDFLAGS="-L$PREFIX/lib -Wl,-rpath,$PREFIX/lib -L/usr/lib/x86_64-linux-gnu/ -Wl,-rpath,/usr/lib/x86_64-linux-gnu/ -lrt -pthread -lresolv /path/to/libnvidia-fatbinaryloader.so.418.56"
+#   cmake -DCMAKE_INSTALL_PREFIX=$PREFIX -DCMAKE_BUILD_TYPE=debug -DENABLE_AWS_S3=off -DENABLE_FOLLY=off -DENABLE_JAVA_REMOTE_DEBUG=off -DMAPD_IMMERSE_DOWNLOAD=off -DMAPD_DOCS_DOWNLOAD=off -DPREFER_STATIC_LIBS=off -DENABLE_CUDA=on -DCMAKE_C_COMPILER=gcc -DCMAKE_CXX_COMPILER=g++ -DENABLE_PROFILER=off -DMAPD_EDITION=EE ..
+#   CGO_ENABLED=1 CC=clang CGO_LDFLAGS= CGO_CFLAGS= CGO_CPPFLAGS=  make -j
 #
 # Test mapd-core build:
 #   mkdir tmp && bin/initdb tmp
@@ -65,7 +66,8 @@ dependencies:
   - blosc
   - double-conversion
   - openldap
-#  - cudatoolkit-dev
-#  - compilers
+  - cudatoolkit-dev
+  - c-compiler
+  - cxx-compiler
 #  doxygen
 #  gperftools  # installs tcmalloc with pre-CXX11 ABI, disable using -DENABLE_PROFILE=off
