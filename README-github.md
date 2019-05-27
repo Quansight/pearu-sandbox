@@ -31,7 +31,7 @@ git remote add upstream https://github.com/apache/arrow.git
 git remote add Quansight https://github.com/Quansight/arrow.git
 ```
 
-### Tracking the upstream
+### Tracking the upstream in master
 
 ```
 git checkout master
@@ -60,6 +60,20 @@ git checkout newfeature
 # Implement feature
 git push -u origin newfeature
 ```
+
+### Tracking the upstream in a feature branch
+
+Make sure master is even with upstream, see above.
+
+```
+git checkout newfeature
+git pull # is this needed?
+git rebase upstream/master
+git push -u origin newfeature
+git pull # is this needed?
+```
+
+See [Fix git “tip of your current branch is behind its remote counterpart”](https://codewithhugo.com/fix-git-failed-to-push-updates-were-rejected/). I found `git stash` not working as expected (and lost some commits). To prevent commit losses, I suggest `git diff > newfeature-tmp.patch`, do the reset, and then `git apply newfeature-tmp.patch`.
 
 # References
 
