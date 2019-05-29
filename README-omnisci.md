@@ -420,3 +420,13 @@ clang-7: error: linker command failed with exit code 1 (use -v to see invocation
 ```
 Solution: re-check `CXXFLAGS` and `LDFLAGS`, some `conda install ...` command may have reset these variables.
 
+### omniscidb build failure (when using clang)
+
+```
+/usr/include/limits.h:145:5: error: function-like macro '__GLIBC_USE' is not defined
+#if __GLIBC_USE (IEC_60559_BFP_EXT)
+```
+Solution:
+```
+export CFLAGS="$CFLAGS -D__GLIBC_USE\(...\)=0"
+```
