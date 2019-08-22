@@ -1,0 +1,39 @@
+#
+# For usage, see https://github.com/Quansight/pearu-sandbox/issues/2
+#
+# Author: Pearu Peterson
+# Created: August 2019
+#
+name: omniscidb-cpu-dev
+channels:
+  - conda-forge
+dependencies:
+  - cmake
+  - make
+  - go
+  - maven
+  - boost-cpp=1.68
+  - llvmdev
+  - clangdev
+  - double-conversion
+  - snappy
+  - gflags
+  - glog
+  - libarchive
+  - libkml
+  - libpng
+  - blosc
+  - libgdal=2
+  - arrow-cpp
+  - thrift-cpp
+  - ncurses
+  - flex
+  - bisonpp
+  - openssl
+  - openjdk=8
+  - xz
+  - bzip2
+  - zlib
+  - librdkafka
+# when using omniscidb-internal repo
+  - openldap
