@@ -37,3 +37,4 @@ dependencies:
   - librdkafka
 # when using omniscidb-internal repo
   - openldap
+  - compilers
