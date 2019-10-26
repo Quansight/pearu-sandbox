@@ -1,0 +1,26 @@
+#
+# For usage, see https://github.com/Quansight/dev-notes/
+#
+# Author: Pearu Peterson
+# Created: October 2019
+#
+
+name: pytorch-cuda-dev
+channels:
+  - conda-forge
+  - pytorch
+dependencies:
+  - python=3
+  - numpy
+  - ninja
+  - pyyaml
+  - mkl
+  - mkl-include
+  - setuptools
+  - cmake
+  - cffi
+  - typing
+  - pytest
+  - compilers
+  - nvcc_linux-64=10.1
+  - magma-cuda101
