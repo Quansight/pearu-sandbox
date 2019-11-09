@@ -21,14 +21,23 @@ then
 
     # wget https://raw.githubusercontent.com/Quansight/pearu-sandbox/master/conda-envs/pytorch-cuda-dev.yaml
     # conda env create  --file=pytorch-cuda-dev.yaml -n pytorch-cuda-dev
-    conda activate pytorch-cuda-dev
+    #conda activate pytorch-cuda-dev
+    if [[ -n "$(type -t layout_conda)" ]]; then
+        time layout_conda pytorch-cuda-dev
+    else
+        conda activate pytorch-cuda-dev
+    fi
     export USE_CUDA=1
     export CXXFLAGS="$CXXFLAGS -L$CUDA_HOME/lib64"
     export LDFLAGS="${LDFLAGS} -Wl,-rpath,${CUDA_HOME}/lib64 -Wl,-rpath-link,${CUDA_HOME}/lib64 -L${CUDA_HOME}/lib64"
 else
     # wget https://raw.githubusercontent.com/Quansight/pearu-sandbox/master/conda-envs/pytorch-dev.yaml
     # conda env create  --file=pytorch-dev.yaml -n pytorch-dev
-    conda activate pytorch-dev
+    if [[ -n "$(type -t layout_conda)" ]]; then
+        time layout_conda pytorch-dev
+    else
+        conda activate pytorch-dev
+    fi
     export USE_CUDA=0
 fi
 
@@ -54,7 +63,9 @@ export NUMBER_OF_SOCKETS=`lscpu | grep 'Socket(s)' | awk '{print $NF}'`
 export NCORES=`echo "$CORES_PER_SOCKET * $NUMBER_OF_SOCKETS"| bc`
 export MAX_JOBS=$NCORES
 
-cd ~/git/Quansight/pytorch
+if [[ ! -n "$(type -t layout_conda)" ]]; then
+    cd ~/git/Quansight/pytorch
+fi
 
 echo -e "Local branches:\n"
 git branch
@@ -67,3 +78,4 @@ echo -e "\nTo build, run:\n"
 echo "  python setup.py develop"
 echo -e "\nTo test, run:\n"
 echo "  pytest -sv test/test_torch.py -k ..."
+echo
