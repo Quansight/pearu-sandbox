@@ -21,7 +21,6 @@ then
 
     # wget https://raw.githubusercontent.com/Quansight/pearu-sandbox/master/conda-envs/pytorch-cuda-dev.yaml
     # conda env create  --file=pytorch-cuda-dev.yaml -n pytorch-cuda-dev
-    #conda activate pytorch-cuda-dev
     if [[ -n "$(type -t layout_conda)" ]]; then
         time layout_conda pytorch-cuda-dev
     else
