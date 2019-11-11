@@ -13,7 +13,7 @@ dependencies:
   - make
   - go-cgo
   - maven
-  - boost-cpp=1.68
+  - boost-cpp
   - llvmdev<9
   - clangdev<9
   - llvm

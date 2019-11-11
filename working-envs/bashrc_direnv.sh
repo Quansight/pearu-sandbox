@@ -53,7 +53,7 @@ if [[ "$(type -t conda)" == "function" ]]; then
             echo -e "conda command changed the environment:\n<START DIFF>\n$BASH_RC_DIFF\n<END DIFF>"
             if [[ -n "$DIRENV_DIR" ]]; then
                 echo "resetting the environment"
-                direnv allow
+                direnv reload
             fi
         fi
 
