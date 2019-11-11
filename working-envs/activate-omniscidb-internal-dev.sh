@@ -12,7 +12,11 @@
 # Created: November 2019
 #
 
-export CMAKE_OPTIONS="-DCMAKE_BUILD_TYPE=release -DMAPD_DOCS_DOWNLOAD=off -DENABLE_AWS_S3=off -DENABLE_FOLLY=off -DENABLE_JAVA_REMOTE_DEBUG=off -DENABLE_PROFILER=off -DPREFER_STATIC_LIBS=off"
+CORES_PER_SOCKET=`lscpu | grep 'Core(s) per socket' | awk '{print $NF}'`
+NUMBER_OF_SOCKETS=`lscpu | grep 'Socket(s)' | awk '{print $NF}'`
+export NCORES=`echo "$CORES_PER_SOCKET * $NUMBER_OF_SOCKETS"| bc`
+
+export CMAKE_OPTIONS="-DCMAKE_BUILD_TYPE=release -DMAPD_EDITION=EE -DMAPD_DOCS_DOWNLOAD=off -DENABLE_AWS_S3=off -DENABLE_FOLLY=off -DENABLE_JAVA_REMOTE_DEBUG=off -DENABLE_PROFILER=off -DPREFER_STATIC_LIBS=off"
 
 if [[ -x "$(command -v nvidia-smi)" ]]
 then
@@ -32,9 +36,10 @@ then
     else
         conda activate omniscidb-cuda-dev
     fi
-    #export CXXFLAGS="$CXXFLAGS -L$CUDA_HOME/lib64"
+    export CXXFLAGS="$CXXFLAGS -I$CUDA_HOME/include"
+    export CPPFLAGS="$CPPFLAGS -I$CUDA_HOME/include"
+    export CFLAGS="$CFLAGS -I$CUDA_HOME/include"
     export LDFLAGS="${LDFLAGS} -Wl,-rpath,${CUDA_HOME}/lib64 -Wl,-rpath-link,${CUDA_HOME}/lib64 -L${CUDA_HOME}/lib64"
-
     export CMAKE_OPTIONS="$CMAKE_OPTIONS -DCUDA_TOOLKIT_ROOT_DIR=$CUDA_HOME -DENABLE_CUDA=on"
 else
     # wget https://raw.githubusercontent.com/Quansight/pearu-sandbox/master/conda-envs/omniscidb-dev.yaml
@@ -47,29 +52,29 @@ else
     export CMAKE_OPTIONS="$CMAKE_OPTIONS -DENABLE_CUDA=off"
 fi
 
-export CORES_PER_SOCKET=`lscpu | grep 'Core(s) per socket' | awk '{print $NF}'`
-export NUMBER_OF_SOCKETS=`lscpu | grep 'Socket(s)' | awk '{print $NF}'`
-export NCORES=`echo "$CORES_PER_SOCKET * $NUMBER_OF_SOCKETS"| bc`
+export CONDA_BUILD_SYSROOT=$CONDA_PREFIX/$HOST/sysroot
 
-export LDFLAGS="`echo $LDFLAGS | sed 's/-Wl,--as-needed//'`"
-export LDFLAGS="$LDFLAGS -lresolv -pthread -lrt"
 export CXXFLAGS="`echo $CXXFLAGS | sed 's/-fPIC//'`"
 export CXXFLAGS="$CXXFLAGS -DBOOST_ERROR_CODE_HEADER_ONLY"
-export CFLAGS="`echo $CFLAGS | sed 's/-fPIC//'`"
-export CC=${CONDA_PREFIX}/bin/clang
-export CXX=${CONDA_PREFIX}/bin/clang++
-export EXTRA_CMAKE_OPTIONS="$EXTRA_CMAKE_OPTIONS -DCMAKE_C_COMPILER=${CC} -DCMAKE_CXX_COMPILER=${CXX}"
-export CMAKE_OPTIONS="-DCMAKE_PREFIX_PATH=$CONDA_PREFIX -DCMAKE_INSTALL_PREFIX=$CONDA_PREFIX $CMAKE_OPTIONS"
-export CMAKE_OPTIONS="$CMAKE_OPTIONS -DENABLE_TESTS=off"
+export CXXFLAGS="$CXXFLAGS -D__STDC_FORMAT_MACROS"
+export CXXFLAGS="$CXXFLAGS -Dsecure_getenv=getenv"
 
-GCCVERSION=$(basename $(dirname $($GXX -print-libgcc-file-name)))
-GXXINCLUDEDIR=$CONDA_PREFIX/$HOST/include/c++/$GCCVERSION
-export CXXFLAGS="$CXXFLAGS -I$GXXINCLUDEDIR -I$GXXINCLUDEDIR/$HOST -I$GXXINCLUDEDIR/backward -I$GXXINCLUDEDIR/include"
-#export CPLUS_INCLUDE_PATH=$CONDA_PREFIX/$HOST/include/c++/$GCCVERSION:$CONDA_PREFIX/lib/gcc/$HOST/$GCCVERSION/include
+#export CC=$CONDA_PREFIX/bin/clang
+#export CXX=$CONDA_PREFIX/bin/clang++
 
-sed -i 's!ARGS -std=c++14!ARGS -std=c++14 -I'$GXXINCLUDEDIR' -I'$GXXINCLUDEDIR/$HOST'!g' QueryEngine/CMakeLists.txt
-sed -i 's!arg_vector\[3\] = {arg0, arg1!arg_vector\[4\] = {arg0, arg1, "-extra-arg=-I'$GXXINCLUDEDIR' -I'$GXXINCLUDEDIR/$HOST'"!g' QueryEngine/UDFCompiler.cpp
+export CMAKE_CC=$CC
+export CMAKE_CXX=$CXX
 
+export CMAKE_OPTIONS="$CMAKE_OPTIONS -DCMAKE_C_COMPILER=$CMAKE_CC -DCMAKE_CXX_COMPILER=$CMAKE_CXX"
+export CMAKE_OPTIONS="$CMAKE_OPTIONS -DCMAKE_PREFIX_PATH=$CONDA_PREFIX"
+export CMAKE_OPTIONS="$CMAKE_OPTIONS -DCMAKE_INSTALL_PREFIX=$CONDA_PREFIX"
+export CMAKE_OPTIONS="$CMAKE_OPTIONS -DCMAKE_SYSROOT=$CONDA_BUILD_SYSROOT"
+export CMAKE_OPTIONS="$CMAKE_OPTIONS -DENABLE_TESTS=on"
+
+# resolves `fatal error: boost/regex.hpp: No such file or directory`
+echo -e "#!/bin/sh\n${CUDA_HOME}/bin/nvcc -ccbin $CC -I$CONDA_PREFIX/include \$@" > $PWD/nvcc
+chmod +x $PWD/nvcc
+export PATH=$PWD:$PATH
 
 echo -e "Local branches:\n"
 git branch
@@ -88,8 +93,13 @@ To build, run:
 
 To test, run:
 
+  mkdir tmp && bin/initdb tmp
   make sanity_tests
 
-EndOfMessage
+To serve, run:
 
+  mkdir data && bin/initdb data
+  bin/omnscidb_server
+
+EndOfMessage
 

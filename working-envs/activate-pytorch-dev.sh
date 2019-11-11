@@ -13,6 +13,11 @@
 # Created: November 2019
 #
 
+CORES_PER_SOCKET=`lscpu | grep 'Core(s) per socket' | awk '{print $NF}'`
+NUMBER_OF_SOCKETS=`lscpu | grep 'Socket(s)' | awk '{print $NF}'`
+export NCORES=`echo "$CORES_PER_SOCKET * $NUMBER_OF_SOCKETS"| bc`
+
+
 if [[ -x "$(command -v nvidia-smi)" ]]
 then
     # wget https://raw.githubusercontent.com/Quansight/pearu-sandbox/master/set_cuda_env.sh
@@ -22,27 +27,29 @@ then
     # wget https://raw.githubusercontent.com/Quansight/pearu-sandbox/master/conda-envs/pytorch-cuda-dev.yaml
     # conda env create  --file=pytorch-cuda-dev.yaml -n pytorch-cuda-dev
     if [[ -n "$(type -t layout_conda)" ]]; then
-        time layout_conda pytorch-cuda-dev
+        layout_conda pytorch-cuda-dev
     else
         conda activate pytorch-cuda-dev
     fi
     export USE_CUDA=1
-    export CXXFLAGS="$CXXFLAGS -L$CUDA_HOME/lib64"
+    export CXXFLAGS="$CXXFLAGS -L$CUDA_HOME/lib64"  # ???
     export LDFLAGS="${LDFLAGS} -Wl,-rpath,${CUDA_HOME}/lib64 -Wl,-rpath-link,${CUDA_HOME}/lib64 -L${CUDA_HOME}/lib64"
 else
     # wget https://raw.githubusercontent.com/Quansight/pearu-sandbox/master/conda-envs/pytorch-dev.yaml
     # conda env create  --file=pytorch-dev.yaml -n pytorch-dev
     if [[ -n "$(type -t layout_conda)" ]]; then
-        time layout_conda pytorch-dev
+        layout_conda pytorch-dev
     else
         conda activate pytorch-dev
     fi
     export USE_CUDA=0
 fi
 
+export CONDA_BUILD_SYSROOT=$CONDA_PREFIX/$HOST/sysroot
+
 export LD_LIBRARY_PATH=$CONDA_PREFIX/lib:$LD_LIBRARY_PATH
 export CXXFLAGS="`echo $CXXFLAGS | sed 's/-std=c++17/-std=c++11/'`"
-export CXXFLAGS="$CXXFLAGS -L$CONDA_PREFIX/lib"
+export CXXFLAGS="$CXXFLAGS -L$CONDA_PREFIX/lib"  # ???
 
 # Failure:
 # FAILED: nccl_external-prefix/src/nccl_external-stamp/nccl_external-build nccl/lib/libnccl_static.a
@@ -56,10 +63,6 @@ export CXXFLAGS="$CXXFLAGS -L$CONDA_PREFIX/lib"
 #      SYSCHECK(setsockopt(sockfd, SOL_SOCKET, SO_REUSEADDR | SO_REUSEPORT, &opt, sizeof(opt)), "setsockopt");
 # Fix:
 export USE_NCCL=0
-
-export CORES_PER_SOCKET=`lscpu | grep 'Core(s) per socket' | awk '{print $NF}'`
-export NUMBER_OF_SOCKETS=`lscpu | grep 'Socket(s)' | awk '{print $NF}'`
-export NCORES=`echo "$CORES_PER_SOCKET * $NUMBER_OF_SOCKETS"| bc`
 export MAX_JOBS=$NCORES
 
 if [[ ! -n "$(type -t layout_conda)" ]]; then
@@ -68,13 +71,22 @@ fi
 
 echo -e "Local branches:\n"
 git branch
-echo
-echo -e "To update, run:\n"
-echo "  git pull --rebase"
-echo "  git submodule sync --recursive"
-echo "  git submodule update --init --recursive"
-echo -e "\nTo build, run:\n"
-echo "  python setup.py develop"
-echo -e "\nTo test, run:\n"
-echo "  pytest -sv test/test_torch.py -k ..."
-echo
+
+cat << EndOfMessage
+
+To update, run:
+
+  git pull --rebase
+  git submodule sync --recursive
+  git submodule update --init --recursive
+
+To build, run:
+
+  python setup.py develop
+
+To test, run:
+
+  pytest -sv test/test_torch.py -k ...
+  python test/run_test.py
+
+EndOfMessage

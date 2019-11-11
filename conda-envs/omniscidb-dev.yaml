@@ -24,6 +24,7 @@ dependencies:
   - libarchive
   - libkml
   - libpng
+  - libiconv
   - blosc
   - libgdal>=2.3
   - arrow-cpp
