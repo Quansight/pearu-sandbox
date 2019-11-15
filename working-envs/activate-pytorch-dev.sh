@@ -17,7 +17,6 @@ CORES_PER_SOCKET=`lscpu | grep 'Core(s) per socket' | awk '{print $NF}'`
 NUMBER_OF_SOCKETS=`lscpu | grep 'Socket(s)' | awk '{print $NF}'`
 export NCORES=`echo "$CORES_PER_SOCKET * $NUMBER_OF_SOCKETS"| bc`
 
-
 if [[ -x "$(command -v nvidia-smi)" ]]
 then
     # wget https://raw.githubusercontent.com/Quansight/pearu-sandbox/master/set_cuda_env.sh
@@ -26,21 +25,26 @@ then
 
     # wget https://raw.githubusercontent.com/Quansight/pearu-sandbox/master/conda-envs/pytorch-cuda-dev.yaml
     # conda env create  --file=pytorch-cuda-dev.yaml -n pytorch-cuda-dev
+
+    Environment=pytorch${Python-}-cuda-dev
+
     if [[ -n "$(type -t layout_conda)" ]]; then
-        layout_conda pytorch-cuda-dev
+        layout_conda $Environment
     else
-        conda activate pytorch-cuda-dev
+        conda activate $Environment
     fi
     export USE_CUDA=1
+    # LDFLAGS, CXXFLAGS, etc must be set after activating the conda environment
     export CXXFLAGS="$CXXFLAGS -L$CUDA_HOME/lib64"  # ???
     export LDFLAGS="${LDFLAGS} -Wl,-rpath,${CUDA_HOME}/lib64 -Wl,-rpath-link,${CUDA_HOME}/lib64 -L${CUDA_HOME}/lib64"
 else
     # wget https://raw.githubusercontent.com/Quansight/pearu-sandbox/master/conda-envs/pytorch-dev.yaml
     # conda env create  --file=pytorch-dev.yaml -n pytorch-dev
+    Environment=pytorch${Python-}-dev
     if [[ -n "$(type -t layout_conda)" ]]; then
-        layout_conda pytorch-dev
+        layout_conda $Environment
     else
-        conda activate pytorch-dev
+        conda activate $Environment
     fi
     export USE_CUDA=0
 fi
@@ -66,7 +70,7 @@ export USE_NCCL=0
 export MAX_JOBS=$NCORES
 
 if [[ ! -n "$(type -t layout_conda)" ]]; then
-    cd ~/git/Quansight/pytorch
+    cd ~/git/Quansight/pytorch${Python-}
 fi
 
 echo -e "Local branches:\n"
