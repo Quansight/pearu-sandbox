@@ -72,7 +72,7 @@ export CMAKE_OPTIONS="$CMAKE_OPTIONS -DCMAKE_SYSROOT=$CONDA_BUILD_SYSROOT"
 export CMAKE_OPTIONS="$CMAKE_OPTIONS -DENABLE_TESTS=on"
 
 # resolves `fatal error: boost/regex.hpp: No such file or directory`
-echo -e "#!/bin/sh\n${CUDA_HOME}/bin/nvcc -ccbin $CC -I$CONDA_PREFIX/include \$@" > $PWD/nvcc
+echo -e "#!/bin/sh\n${CUDA_HOME}/bin/nvcc -ccbin $CC -v \$@" > $PWD/nvcc
 chmod +x $PWD/nvcc
 export PATH=$PWD:$PATH
 
