@@ -1,0 +1,17 @@
+name: numba-cuda-dev
+channels:
+  - conda-forge
+  - defaults
+dependencies:
+  - python>=3
+  - pytest
+  - compilers
+  - numpy
+  - tbb-devel>=2018.0.5
+  - setuptools
+  - jinja2
+# need to use llvmlite from numba repo that requires:
+  - make
+  - llvmdev 8.0.*
+  - llvm 8.0.*
+  - zlib
