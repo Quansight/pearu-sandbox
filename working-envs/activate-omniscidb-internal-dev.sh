@@ -76,10 +76,17 @@ echo -e "#!/bin/sh\n${CUDA_HOME}/bin/nvcc -ccbin $CC -v \$@" > $PWD/nvcc
 chmod +x $PWD/nvcc
 export PATH=$PWD:$PATH
 
+test -f nvcc-boost-include-dirs.patch || wget https://raw.githubusercontent.com/conda-forge/omniscidb-cuda-feedstock/master/recipe/recipe/nvcc-boost-include-dirs.patch
+
 echo -e "Local branches:\n"
 git branch
 
+function h () {
 cat << EndOfMessage
+
+To apply patches, run:
+
+  patch -p1 < nvcc-boost-include-dirs.patch
 
 To configure, run:
 
@@ -99,7 +106,10 @@ To test, run:
 To serve, run:
 
   mkdir data && bin/initdb data
-  bin/omnscidb_server
+  bin/omnisci_server --enable-runtime-udf --enable-table-functions
 
 EndOfMessage
 
+}
+
+h
