@@ -43,6 +43,8 @@ else
     fi
 fi
 
+export NUMBA_DEVELOPER_MODE=1
+
 echo -e "Local branches:\n"
 git branch
 
