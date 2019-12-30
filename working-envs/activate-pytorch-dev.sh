@@ -52,7 +52,7 @@ fi
 export CONDA_BUILD_SYSROOT=$CONDA_PREFIX/$HOST/sysroot
 
 export LD_LIBRARY_PATH=$CONDA_PREFIX/lib:$LD_LIBRARY_PATH
-export CXXFLAGS="`echo $CXXFLAGS | sed 's/-std=c++17/-std=c++11/'`"
+export CXXFLAGS="`echo $CXXFLAGS | sed 's/-std=c++17/-std=c++14/'`"
 export CXXFLAGS="$CXXFLAGS -L$CONDA_PREFIX/lib"  # ???
 
 # Failure:
@@ -83,6 +83,11 @@ To update, run:
   git pull --rebase
   git submodule sync --recursive
   git submodule update --init --recursive
+
+To clean, run:
+
+  git clean -xdf
+  git submodule foreach --recursive git clean -xfd
 
 To build, run:
 
