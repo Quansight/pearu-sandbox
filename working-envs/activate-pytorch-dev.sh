@@ -27,7 +27,6 @@ then
     # conda env create  --file=pytorch-cuda-dev.yaml -n pytorch-cuda-dev
 
     Environment=pytorch${Python-}-cuda-dev
-
     if [[ -n "$(type -t layout_conda)" ]]; then
         layout_conda $Environment
     else
@@ -36,14 +35,15 @@ then
     export USE_CUDA=1
     # LDFLAGS, CXXFLAGS, etc must be set after activating the conda environment
     export CXXFLAGS="$CXXFLAGS -L$CUDA_HOME/lib64"  # ???
+    export CFLAGS="$CFLAGS -L$CONDA_PREFIX/lib"
     export LDFLAGS="${LDFLAGS} -Wl,-rpath,${CUDA_HOME}/lib64 -Wl,-rpath-link,${CUDA_HOME}/lib64 -L${CUDA_HOME}/lib64"
 
     #export NCCL_ROOT=${CUDA_HOME}
     #export PKG_CONFIG_PATH=$PKG_CONFIG_PATH:${CUDA_HOME}/pkgconfig/
 
-    export USE_NCCL=1
+    export USE_NCCL=0
     # See https://github.com/NVIDIA/nccl/issues/244
-    if [[ ! -f third_party/nccl/nccl/issue244.patch ]]
+    if [[ "" && ! -f third_party/nccl/nccl/issue244.patch ]]
     then
         cat > third_party/nccl/nccl/issue244.patch <<EOF
 diff --git a/src/include/socket.h b/src/include/socket.h
@@ -65,7 +65,8 @@ index 68ce235..b4f09b9 100644
 EOF
         patch --verbose third_party/nccl/nccl/src/include/socket.h third_party/nccl/nccl/issue244.patch
     fi
-    if [[ ! -f torch/nccl_python.patch ]]
+
+    if [[ "" && ! -f torch/nccl_python.patch ]]
     then
         cat > torch/nccl_python.patch  <<EOF
 diff --git a/torch/CMakeLists.txt b/torch/CMakeLists.txt
