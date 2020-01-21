@@ -30,11 +30,11 @@ then
     # conda env create  --file=git/Quansight/pearu-sandbox/conda-envs/omniscidb-dev.yaml -n omniscidb-cuda-dev
     #
     # conda install -y -n omniscidb-cuda-dev -c conda-forge nvcc_linux-64
-
+    ENV="${ENV:-omniscidb-cuda-dev}"
     if [[ -n "$(type -t layout_conda)" ]]; then
-        layout_conda omniscidb-cuda-dev
+        layout_conda $ENV
     else
-        conda activate omniscidb-cuda-dev
+        conda activate $ENV
     fi
     export CXXFLAGS="$CXXFLAGS -I$CUDA_HOME/include"
     export CPPFLAGS="$CPPFLAGS -I$CUDA_HOME/include"
@@ -44,10 +44,12 @@ then
 else
     # wget https://raw.githubusercontent.com/Quansight/pearu-sandbox/master/conda-envs/omniscidb-dev.yaml
     # conda env create  --file=omniscidb-dev.yaml -n omniscidb-cpu-dev
+    ENV="${ENV:-omniscidb-cpu-dev}"
+
     if [[ -n "$(type -t layout_conda)" ]]; then
-        layout_conda omniscidb-cpu-dev
+        layout_conda $ENV
     else
-        conda activate omniscidb-cpu-dev
+        conda activate $ENV
     fi
     export CMAKE_OPTIONS="$CMAKE_OPTIONS -DENABLE_CUDA=off"
 fi

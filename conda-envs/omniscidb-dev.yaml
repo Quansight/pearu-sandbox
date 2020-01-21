@@ -4,7 +4,7 @@
 # Author: Pearu Peterson
 # Created: November 2019
 #
-name: omniscidb-dev
+name: omniscidb-cuda-dev
 channels:
   - conda-forge
   - defaults
@@ -27,7 +27,7 @@ dependencies:
   - libiconv
   - blosc
   - libgdal>=2.3
-  - arrow-cpp
+  - arrow-cpp<0.14
   - thrift-cpp
   - ncurses
   - flex
@@ -42,4 +42,4 @@ dependencies:
   - openldap
   - compilers
 # when cuda is enabled, install also
-  # - nvcc_linux-64
+  - nvcc_linux-64
