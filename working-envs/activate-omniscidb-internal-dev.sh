@@ -78,7 +78,11 @@ echo -e "#!/bin/sh\n${CUDA_HOME}/bin/nvcc -ccbin $CC -v \$@" > $PWD/nvcc
 chmod +x $PWD/nvcc
 export PATH=$PWD:$PATH
 
+# resolves UdfTest fatal error: 'cstdint' file not found
 test -f nvcc-boost-include-dirs.patch || wget https://raw.githubusercontent.com/conda-forge/omniscidb-cuda-feedstock/master/recipe/recipe/nvcc-boost-include-dirs.patch
+test -f get_cxx_include_path.sh || wget https://raw.githubusercontent.com/conda-forge/omniscidb-cuda-feedstock/master/recipe/recipe/get_cxx_include_path.sh
+. get_cxx_include_path.sh
+export CPLUS_INCLUDE_PATH=$(get_cxx_include_path)
 
 echo -e "Local branches:\n"
 git branch
