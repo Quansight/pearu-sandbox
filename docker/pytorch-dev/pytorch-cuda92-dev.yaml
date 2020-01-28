@@ -1,0 +1,28 @@
+#
+# Author: Pearu Peterson
+# Created: January 2020
+#
+
+name: pytorch-cuda92-dev
+channels:
+  - conda-forge
+  - pytorch
+  - defaults
+dependencies:
+  - python=3
+  - numpy
+  - ninja
+  - pyyaml
+  - mkl
+  - mkl-include
+  - setuptools
+  - cmake
+  - cffi
+  - typing
+  - pytest
+  - compilers
+  - nvcc_linux-64=9.2
+  - magma-cuda92
+  - flake8
+  - psutil
+  - hypothesis

@@ -1,0 +1,28 @@
+#
+# Author: Pearu Peterson
+# Created: January 2020
+#
+
+name: pytorch-cuda101-dev
+channels:
+  - conda-forge
+  - pytorch
+  - defaults
+dependencies:
+  - python=3
+  - numpy
+  - ninja
+  - pyyaml
+  - mkl
+  - mkl-include
+  - setuptools
+  - cmake
+  - cffi
+  - typing
+  - pytest
+  - compilers
+  - nvcc_linux-64=10.1
+  - magma-cuda101
+  - flake8
+  - psutil
+  - hypothesis
