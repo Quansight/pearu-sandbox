@@ -21,7 +21,8 @@ if [[ -x "$(command -v nvidia-smi)" ]]
 then
     # wget https://raw.githubusercontent.com/Quansight/pearu-sandbox/master/set_cuda_env.sh
     # read set_cuda_env.sh reader
-    . /usr/local/cuda-10.1.243/env.sh
+    CUDA_VERSION=${CUDA_VERSION:-10.1.243}
+    . /usr/local/cuda-${CUDA_VERSION}/env.sh
 
     # wget https://raw.githubusercontent.com/Quansight/pearu-sandbox/master/conda-envs/pytorch-cuda-dev.yaml
     # conda env create  --file=pytorch-cuda-dev.yaml -n pytorch-cuda-dev
@@ -35,6 +36,7 @@ then
     export USE_CUDA=1
     # LDFLAGS, CXXFLAGS, etc must be set after activating the conda environment
     export CXXFLAGS="$CXXFLAGS -L$CUDA_HOME/lib64"  # ???
+    # fixes mkl linking error:
     export CFLAGS="$CFLAGS -L$CONDA_PREFIX/lib"
     export LDFLAGS="${LDFLAGS} -Wl,-rpath,${CUDA_HOME}/lib64 -Wl,-rpath-link,${CUDA_HOME}/lib64 -L${CUDA_HOME}/lib64"
 
