@@ -17,6 +17,9 @@ CORES_PER_SOCKET=`lscpu | grep 'Core(s) per socket' | awk '{print $NF}'`
 NUMBER_OF_SOCKETS=`lscpu | grep 'Socket(s)' | awk '{print $NF}'`
 export NCORES=`echo "$CORES_PER_SOCKET * $NUMBER_OF_SOCKETS"| bc`
 
+export USE_XNNPACK=0
+export USE_MKLDNN=0
+
 if [[ -x "$(command -v nvidia-smi)" ]]
 then
     # wget https://raw.githubusercontent.com/Quansight/pearu-sandbox/master/set_cuda_env.sh
@@ -107,6 +110,7 @@ export CONDA_BUILD_SYSROOT=$CONDA_PREFIX/$HOST/sysroot
 export LD_LIBRARY_PATH=$CONDA_PREFIX/lib:$LD_LIBRARY_PATH
 export CXXFLAGS="`echo $CXXFLAGS | sed 's/-std=c++17/-std=c++14/'`"
 export CXXFLAGS="$CXXFLAGS -L$CONDA_PREFIX/lib"  # ???
+export CXXFLAGS="$CXXFLAGS -D__STDC_FORMAT_MACROS"
 
 # Failure:
 # FAILED: nccl_external-prefix/src/nccl_external-stamp/nccl_external-build nccl/lib/libnccl_static.a
