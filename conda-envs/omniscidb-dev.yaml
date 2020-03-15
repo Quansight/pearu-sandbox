@@ -1,11 +1,13 @@
 #
-# For usage, see https://github.com/Quansight/pearu-sandbox/issues/2
+# To create environment, execute:
+#  conda env create --file=~/git/Quansight/pearu-sandbox/conda-envs/omniscidb-dev.yaml
 #
 # Author: Pearu Peterson
 # Created: November 2019
 #
 name: omniscidb-cuda-dev
 channels:
+  - local
   - conda-forge
   - defaults
 dependencies:
@@ -14,8 +16,8 @@ dependencies:
   - go-cgo
   - maven
   - boost-cpp
-  - llvmdev<9
-  - clangdev<9
+  - llvmdev
+  - clangdev
   - llvm
   - double-conversion
   - snappy
@@ -27,8 +29,8 @@ dependencies:
   - libiconv
   - blosc
   - libgdal>=2.3
-  - arrow-cpp<0.14
-  - thrift-cpp
+  - arrow-cpp
+  - thrift-cpp=0.13
   - ncurses
   - flex
   - bisonpp

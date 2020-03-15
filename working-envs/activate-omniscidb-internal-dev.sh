@@ -22,12 +22,14 @@ if [[ -x "$(command -v nvidia-smi)" ]]
 then
     # wget https://raw.githubusercontent.com/Quansight/pearu-sandbox/master/set_cuda_env.sh
     # read set_cuda_env.sh reader
-    . /usr/local/cuda-10.1.243/env.sh
-
+    
+    # . /usr/local/cuda-10.1.243/env.sh
+    . /usr/local/cuda-10.2.89/env.sh
+    
     # wget https://raw.githubusercontent.com/Quansight/pearu-sandbox/master/conda-envs/omniscidb-dev.yaml
     # conda env create  --file=omniscidb-dev.yaml -n omniscidb-cuda-dev
     #
-    # conda env create  --file=git/Quansight/pearu-sandbox/conda-envs/omniscidb-dev.yaml -n omniscidb-cuda-dev
+    # conda env create  --file=~/git/Quansight/pearu-sandbox/conda-envs/omniscidb-dev.yaml -n omniscidb-cuda-dev
     #
     # conda install -y -n omniscidb-cuda-dev -c conda-forge nvcc_linux-64
     ENV="${ENV:-omniscidb-cuda-dev}"
@@ -92,7 +94,7 @@ cat << EndOfMessage
 
 To apply patches, run:
 
-  patch -p1 < nvcc-boost-include-dirs.patch
+  patch -p1 < nvcc-boost-include-dirs.patch  [OBSOLETE]
 
 To configure, run:
 
