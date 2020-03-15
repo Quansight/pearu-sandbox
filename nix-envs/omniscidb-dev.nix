@@ -1,5 +1,7 @@
 let overlay = self: super: {
       arrow-cpp = super.callPackage ./arrow-cpp-0.13.0.nix { };
+      libkml = super.callPackage ./libkml.nix { };
+      bisonpp = super.callPackage ./bisonpp.nix { };
     };
 
     pkgs = import (builtins.fetchTarball {
@@ -9,7 +11,9 @@ let overlay = self: super: {
 
     pythonPackages = pkgs.python3Packages;
 in
-pkgs.mkShell {
+pkgs.gcc8Stdenv.mkDerivation {
+  name = "shell";
+
   buildInputs = with pkgs; [
     cmake
     go # includes cgo
@@ -21,7 +25,7 @@ pkgs.mkShell {
     gflags
     glog
     libarchive
-    # libkml   # missing in Nix
+    libkml
     libpng
     libiconv
     c-blosc
@@ -30,7 +34,7 @@ pkgs.mkShell {
     thrift
     ncurses
     flex
-    # bisonpp   # missing in Nix
+    bisonpp
     openssl
     openjdk8
     xz
@@ -79,6 +83,7 @@ fi
 
 #export CONDA_BUILD_SYSROOT=$CONDA_PREFIX/$HOST/sysroot
 
+export CXXFLAGS="$CXXFLAGS -fvisibility-inlines-hidden -std=c++17 -fmessage-length=0 -march=nocona -mtune=haswell -ftree-vectorize -fstack-protector-strong -fno-plt -O2 -ffunction-sections -pipe"
 export CXXFLAGS="`echo $CXXFLAGS | sed 's/-fPIC//'`"
 export CXXFLAGS="$CXXFLAGS -DBOOST_ERROR_CODE_HEADER_ONLY"
 export CXXFLAGS="$CXXFLAGS -D__STDC_FORMAT_MACROS"
