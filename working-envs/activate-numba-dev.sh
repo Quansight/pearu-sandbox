@@ -43,6 +43,7 @@ else
     fi
 fi
 
+export PYTEST_ADDOPTS="-sv --assert=plain"
 export NUMBA_DEVELOPER_MODE=1
 
 echo -e "Local branches:\n"
