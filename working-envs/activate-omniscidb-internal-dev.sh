@@ -17,6 +17,8 @@ NUMBER_OF_SOCKETS=`lscpu | grep 'Socket(s)' | awk '{print $NF}'`
 export NCORES=`echo "$CORES_PER_SOCKET * $NUMBER_OF_SOCKETS"| bc`
 
 export CMAKE_OPTIONS="-DCMAKE_BUILD_TYPE=release -DMAPD_EDITION=EE -DMAPD_DOCS_DOWNLOAD=off -DENABLE_AWS_S3=off -DENABLE_FOLLY=off -DENABLE_JAVA_REMOTE_DEBUG=off -DENABLE_PROFILER=off -DPREFER_STATIC_LIBS=off"
+export CMAKE_OPTIONS_CUDA_EXTRA="-DCUDA_TOOLKIT_ROOT_DIR=$CUDA_HOME -DENABLE_CUDA=on"
+export CMAKE_OPTIONS_NOCUDA_EXTRA="-DENABLE_CUDA=off"
 
 if [[ -x "$(command -v nvidia-smi)" ]]
 then
@@ -42,7 +44,7 @@ then
     export CPPFLAGS="$CPPFLAGS -I$CUDA_HOME/include"
     export CFLAGS="$CFLAGS -I$CUDA_HOME/include"
     export LDFLAGS="${LDFLAGS} -Wl,-rpath,${CUDA_HOME}/lib64 -Wl,-rpath-link,${CUDA_HOME}/lib64 -L${CUDA_HOME}/lib64"
-    export CMAKE_OPTIONS="$CMAKE_OPTIONS -DCUDA_TOOLKIT_ROOT_DIR=$CUDA_HOME -DENABLE_CUDA=on"
+
 else
     # wget https://raw.githubusercontent.com/Quansight/pearu-sandbox/master/conda-envs/omniscidb-dev.yaml
     # conda env create  --file=omniscidb-dev.yaml -n omniscidb-cpu-dev
@@ -53,8 +55,8 @@ else
     else
         conda activate $ENV
     fi
-    export CMAKE_OPTIONS="$CMAKE_OPTIONS -DENABLE_CUDA=off"
 fi
+
 
 export CONDA_BUILD_SYSROOT=$CONDA_PREFIX/$HOST/sysroot
 
@@ -74,6 +76,8 @@ export CMAKE_OPTIONS="$CMAKE_OPTIONS -DCMAKE_PREFIX_PATH=$CONDA_PREFIX"
 export CMAKE_OPTIONS="$CMAKE_OPTIONS -DCMAKE_INSTALL_PREFIX=$CONDA_PREFIX"
 export CMAKE_OPTIONS="$CMAKE_OPTIONS -DCMAKE_SYSROOT=$CONDA_BUILD_SYSROOT"
 export CMAKE_OPTIONS="$CMAKE_OPTIONS -DENABLE_TESTS=on"
+export CMAKE_OPTIONS_NOCUDA="$CMAKE_OPTIONS $CMAKE_OPTIONS_NOCUDA_EXTRA"
+export CMAKE_OPTIONS_CUDA="$CMAKE_OPTIONS $CMAKE_OPTIONS_CUDA_EXTRA"
 
 # resolves `fatal error: boost/regex.hpp: No such file or directory`
 echo -e "#!/bin/sh\n${CUDA_HOME}/bin/nvcc -ccbin $CC -v \$@" > $PWD/nvcc
@@ -100,7 +104,8 @@ To configure, run:
 
   mkdir -p build && cd build
 
-  cmake -Wno-dev \$CMAKE_OPTIONS ..
+  cmake -Wno-dev \$CMAKE_OPTIONS_NOCUDA ..
+  cmake -Wno-dev \$CMAKE_OPTIONS_CUDA ..
 
 To build, run:
 
