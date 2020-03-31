@@ -24,9 +24,15 @@ if [[ -x "$(command -v nvidia-smi)" ]]
 then
     # wget https://raw.githubusercontent.com/Quansight/pearu-sandbox/master/set_cuda_env.sh
     # read set_cuda_env.sh reader
-    CUDA_VERSION=${CUDA_VERSION:-10.1.243}
-    . /usr/local/cuda-${CUDA_VERSION}/env.sh
 
+    export USE_CUDA=${USE_CUDA:-1}
+    if [[ "$USE_CUDA" = "0" ]]
+    then
+        echo "CUDA DISABLED"
+    else
+        CUDA_VERSION=${CUDA_VERSION:-10.1.243}
+        . /usr/local/cuda-${CUDA_VERSION}/env.sh
+    fi
     # wget https://raw.githubusercontent.com/Quansight/pearu-sandbox/master/conda-envs/pytorch-cuda-dev.yaml
     # conda env create  --file=pytorch-cuda-dev.yaml -n pytorch-cuda-dev
 
@@ -36,18 +42,23 @@ then
     else
         conda activate $Environment
     fi
-    export USE_CUDA=1
-    # LDFLAGS, CXXFLAGS, etc must be set after activating the conda environment
-    export CXXFLAGS="$CXXFLAGS -L$CUDA_HOME/lib64"  # ???
+
+    if [[ "$USE_CUDA" = "1" ]]
+    then
+        # LDFLAGS, CXXFLAGS, etc must be set after activating the conda environment
+        export CXXFLAGS="$CXXFLAGS -L$CUDA_HOME/lib64"  # ???
+
+        export LDFLAGS="${LDFLAGS} -Wl,-rpath,${CUDA_HOME}/lib64 -Wl,-rpath-link,${CUDA_HOME}/lib64 -L${CUDA_HOME}/lib64"
+    fi
     # fixes mkl linking error:
     export CFLAGS="$CFLAGS -L$CONDA_PREFIX/lib"
-    export LDFLAGS="${LDFLAGS} -Wl,-rpath,${CUDA_HOME}/lib64 -Wl,-rpath-link,${CUDA_HOME}/lib64 -L${CUDA_HOME}/lib64"
 
     #export NCCL_ROOT=${CUDA_HOME}
     #export PKG_CONFIG_PATH=$PKG_CONFIG_PATH:${CUDA_HOME}/pkgconfig/
 
     export USE_NCCL=0
     # See https://github.com/NVIDIA/nccl/issues/244
+    # https://github.com/pytorch/pytorch/issues/35363
     if [[ "" && ! -f third_party/nccl/nccl/issue244.patch ]]
     then
         cat > third_party/nccl/nccl/issue244.patch <<EOF
@@ -105,6 +116,27 @@ else
     export USE_NCCL=0
 fi
 
+
+# https://github.com/pytorch/cpuinfo/issues/36
+if [[ ! -f third_party/cpuinfo/issue36.patch ]]
+then
+    cat > third_party/cpuinfo/issue36.patch <<EOF
+diff --git a/src/api.c b/src/api.c
+index 0cc5d4e..5903edf 100644
+--- a/src/api.c
++++ b/src/api.c
+@@ -10,6 +10,7 @@
+ 
+	#include <unistd.h>
+	#include <sys/syscall.h>
++	#include <asm-generic/unistd.h>
+ #endif
+ 
+ bool cpuinfo_is_initialized = false;
+EOF
+    patch --verbose third_party/cpuinfo/src/api.c third_party/cpuinfo/issue36.patch
+fi
+
 export CONDA_BUILD_SYSROOT=$CONDA_PREFIX/$HOST/sysroot
 
 export LD_LIBRARY_PATH=$CONDA_PREFIX/lib:$LD_LIBRARY_PATH
@@ -157,5 +189,11 @@ To test, run:
 
   pytest -sv test/test_torch.py -k ...
   python test/run_test.py
+
+To disable CUDA build, set:
+
+  deactivate the environment
+  export USE_CUDA=0  [currently USE_CUDA=${USE_CUDA}]
+  reactivate the environment
 
 EndOfMessage
