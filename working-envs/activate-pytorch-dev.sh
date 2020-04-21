@@ -161,7 +161,7 @@ export MAX_JOBS=$NCORES
 
 
 
-if [[ ! -n "$(type -t layout_conda)" ]]; then
+if [[ "" && ! -n "$(type -t layout_conda)" ]]; then
     cd ~/git/Quansight/pytorch${Python-}
 fi
 

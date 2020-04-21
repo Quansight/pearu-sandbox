@@ -17,7 +17,7 @@ NUMBER_OF_SOCKETS=`lscpu | grep 'Socket(s)' | awk '{print $NF}'`
 export NCORES=`echo "$CORES_PER_SOCKET * $NUMBER_OF_SOCKETS"| bc`
 
 export CMAKE_OPTIONS="-DCMAKE_BUILD_TYPE=release -DMAPD_EDITION=EE -DMAPD_DOCS_DOWNLOAD=off -DENABLE_AWS_S3=off -DENABLE_FOLLY=off -DENABLE_JAVA_REMOTE_DEBUG=off -DENABLE_PROFILER=off -DPREFER_STATIC_LIBS=off"
-export CMAKE_OPTIONS_CUDA_EXTRA="-DCUDA_TOOLKIT_ROOT_DIR=$CUDA_HOME -DENABLE_CUDA=on"
+export CMAKE_OPTIONS_CUDA_EXTRA=""
 export CMAKE_OPTIONS_NOCUDA_EXTRA="-DENABLE_CUDA=off"
 
 if [[ -x "$(command -v nvidia-smi)" ]]
@@ -27,7 +27,8 @@ then
     
     # . /usr/local/cuda-10.1.243/env.sh
     . /usr/local/cuda-10.2.89/env.sh
-    
+ 
+    export CMAKE_OPTIONS_CUDA_EXTRA="-DCUDA_TOOLKIT_ROOT_DIR=$CUDA_HOME -DENABLE_CUDA=on"
     # wget https://raw.githubusercontent.com/Quansight/pearu-sandbox/master/conda-envs/omniscidb-dev.yaml
     # conda env create  --file=omniscidb-dev.yaml -n omniscidb-cuda-dev
     #
