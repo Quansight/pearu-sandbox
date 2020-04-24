@@ -26,7 +26,7 @@ then
     # read set_cuda_env.sh reader
     
     # . /usr/local/cuda-10.1.243/env.sh
-    . /usr/local/cuda-10.2.89/env.sh
+    test -f /usr/local/cuda-10.2.89/env.sh && source /usr/local/cuda-10.2.89/env.sh || source /usr/local/cuda-10.1.243/env.sh
  
     export CMAKE_OPTIONS_CUDA_EXTRA="-DCUDA_TOOLKIT_ROOT_DIR=$CUDA_HOME -DENABLE_CUDA=on"
     # wget https://raw.githubusercontent.com/Quansight/pearu-sandbox/master/conda-envs/omniscidb-dev.yaml
