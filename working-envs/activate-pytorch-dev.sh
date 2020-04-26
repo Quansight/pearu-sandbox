@@ -17,7 +17,7 @@ CORES_PER_SOCKET=`lscpu | grep 'Core(s) per socket' | awk '{print $NF}'`
 NUMBER_OF_SOCKETS=`lscpu | grep 'Socket(s)' | awk '{print $NF}'`
 export NCORES=`echo "$CORES_PER_SOCKET * $NUMBER_OF_SOCKETS"| bc`
 
-export USE_XNNPACK=0
+export USE_XNNPACK=1
 export USE_MKLDNN=0
 
 if [[ -x "$(command -v nvidia-smi)" ]]
