@@ -116,29 +116,7 @@ else
     export USE_NCCL=0
 fi
 
-
-# https://github.com/pytorch/cpuinfo/issues/36
-if [[ ! -f third_party/cpuinfo/issue36.patch ]]
-then
-    cat > third_party/cpuinfo/issue36.patch <<EOF
-diff --git a/src/api.c b/src/api.c
-index 0cc5d4e..5903edf 100644
---- a/src/api.c
-+++ b/src/api.c
-@@ -10,6 +10,7 @@
- 
-	#include <unistd.h>
-	#include <sys/syscall.h>
-+	#include <asm-generic/unistd.h>
- #endif
- 
- bool cpuinfo_is_initialized = false;
-EOF
-    patch --verbose third_party/cpuinfo/src/api.c third_party/cpuinfo/issue36.patch
-fi
-
 export CONDA_BUILD_SYSROOT=$CONDA_PREFIX/$HOST/sysroot
-
 export LD_LIBRARY_PATH=$CONDA_PREFIX/lib:$LD_LIBRARY_PATH
 export CXXFLAGS="`echo $CXXFLAGS | sed 's/-std=c++17/-std=c++14/'`"
 export CXXFLAGS="$CXXFLAGS -L$CONDA_PREFIX/lib"  # ???
@@ -158,8 +136,6 @@ export CXXFLAGS="$CXXFLAGS -D__STDC_FORMAT_MACROS"
 # export USE_NCCL=0
 
 export MAX_JOBS=$NCORES
-
-
 
 if [[ "" && ! -n "$(type -t layout_conda)" ]]; then
     cd ~/git/Quansight/pytorch${Python-}
