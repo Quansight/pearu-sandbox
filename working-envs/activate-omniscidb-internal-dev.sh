@@ -99,7 +99,7 @@ cat << EndOfMessage
 
 To select conda environment, define:
 
-  export USE_ENV=omniscidb-cuda-dev
+  export USE_ENV=$USE_ENV
 
 for instance, before sourcing this script.
 
