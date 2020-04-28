@@ -35,11 +35,11 @@ then
     # conda env create  --file=~/git/Quansight/pearu-sandbox/conda-envs/omniscidb-dev.yaml -n omniscidb-cuda-dev
     #
     # conda install -y -n omniscidb-cuda-dev -c conda-forge nvcc_linux-64
-    ENV="${ENV:-omniscidb-cuda-dev}"
+    USE_ENV="${USE_ENV:-omniscidb-cuda-dev}"
     if [[ -n "$(type -t layout_conda)" ]]; then
-        layout_conda $ENV
+        layout_conda $USE_ENV
     else
-        conda activate $ENV
+        conda activate $USE_ENV
     fi
     export CXXFLAGS="$CXXFLAGS -I$CUDA_HOME/include"
     export CPPFLAGS="$CPPFLAGS -I$CUDA_HOME/include"
@@ -49,12 +49,12 @@ then
 else
     # wget https://raw.githubusercontent.com/Quansight/pearu-sandbox/master/conda-envs/omniscidb-dev.yaml
     # conda env create  --file=omniscidb-dev.yaml -n omniscidb-cpu-dev
-    ENV="${ENV:-omniscidb-cpu-dev}"
+    USE_ENV="${USE_ENV:-omniscidb-cpu-dev}"
 
     if [[ -n "$(type -t layout_conda)" ]]; then
-        layout_conda $ENV
+        layout_conda $USE_ENV
     else
-        conda activate $ENV
+        conda activate $USE_ENV
     fi
 fi
 
@@ -97,15 +97,22 @@ git branch
 function h () {
 cat << EndOfMessage
 
+To select conda environment, define:
+
+  export USE_ENV=omniscidb-cuda-dev
+
+for instance, before sourcing this script.
+
 To apply patches, run:
 
-  patch -p1 < nvcc-boost-include-dirs.patch  [OBSOLETE]
+  patch -p1 < nvcc-boost-include-dirs.patch  [apply for omniscidb 5.0]
 
 To configure, run:
 
-  mkdir -p build && cd build
-
+  mkdir -p build-nocuda && cd build-nocuda
   cmake -Wno-dev \$CMAKE_OPTIONS_NOCUDA ..
+
+  mkdir -p build && cd build
   cmake -Wno-dev \$CMAKE_OPTIONS_CUDA ..
 
 To build, run:
