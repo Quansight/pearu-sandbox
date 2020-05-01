@@ -11,6 +11,7 @@
 #
 # Author: Pearu Peterson
 # Created: November 2019
+# Updated: May 1 2020 for katex
 #
 
 CORES_PER_SOCKET=`lscpu | grep 'Core(s) per socket' | awk '{print $NF}'`
@@ -116,6 +117,14 @@ else
     export USE_NCCL=0
 fi
 
+if [[ -z "$(command -v katex)" ] -a [ -x "$(command -v yarn)"]]
+then
+    # Try to install katex to the bin/ directory of the conda environment
+    yarn global add katex $(dirname $(dirname `which python`))
+else
+    echo katex not found and not installing, you cannot build documentation
+fi
+
 export CONDA_BUILD_SYSROOT=$CONDA_PREFIX/$HOST/sysroot
 export LD_LIBRARY_PATH=$CONDA_PREFIX/lib:$LD_LIBRARY_PATH
 export CXXFLAGS="`echo $CXXFLAGS | sed 's/-std=c++17/-std=c++14/'`"
@@ -147,27 +156,22 @@ git branch
 cat << EndOfMessage
 
 To update, run:
-
   git pull --rebase
   git submodule sync --recursive
-  git submodule update --init --recursive
+  git submodule update -f --init --recursive
 
 To clean, run:
-
-  git clean -xdf
-  git submodule foreach --recursive git clean -xfd
+  git clean -xddf
+  git submodule foreach --recursive git clean -xfdd
 
 To build, run:
-
   python setup.py develop
 
 To test, run:
-
   pytest -sv test/test_torch.py -k ...
   python test/run_test.py
 
 To disable CUDA build, set:
-
   deactivate the environment
   export USE_CUDA=0  [currently USE_CUDA=${USE_CUDA}]
   reactivate the environment
