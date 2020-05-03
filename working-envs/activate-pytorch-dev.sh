@@ -25,19 +25,30 @@ if [[ -x "$(command -v nvidia-smi)" ]]
 then
     # wget https://raw.githubusercontent.com/Quansight/pearu-sandbox/master/set_cuda_env.sh
     # read set_cuda_env.sh reader
+    USE_ENV=${USE_ENV:-pytorch${Python-}-cuda-dev}
+
+    if [[ "$CONDA_DEFAULT_ENV" = "$USE_ENV" ]]
+    then
+        echo "deactivating $USE_ENV"
+        conda deactivate
+    fi
 
     export USE_CUDA=${USE_CUDA:-1}
     if [[ "$USE_CUDA" = "0" ]]
     then
         echo "CUDA DISABLED"
     else
+        # when using cuda version different from 10.1, say 10.2, then run
+        #   conda install -c conda-forge nvcc_linux-64=10.2 magma-cuda102
         CUDA_VERSION=${CUDA_VERSION:-10.1.243}
         . /usr/local/cuda-${CUDA_VERSION}/env.sh
     fi
     # wget https://raw.githubusercontent.com/Quansight/pearu-sandbox/master/conda-envs/pytorch-cuda-dev.yaml
     # conda env create  --file=pytorch-cuda-dev.yaml -n pytorch-cuda-dev
 
-    USE_ENV=${USE_ENV:-pytorch${Python-}-cuda-dev}
+
+
+    
     if [[ -n "$(type -t layout_conda)" ]]; then
         layout_conda $USE_ENV
     else
@@ -108,6 +119,13 @@ else
     # wget https://raw.githubusercontent.com/Quansight/pearu-sandbox/master/conda-envs/pytorch-dev.yaml
     # conda env create  --file=pytorch-dev.yaml -n pytorch-dev
     USE_ENV=${USE_ENV:-pytorch${Python-}-dev}
+
+    if [[ "$CONDA_DEFAULT_ENV" = "$USE_ENV" ]]
+    then
+        echo "deactivating $USE_ENV"
+        conda deactivate
+    fi
+
     if [[ -n "$(type -t layout_conda)" ]]; then
         layout_conda $USE_ENV
     else
@@ -188,27 +206,35 @@ To test, run:
   python test/run_test.py
 
 To disable CUDA build, set:
-  deactivate the environment
+  conda deactivate
   export USE_CUDA=0  [currently USE_CUDA=${USE_CUDA}]
-  reactivate the environment
+  <source the activate-pytorch-dev.sh script>
+
+To enable CUDA version, say 10.2, run
+  conda install -c conda-forge -c pytorch nvcc_linux-64=10.2 magma-cuda102
+  conda deactivate
+  export CUDA_VERSION=10.2.89  [currently CUDA_VERSION=${CUDA_VERSION}]
+  <source the activate-pytorch-dev.sh script>
+  <clean & re-build>
 
 EndOfMessage
 
 if [[ -x "$(command -v katex)" ]]
 then
-    echo "Found katex, you can build documentation using:"
-    echo "  TBD"
+    cat << EndOfMessage
+Found katex, you can build documentation using:
+  python setup.py develop
+  cd docs
+  make html
+EndOfMessage
 else
-    echo "katex not found, you cannot build documentation"
-    echo "To install katex, run:"
-    if [[ ! -x "$(command -v yarn)" ]]
-    then
-        echo "  conda install -c conda-forge yarn nodejs"
-        echo "  yarn global add katex --prefix \$CONDA_PREFIX"
-        echo "  conda deactivate"
-        echo "  source $0"
-    else
-        echo "  yarn global add katex --prefix \$CONDA_PREFIX"
-    fi
-    echo
+    cat << EndOfMessage
+katex not found, you cannot build documentation
+To install katex, run:"
+  conda install -c conda-forge yarn nodejs matplotlib
+  yarn global add katex --prefix \$CONDA_PREFIX
+  python -m pip install -r docs/requirements.txt
+  conda deactivate
+  <source the activate-pytorch-dev.sh script>
+EndOfMessage
 fi
