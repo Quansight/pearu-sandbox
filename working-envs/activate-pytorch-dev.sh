@@ -11,6 +11,7 @@
 #
 # Author: Pearu Peterson
 # Created: November 2019
+# Updated: May 1 2020 for katex and USE_XNNPACK=1
 #
 
 CORES_PER_SOCKET=`lscpu | grep 'Core(s) per socket' | awk '{print $NF}'`
@@ -24,23 +25,34 @@ if [[ -x "$(command -v nvidia-smi)" ]]
 then
     # wget https://raw.githubusercontent.com/Quansight/pearu-sandbox/master/set_cuda_env.sh
     # read set_cuda_env.sh reader
+    USE_ENV=${USE_ENV:-pytorch${Python-}-cuda-dev}
+
+    if [[ "$CONDA_DEFAULT_ENV" = "$USE_ENV" ]]
+    then
+        echo "deactivating $USE_ENV"
+        conda deactivate
+    fi
 
     export USE_CUDA=${USE_CUDA:-1}
     if [[ "$USE_CUDA" = "0" ]]
     then
         echo "CUDA DISABLED"
     else
+        # when using cuda version different from 10.1, say 10.2, then run
+        #   conda install -c conda-forge nvcc_linux-64=10.2 magma-cuda102
         CUDA_VERSION=${CUDA_VERSION:-10.1.243}
         . /usr/local/cuda-${CUDA_VERSION}/env.sh
     fi
     # wget https://raw.githubusercontent.com/Quansight/pearu-sandbox/master/conda-envs/pytorch-cuda-dev.yaml
     # conda env create  --file=pytorch-cuda-dev.yaml -n pytorch-cuda-dev
 
-    Environment=pytorch${Python-}-cuda-dev
+
+
+    
     if [[ -n "$(type -t layout_conda)" ]]; then
-        layout_conda $Environment
+        layout_conda $USE_ENV
     else
-        conda activate $Environment
+        conda activate $USE_ENV
     fi
 
     if [[ "$USE_CUDA" = "1" ]]
@@ -106,11 +118,18 @@ EOF
 else
     # wget https://raw.githubusercontent.com/Quansight/pearu-sandbox/master/conda-envs/pytorch-dev.yaml
     # conda env create  --file=pytorch-dev.yaml -n pytorch-dev
-    Environment=pytorch${Python-}-dev
+    USE_ENV=${USE_ENV:-pytorch${Python-}-dev}
+
+    if [[ "$CONDA_DEFAULT_ENV" = "$USE_ENV" ]]
+    then
+        echo "deactivating $USE_ENV"
+        conda deactivate
+    fi
+
     if [[ -n "$(type -t layout_conda)" ]]; then
-        layout_conda $Environment
+        layout_conda $USE_ENV
     else
-        conda activate $Environment
+        conda activate $USE_ENV
     fi
     export USE_CUDA=0
     export USE_NCCL=0
@@ -147,29 +166,51 @@ git branch
 cat << EndOfMessage
 
 To update, run:
-
   git pull --rebase
   git submodule sync --recursive
-  git submodule update --init --recursive
+  git submodule update -f --init --recursive
 
 To clean, run:
-
-  git clean -xdf
-  git submodule foreach --recursive git clean -xfd
+  git clean -xddf
+  git submodule foreach --recursive git clean -xfdd
 
 To build, run:
-
   python setup.py develop
 
 To test, run:
-
   pytest -sv test/test_torch.py -k ...
   python test/run_test.py
 
 To disable CUDA build, set:
-
-  deactivate the environment
+  conda deactivate
   export USE_CUDA=0  [currently USE_CUDA=${USE_CUDA}]
-  reactivate the environment
+  <source the activate-pytorch-dev.sh script>
+
+To enable CUDA version, say 10.2, run
+  conda install -c conda-forge -c pytorch nvcc_linux-64=10.2 magma-cuda102
+  conda deactivate
+  export CUDA_VERSION=10.2.89  [currently CUDA_VERSION=${CUDA_VERSION}]
+  <source the activate-pytorch-dev.sh script>
+  <clean & re-build>
 
 EndOfMessage
+
+if [[ -x "$(command -v katex)" ]]
+then
+    cat << EndOfMessage
+Found katex, you can build documentation using:
+  python setup.py develop
+  cd docs
+  make html
+EndOfMessage
+else
+    cat << EndOfMessage
+katex not found, you cannot build documentation
+To install katex, run:"
+  conda install -c conda-forge yarn nodejs matplotlib
+  yarn global add katex --prefix \$CONDA_PREFIX
+  python -m pip install -r docs/requirements.txt
+  conda deactivate
+  <source the activate-pytorch-dev.sh script>
+EndOfMessage
+fi

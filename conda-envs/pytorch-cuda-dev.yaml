@@ -23,8 +23,10 @@ dependencies:
   - typing
   - pytest
   - compilers
-  - nvcc_linux-64=10.1
-  - magma-cuda101
   - flake8
   - psutil
   - hypothesis
+  - nvcc_linux-64=10.1
+  - magma-cuda101
+# to use a different CUDA version, say 10.2, run
+#   conda install -c conda-forge -c pytorch nvcc_linux-64=10.2 magma-cuda102
