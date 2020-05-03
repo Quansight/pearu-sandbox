@@ -37,11 +37,11 @@ then
     # wget https://raw.githubusercontent.com/Quansight/pearu-sandbox/master/conda-envs/pytorch-cuda-dev.yaml
     # conda env create  --file=pytorch-cuda-dev.yaml -n pytorch-cuda-dev
 
-    Environment=pytorch${Python-}-cuda-dev
+    USE_ENV=${USE_ENV:-pytorch${Python-}-cuda-dev}
     if [[ -n "$(type -t layout_conda)" ]]; then
-        layout_conda $Environment
+        layout_conda $USE_ENV
     else
-        conda activate $Environment
+        conda activate $USE_ENV
     fi
 
     if [[ "$USE_CUDA" = "1" ]]
@@ -107,24 +107,15 @@ EOF
 else
     # wget https://raw.githubusercontent.com/Quansight/pearu-sandbox/master/conda-envs/pytorch-dev.yaml
     # conda env create  --file=pytorch-dev.yaml -n pytorch-dev
-    Environment=pytorch${Python-}-dev
+    USE_ENV=${USE_ENV:-pytorch${Python-}-dev}
     if [[ -n "$(type -t layout_conda)" ]]; then
-        layout_conda $Environment
+        layout_conda $USE_ENV
     else
-        conda activate $Environment
+        conda activate $USE_ENV
     fi
     export USE_CUDA=0
     export USE_NCCL=0
 fi
-
-if [[ -z "$(command -v katex)" ] -a [ -x "$(command -v yarn)"]]
-then
-    # Try to install katex to the bin/ directory of the conda environment
-    yarn global add katex $(dirname $(dirname `which python`))
-else
-    echo katex not found and not installing, you cannot build documentation
-fi
-
 
 
 # https://github.com/pytorch/cpuinfo/issues/36
@@ -202,3 +193,22 @@ To disable CUDA build, set:
   reactivate the environment
 
 EndOfMessage
+
+if [[ -x "$(command -v katex)" ]]
+then
+    echo "Found katex, you can build documentation using:"
+    echo "  TBD"
+else
+    echo "katex not found, you cannot build documentation"
+    echo "To install katex, run:"
+    if [[ ! -x "$(command -v yarn)" ]]
+    then
+        echo "  conda install -c conda-forge yarn nodejs"
+        echo "  yarn global add katex --prefix \$CONDA_PREFIX"
+        echo "  conda deactivate"
+        echo "  source $0"
+    else
+        echo "  yarn global add katex --prefix \$CONDA_PREFIX"
+    fi
+    echo
+fi
