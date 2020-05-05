@@ -46,21 +46,21 @@ then
     # wget https://raw.githubusercontent.com/Quansight/pearu-sandbox/master/conda-envs/pytorch-cuda-dev.yaml
     # conda env create  --file=pytorch-cuda-dev.yaml -n pytorch-cuda-dev
 
-
-
-    
     if [[ -n "$(type -t layout_conda)" ]]; then
         layout_conda $USE_ENV
     else
         conda activate $USE_ENV
     fi
 
+    # Don't set *FLAGS before activating the conda environment.
+
     if [[ "$USE_CUDA" = "1" ]]
     then
-        # LDFLAGS, CXXFLAGS, etc must be set after activating the conda environment
-        export CXXFLAGS="$CXXFLAGS -L$CUDA_HOME/lib64"  # ???
+        # fixes FAILED: lib/libc10_cuda.so ... ld: cannot find -lcudart
+        export CXXFLAGS="$CXXFLAGS -L$CUDA_HOME/lib64"
 
-        export LDFLAGS="${LDFLAGS} -Wl,-rpath,${CUDA_HOME}/lib64 -Wl,-rpath-link,${CUDA_HOME}/lib64 -L${CUDA_HOME}/lib64"
+        #export LDFLAGS="${LDFLAGS} -Wl,-rpath,${CUDA_HOME}/lib64 -Wl,-rpath-link,${CUDA_HOME}/lib64 -L${CUDA_HOME}/lib64"
+        export LDFLAGS="${LDFLAGS} -Wl,-rpath-link,${CUDA_HOME}/lib64 -L${CUDA_HOME}/lib64"
     fi
     # fixes mkl linking error:
     export CFLAGS="$CFLAGS -L$CONDA_PREFIX/lib"
@@ -131,28 +131,21 @@ else
     else
         conda activate $USE_ENV
     fi
+
+    # Don't set *FLAGS before activating the conda environment.
+
     export USE_CUDA=0
     export USE_NCCL=0
 fi
 
 export CONDA_BUILD_SYSROOT=$CONDA_PREFIX/$HOST/sysroot
 export LD_LIBRARY_PATH=$CONDA_PREFIX/lib:$LD_LIBRARY_PATH
-export CXXFLAGS="`echo $CXXFLAGS | sed 's/-std=c++17/-std=c++14/'`"
-export CXXFLAGS="$CXXFLAGS -L$CONDA_PREFIX/lib"  # ???
-export CXXFLAGS="$CXXFLAGS -D__STDC_FORMAT_MACROS"
 
-# Failure:
-# FAILED: nccl_external-prefix/src/nccl_external-stamp/nccl_external-build nccl/lib/libnccl_static.a
-# ...
-# Generating rules
-# > /home/pearu/git/Quansight/pytorch/build/nccl/obj/collectives/device/Makefile.rules
-# In file included from include/core.h:14:0,
-#                  from bootstrap.cc:8:
-# include/socket.h: In function 'ncclResult_t createListenSocket(int*, socketAddress*)':
-# include/socket.h:329:60: error: 'SO_REUSEPORT' was not declared in this scope
-#      SYSCHECK(setsockopt(sockfd, SOL_SOCKET, SO_REUSEADDR | SO_REUSEPORT, &opt, sizeof(opt)), "setsockopt");
-# Fix:
-# export USE_NCCL=0
+export CXXFLAGS="`echo $CXXFLAGS | sed 's/-std=c++17/-std=c++14/'`"
+# fixes Linking CXX shared library lib/libtorch_cpu.so ... ld: cannot find -lmkl_intel_lp64
+export CXXFLAGS="$CXXFLAGS -L$CONDA_PREFIX/lib"
+# fixes FAILED: caffe2/torch/CMakeFiles/torch_python.dir/csrc/DataLoader.cpp.o ... error: expected ')' before 'PRId64'
+export CXXFLAGS="$CXXFLAGS -D__STDC_FORMAT_MACROS"
 
 export MAX_JOBS=$NCORES
 
