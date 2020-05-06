@@ -20,6 +20,8 @@ export CMAKE_OPTIONS="-DCMAKE_BUILD_TYPE=release -DMAPD_EDITION=EE -DMAPD_DOCS_D
 export CMAKE_OPTIONS_CUDA_EXTRA=""
 export CMAKE_OPTIONS_NOCUDA_EXTRA="-DENABLE_CUDA=off"
 
+CONDA_ENV_LIST=$(conda env list | awk '{print $1}' )
+
 if [[ -x "$(command -v nvidia-smi)" ]]
 then
     # wget https://raw.githubusercontent.com/Quansight/pearu-sandbox/master/set_cuda_env.sh
@@ -36,10 +38,24 @@ then
     #
     # conda install -y -n omniscidb-cuda-dev -c conda-forge nvcc_linux-64
     USE_ENV="${USE_ENV:-omniscidb-cuda-dev}"
-    if [[ -n "$(type -t layout_conda)" ]]; then
-        layout_conda $USE_ENV
+
+    if [[ $CONDA_ENV_LIST = *"$USE_ENV"* ]]
+    then
+        if [[ "$CONDA_DEFAULT_ENV" = "$USE_ENV" ]]
+        then
+            echo "deactivating $USE_ENV"
+            conda deactivate
+        fi
+        if [[ -n "$(type -t layout_conda)" ]]
+        then
+            layout_conda $USE_ENV
+        else
+            conda activate $USE_ENV
+        fi
     else
-        conda activate $USE_ENV
+        echo "conda environment does not exist. To create $USE_ENV, run:"
+        echo "conda env create  --file=~/git/Quansight/pearu-sandbox/conda-envs/omniscidb-dev.yaml -n $USE_ENV"
+        exit
     fi
     export CXXFLAGS="$CXXFLAGS -I$CUDA_HOME/include"
     export CPPFLAGS="$CPPFLAGS -I$CUDA_HOME/include"
@@ -51,10 +67,22 @@ else
     # conda env create  --file=omniscidb-dev.yaml -n omniscidb-cpu-dev
     USE_ENV="${USE_ENV:-omniscidb-cpu-dev}"
 
-    if [[ -n "$(type -t layout_conda)" ]]; then
-        layout_conda $USE_ENV
+    if [[ $CONDA_ENV_LIST = *"$USE_ENV"* ]]
+    then
+        if [[ "$CONDA_DEFAULT_ENV" = "$USE_ENV" ]]
+        then
+            echo "deactivating $USE_ENV"
+            conda deactivate
+        fi
+        if [[ -n "$(type -t layout_conda)" ]]; then
+            layout_conda $USE_ENV
+        else
+            conda activate $USE_ENV
+        fi
     else
-        conda activate $USE_ENV
+        echo "conda environment does not exist. To create $USE_ENV, run:"
+        echo "conda env create  --file=~/git/Quansight/pearu-sandbox/conda-envs/omniscidb-dev.yaml -n $USE_ENV"
+        exit
     fi
 fi
 

@@ -21,6 +21,8 @@ export NCORES=`echo "$CORES_PER_SOCKET * $NUMBER_OF_SOCKETS"| bc`
 export USE_XNNPACK=1
 export USE_MKLDNN=0
 
+CONDA_ENV_LIST=$(conda env list | awk '{print $1}' )
+
 if [[ -x "$(command -v nvidia-smi)" ]]
 then
     # wget https://raw.githubusercontent.com/Quansight/pearu-sandbox/master/set_cuda_env.sh
@@ -43,13 +45,18 @@ then
         CUDA_VERSION=${CUDA_VERSION:-10.1.243}
         . /usr/local/cuda-${CUDA_VERSION}/env.sh
     fi
-    # wget https://raw.githubusercontent.com/Quansight/pearu-sandbox/master/conda-envs/pytorch-cuda-dev.yaml
-    # conda env create  --file=pytorch-cuda-dev.yaml -n pytorch-cuda-dev
 
-    if [[ -n "$(type -t layout_conda)" ]]; then
-        layout_conda $USE_ENV
+    if [[ $CONDA_ENV_LIST = *"$USE_ENV"* ]]
+    then
+        if [[ -n "$(type -t layout_conda)" ]]; then
+            layout_conda $USE_ENV
+        else
+            conda activate $USE_ENV
+        fi
     else
-        conda activate $USE_ENV
+        echo "conda environment does not exist. To create $USE_ENV, run:"
+        echo "conda env create --file=~/git/Quansight/pearu-sandbox/conda-envs/pytorch-cuda-dev.yaml -n $USE_ENV"
+        exit 1
     fi
 
     # Don't set *FLAGS before activating the conda environment.
@@ -120,18 +127,23 @@ else
     # conda env create  --file=pytorch-dev.yaml -n pytorch-dev
     USE_ENV=${USE_ENV:-pytorch${Python-}-dev}
 
-    if [[ "$CONDA_DEFAULT_ENV" = "$USE_ENV" ]]
+    if [[ $CONDA_ENV_LIST = *"$USE_ENV"* ]]
     then
-        echo "deactivating $USE_ENV"
-        conda deactivate
-    fi
-
-    if [[ -n "$(type -t layout_conda)" ]]; then
-        layout_conda $USE_ENV
+        if [[ "$CONDA_DEFAULT_ENV" = "$USE_ENV" ]]
+        then
+            echo "deactivating $USE_ENV"
+            conda deactivate
+        fi
+        if [[ -n "$(type -t layout_conda)" ]]; then
+            layout_conda $USE_ENV
+        else
+            conda activate $USE_ENV
+        fi
     else
-        conda activate $USE_ENV
+        echo "conda environment does not exist. To create $USE_ENV, run:"
+        echo "conda env create --file=~/git/Quansight/pearu-sandbox/conda-envs/pytorch-dev.yaml -n $USE_ENV"
+        exit 1
     fi
-
     # Don't set *FLAGS before activating the conda environment.
 
     export USE_CUDA=0
