@@ -81,7 +81,7 @@ else
         fi
     else
         echo "conda environment does not exist. To create $USE_ENV, run:"
-        echo "conda env create  --file=~/git/Quansight/pearu-sandbox/conda-envs/omniscidb-dev.yaml -n $USE_ENV"
+        echo "conda env create  --file=~/git/Quansight/pearu-sandbox/conda-envs/omniscidb-cpu-dev.yaml -n $USE_ENV"
         exit
     fi
 fi

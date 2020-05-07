@@ -1,0 +1,46 @@
+#
+# To create environment, execute:
+#  conda env create --file=~/git/Quansight/pearu-sandbox/conda-envs/omniscidb-dev.yaml
+#
+# Author: Pearu Peterson
+# Created: November 2019
+#
+name: omniscidb-cpu-dev
+channels:
+  - local
+  - conda-forge
+  - defaults
+dependencies:
+  - cmake
+  - make
+  - go-cgo
+  - maven
+  - boost-cpp
+  - llvmdev
+  - clangdev
+  - llvm
+  - double-conversion
+  - snappy
+  - gflags
+  - glog
+  - libarchive
+  - libkml
+  - libpng
+  - libiconv
+  - blosc
+  - libgdal>=2.3
+  - arrow-cpp=*=*cpu
+  - thrift-cpp=0.13
+  - ncurses
+  - flex
+  - bisonpp
+  - openssl
+  - openjdk=8
+  - xz
+  - bzip2
+  - zlib
+  - librdkafka
+# when using omniscidb-internal repo
+  - openldap
+  - compilers
+
