@@ -16,31 +16,44 @@
 CORES_PER_SOCKET=`lscpu | grep 'Core(s) per socket' | awk '{print $NF}'`
 NUMBER_OF_SOCKETS=`lscpu | grep 'Socket(s)' | awk '{print $NF}'`
 export NCORES=`echo "$CORES_PER_SOCKET * $NUMBER_OF_SOCKETS"| bc`
+CONDA_ENV_LIST=$(conda env list | awk '{print $1}' )
 
 if [[ -x "$(command -v nvidia-smi)" ]]
 then
-    # wget https://raw.githubusercontent.com/Quansight/pearu-sandbox/master/set_cuda_env.sh
-    # read set_cuda_env.sh reader
-    . /usr/local/cuda-10.1.243/env.sh
+    USE_ENV=${USE_ENV:-numba-cuda-dev}
+    ENV_DEV_YAML=numba-cuda-dev.yaml
+    export USE_CUDA=${USE_CUDA:-1}
+else
+    USE_ENV=${USE_ENV:-numba-dev}
+    ENV_DEV_YAML=numba-dev.yaml
+    export USE_CUDA=0
+fi
 
-    # wget https://raw.githubusercontent.com/Quansight/pearu-sandbox/master/conda-envs/numba-cuda-dev.yaml
-    # conda env create  --file=numba-cuda-dev.yaml -n numba-cuda-dev
-    Environment=numba-cuda-dev
+if [[ "$USE_CUDA" = "1" ]]
+then
+    # when using cuda version different from 10.1, say 10.2, then run
+    #   conda install -c conda-forge nvcc_linux-64=10.2
+    CUDA_VERSION=${CUDA_VERSION:-10.1.243}
+    . /usr/local/cuda-${CUDA_VERSION}/env.sh
+fi
 
+if [[ "$CONDA_DEFAULT_ENV" = "$USE_ENV" ]]
+then
+    echo "deactivating $USE_ENV"
+    conda deactivate
+fi
+
+if [[ $CONDA_ENV_LIST = *"$USE_ENV"* ]]
+then
     if [[ -n "$(type -t layout_conda)" ]]; then
-        layout_conda $Environment
+        layout_conda $USE_ENV
     else
-        conda activate $Environment
+        conda activate $USE_ENV
     fi
 else
-    # wget https://raw.githubusercontent.com/Quansight/pearu-sandbox/master/conda-envs/numba-dev.yaml
-    # conda env create  --file=numba-dev.yaml -n numba-dev
-    Environment=numba-dev
-    if [[ -n "$(type -t layout_conda)" ]]; then
-        layout_conda $Environment
-    else
-        conda activate $Environment
-    fi
+    echo "conda environment does not exist. To create $USE_ENV, run:"
+    echo "conda env create --file=~/git/Quansight/pearu-sandbox/conda-envs/$ENV_DEV_YAML -n $USE_ENV"
+    exit 1
 fi
 
 export PYTEST_ADDOPTS="-sv --assert=plain"
@@ -62,5 +75,13 @@ To build, run:
 To test, run:
 
   pytest -sv numba/tests
+
+To disable CUDA environment, set:
+  conda deactivate
+  export USE_CUDA=0  [currently USE_CUDA=${USE_CUDA}]
+  <source the activate-pytorch-dev.sh script>
+
+To select CUDA version, say 10.2.89, set
+  export CUDA_VERSION=10.2.89  [currently CUDA_VERSION=${CUDA_VERSION}]
 
 EndOfMessage
