@@ -2,16 +2,16 @@
 # For usage, see https://github.com/Quansight/dev-notes/
 #
 # Author: Pearu Peterson
-# Created: November 2019
+# Created: October 2019
 #
 
-name: pytorch2-cuda-dev
+name: dev
 channels:
   - conda-forge
   - pytorch
   - defaults
 dependencies:
-  - python=2
+  - python=3
   - numpy
   - ninja
   - pyyaml
@@ -23,8 +23,8 @@ dependencies:
   - typing
   - pytest
   - compilers
-  - nvcc_linux-64=10.1
-  - magma-cuda101
   - flake8
   - psutil
   - hypothesis
+  - mypy
+
