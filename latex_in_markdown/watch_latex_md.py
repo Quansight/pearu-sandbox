@@ -5,6 +5,7 @@ Requirements:
 
   - watchdoc - required
   - pandoc - required when using --html
+  - git - required when using --git
   - latex - optional, used to fix the vertical alignment of img elements
 
 Usage:
@@ -31,104 +32,35 @@ import tempfile
 from watchdog.observers import Observer
 from watchdog.events import RegexMatchingEventHandler
 from subprocess import check_output
+import subprocess
 import xml.etree.ElementTree as ET
 
+myns = 'https://github.com/Quansight/pearu-sandbox/latex_in_markdown/'
 
-def latex2svg(string):
-    doc = r'''
-\documentclass[17pt]{article}
-\usepackage{extsizes}
-\usepackage{amsmath}
-\usepackage{amssymb}
-\pagestyle{empty}
-\begin{document}
-%s
-\end{document}
-''' % (string)
-    name = hashlib.md5(string.encode('utf-8')).hexdigest()
-    workdir = tempfile.mkdtemp('', 'watch-latex-md-')
-    texfile = os.path.join(workdir, name + '.tex')
-    dvifile = os.path.join(workdir, name + '.dvi')
-    f = open(texfile, 'w')
-    f.write(doc)
-    f.close()
-    try:
-        check_output(['latex', '-output-directory=' + workdir,
-                      '-interaction', 'nonstopmode', texfile],
-                     stderr=sys.stdout)
-    except Exception:
-        print(f'failed to latex {string!r}')
-        return ''
-    svg = check_output(
-        ['dvisvgm', '-v0', '-a', '-n', '-s', dvifile])
-    return svg.decode('utf-8')
-
-
-def get_svg_geometry(svg):
-    if not svg:
-        return dict()
-    xml = ET.fromstring(svg)
-    ns = xml.tag.rstrip('svg')
-    width = float(xml.attrib['width'][:-2])
-    height = float(xml.attrib['height'][:-2])
-    viewBox = list(map(float, xml.attrib['viewBox'].split()))
-    gfill = xml.find(ns + 'g')
-    use = gfill.find(ns + 'use')
-    y = float(use.attrib['y'])
-    baseline = height - (y - viewBox[1])
-    return dict(width=width, height=height, baseline=baseline, valign=-baseline)
-
-
-def img_latex_repl(m):
-    orig = m.string[m.start():m.end()]
-    latex = m.group('latex').strip()
-
-    # The `.` will define the base line:
-    svg = latex2svg('.' + latex)
-    geom = get_svg_geometry(svg)
-
+def get_latex_expr(latex):
     inline = False
     if latex[:2] in ('$$', r'\['):
         assert latex[-2:] in ('$$', r'\]'), (latex[:2], latex[-2:])
-        formula = latex[2:-2].strip()
+        expr = latex[2:-2].strip()
     elif latex[:1] == '$':
         assert latex[-1] == '$', (latex[-1],)
         inline = True
-        formula = latex[1:-1].strip()
+        expr = latex[1:-1].strip()
     elif latex.startswith(r'\begin{equation'):
         i = latex.find('}')
         j = latex.rfind('\end{equation')
         assert -1 not in [i,j], (i,j)
-        formula = latex[i+1:j].strip()
+        expr = latex[i+1:j].strip()
     elif latex.startswith(r'\begin{'):
-        formula = latex
+        expr= latex
     else:
         inline = True
-        formula = r'\text{%s}' % (latex)
-
-    return make_img(latex, formula, inline, geom)
-
-
-def make_img(latex, formula, inline, geom):
-    # The exclamation fixes codecogs issues with some formulas ending
-    # with `.` or `)`.
-    formula = formula + r'\!'
-    attrs =  ''
-
-    if inline:
-        formula = r'\inline '+formula
-        if 'width' in geom:
-            attrs += ' width="{width:.4f}px" height="{height:4f}px"'.format_map(geom)        
-        if 'valign' in geom:
-            attrs += ' valign="{valign:.4f}px"'.format_map(geom)
-        attrs += ' style="display:inline;"'
-    else:
-        latex = f'\n{latex}\n'
-        attrs += ' style="display:block;50px:auto;margin-right:auto;padding:25px"'
-    url = 'https://latex.codecogs.com/svg.latex?' + urllib.parse.quote(formula)
-    img = f'<img data-latex="{latex}" src="{url}" {attrs} alt="latex">'
-    return img
-
+        if latex.startswith(r'\text{'):
+            assert latex.endswith('}'), (latex,)
+            expr = latex
+        else:
+            expr = r'\text{%s}' % (latex)
+    return inline, expr
 
 def symbolrepl(m):
     orig = m.string[m.start():m.end()]
@@ -139,35 +71,6 @@ def symbolrepl(m):
         impl=':large_blue_diamond:',
     )
     return label_map.get(label, '') + comment
-
-
-def latexrepl(m):
-    """
-    Replace plain LaTeX expressions with empty latex images.
-    """
-    orig = m.string[m.start():m.end()]
-    formula = m.group('formula').strip()
-    dollars = m.string[m.start():m.start('formula')]
-    is_latex_comment = m.string[:m.start()].endswith('<!--')
-    if is_latex_comment:
-        return orig
-    if m.string[:m.start()].rstrip().endswith('"'):
-        return orig
-    return make_img(orig.strip(), 'a', False, {})    
-
-
-def formularepl(m):
-    """
-    Append LaTeX rendering images to LaTeX comments.
-    """
-    orig = m.string[m.start():m.end()]
-    formula = m.group('formula').strip()
-    dollars = m.string[m.start('dollars'):m.end('dollars')]
-    dollars = dollars[:2]
-    latex = dollars + formula + dollars
-    inline = len(dollars) == 1
-    return make_img(latex, formula, inline, geom)
-
 
 def str2re(s):
     """Make re specific characters immune to re.compile.
@@ -195,68 +98,333 @@ data in img elements but note:
 -->
 '''
 
-class MarkDownLaTeXHandler(RegexMatchingEventHandler):
+class ImageGenerator(object):
 
-    def __init__(self, pattern, run_pandoc=False, verbose=False):
-        super(MarkDownLaTeXHandler, self).__init__(regexes=[pattern])
-        self.run_pandoc = run_pandoc
-        self.verbose = verbose
-        self.last_modified = {}
+    def __init__(self, parent, md_file):
+        self.parent = parent
+        fn, ext = os.path.splitext(md_file)
+        assert ext == '.md', (fn, ext)
+        self.md_file = md_file
+        self.html_file = md_file + '.html'
+        self.filename = os.path.basename(fn)
 
-    def on_modified(self, event):
-        if event.is_directory:
-            return
-        now = time.time()
-        t = self.last_modified.get(event.src_path)
-        if t is not None and abs(now - t) < 0.1:
-            if self.verbose:
-                print(f'Skip just processed {event.src_path} [now - time={now-t:.3f} sec]')
-            return
-        self.update_md(event.src_path)
-        self.last_modified[event.src_path] = time.time()
+        self.working_dir = os.path.dirname(md_file)
+        self.temp_dir = tempfile.mkdtemp('', 'watch-latex-md-')
+        self.image_prefix = '.watch-latex-md-images'
+        self.image_dir = os.path.join(self.working_dir, self.image_prefix)
 
-    def update_md(self, path):
+        if not os.path.isdir(self.image_dir):
+            os.makedirs(self.image_dir)
+
+        self._last_modified = 0
+        self._use_git = None
+        self.image_files = set()
+
+        self.git_update_init()
+
+    @property
+    def verbose(self):
+        return self.parent.verbose
+
+    @property
+    def use_git(self):
+        """
+        Use git only when the Markdown document is under git control.
+        """
+        if self._use_git is not None:
+            return self._use_git
+        print('use_git=', self._use_git, self.parent.use_git, self.git_check_repo(), self.git_check_added(self.md_file))
+        if not self.parent.use_git:
+            self._use_git = False
+        elif not self.git_check_repo():
+            self._use_git = False
+        elif self.git_check_added(self.md_file):
+            self._use_git = True
+        else:
+            return False
+        return self._use_git
+
+    def _return_svg(self, svg):
+        xml = ET.fromstring(svg)
+        ns = xml.tag.rstrip('svg')
+        baseline = xml.attrib.get('{'+myns+'}baseline')        
+        width = float(xml.attrib['width'][:-2])
+        height = float(xml.attrib['height'][:-2])
+        if baseline is None:
+            viewBox = list(map(float, xml.attrib['viewBox'].split()))
+            gfill = xml.find(ns + 'g')
+            use = gfill.find(ns + 'use')  # that should correspond to the dot `.`
+            y = float(use.attrib['y'])
+            baseline = height - (y - viewBox[1])
+            gfill.remove(use)
+            xml.set('watch_lated_md:baseline', str(baseline))
+            xml.set('xmlns:watch_lated_md', myns)
+            svg = ET.tostring(xml).decode('utf-8')
+        else:
+            baseline = float(baseline)
+        params = dict(width=round(width, 3), height=round(height, 3), baseline=round(baseline, 3), valign=round(-baseline, 3))
+        return svg, params        
+
+    def load_svg(self, svg_file):
+        f = open(svg_file)
+        svg = f.read()
+        f.close()
+        return self._return_svg(svg)
+
+    def get_svg(self, latex, hexname):
+        doc = r'''
+\documentclass[17pt]{article}
+\usepackage{extsizes}
+\usepackage{amsmath}
+\usepackage{amssymb}
+\pagestyle{empty}
+\begin{document}
+.%s
+\end{document}
+''' % (latex)
+
+        tex_file = os.path.join(self.temp_dir, hexname + '.tex')
+        dvi_file = os.path.join(self.temp_dir, hexname + '.dvi')
+        f = open(tex_file, 'w')
+        f.write(doc)
+        f.close()
+        try:
+            check_output(['latex', '-output-directory=' + self.temp_dir,
+                          '-interaction', 'nonstopmode', tex_file],
+                         stderr=sys.stdout)
+        except Exception:
+            print(f'failed to latex {latex!r}')
+            return '', {}
+        svg = check_output(['dvisvgm', '-v0', '-a', '-n', '-s', dvi_file]).decode('utf-8')
+        return self._return_svg(svg)
+
+    def latex_to_img(self, m):
+        if m.string[:m.start()].rstrip().endswith('"'):
+            return m.string[m.start():m.end()]
+        latex = m.group('latex')
         if self.verbose:
-            print(f'Processing {path}')
-        filename, ext = os.path.splitext(path)
-        assert ext == '.md', (path, ext)
+            print(f'latex_to_img: {latex=}')
+        return f'<img data-latex="{latex}" src="to-be-generated" alt="latex">'
 
-        content = open(path).read()
+    def make_img(self, latex, src, **params):
+        attrs =  ''
+        if params.get('inline', False):
+            for a in ['valign', 'width', 'height']:
+                if a in params:
+                    v = params[a]
+                    if abs(v) > 1e-3:
+                        attrs += ' {}="{}px"'.format(a, v)
+            attrs += ' style="display:inline;"'
+        else:
+            attrs += ' style="display:block;margin-left:50px;margin-right:auto;padding:25px"'
+            latex = f'\n{latex}\n'
+        return f'<img data-latex="{latex}" src="{src}" {attrs} alt="latex">'
 
-        count = 0
+    def img_to_svg(self, m):
+        latex = m.group('latex').strip()
+        inline, expr = get_latex_expr(latex)
+        if inline:
+            latex = latex.replace('\n', ' ')
+
+        if self.verbose:
+            print(f'img_to_svg: {inline=} {expr=}')
+
+        hexname = hashlib.md5((f'{self.filename}:{latex}').encode('utf-8')).hexdigest()
+        svg_file = os.path.join(self.image_dir, hexname) + '.svg'
+        svg_src = os.path.join(self.image_prefix, hexname) + '.svg'
+        if not os.path.isfile(svg_file):
+            svg, params = self.get_svg(latex, hexname)
+            if not svg:
+                return m.string[m.start():m.end()]
+            if self.verbose:
+                print(f'{svg_file} created')
+            f = open(svg_file, 'w')
+            f.write(svg)
+            f.close()
+        else:
+            if self.verbose:
+                print(f'{svg_file} exists')
+            svg, params = self.load_svg(svg_file)
+        params.update(inline=inline)
+        self.image_files.add(svg_file)
+        return self.make_img(latex, svg_src, **params)
+
+    def update(self):
+        now = time.time()
+        if now - self._last_modified < 0.1:
+            if self.verbose:
+                print(f'{self.md_file} is likely up-to-date')
+            return
+
+        if self.verbose:
+            print(f'{self.md_file} processing')
+
+        prev_image_files = self.image_files.copy()
+        self.image_files.clear()
+
+        f = open(self.md_file)
+        orig_content = f.read()
+        f.close()
+
+        content = orig_content
+
+        if content.find(header.split(None, 1)[0]) == -1:
+            content = header + '\n' + content
+
         for pattern, repl in [
-                (r'[$]+(?P<formula>[^$]+)[$]+', latexrepl),
-                #(r'[<][!][-][-](?P<dollars>[$]+)(?P<formula>[^$]*)[$]+\s*[-][-][>](?P<prev>\s*[<]img\s+src[=]["].*?[>])?', formularepl),
-                #(r'(?P<prev>[:][^:]+[:]\s*)?[<][!][-][-][:](?P<label>.*?)[:][-][-][>]', symbolrepl),
-                (r'([<]img\s+data[-]latex="\s*)(?P<latex>.*?)"\s+src=.*?\s+alt="latex">', img_latex_repl),
-        ]:
+                (r'(?P<latex>[$]+[^$]+[$]+)', self.latex_to_img),
+                (r'([<]img\s+data[-]latex=["]\s*)(?P<latex>.*?)["]\s+src=.*?\s+alt="latex">', self.img_to_svg)]:
             content, _count = re.subn(
                 pattern, repl,
                 content,
                 flags=re.S | re.M
             )
-            count += _count
 
-        if count > 0:
-            if content.find(header.split(None, 1)[0]) == -1:
-                content = header + '\n' + content
-            if self.verbose:
-                print(f'Updating {path} (found {count} replacements)')
-            f = open(path, 'w')
+        if content != orig_content:
+            f = open(self.md_file, 'w')
             f.write(content)
             f.close()
+            self._last_modified = time.time()
 
-            if self.run_pandoc:
-                path_html = path + '.html'
-                if self.verbose:
-                    print(f'Generating {path_html}')
-                cmd = f'pandoc -f gfm -t html --metadata title="{os.path.basename(os.path.dirname(path))}" -s {path} -o {path_html}'
-                status = os.system(cmd)
-                if status:
-                    print(f'`{cmd}` FAILED[status={status}]')
+            if self.verbose:
+                print(f'{self.md_file} is updated')
+
+            if self.parent.run_pandoc:
+                try:
+                    check_output(['pandoc',
+                                  '-f', 'gfm',
+                                  '-t', 'html',
+                                  '--metadata', 'title=' + os.path.basename(self.md_file),
+                                  '-s', self.md_file,
+                                  '-o', self.html_file],
+                                 stderr=sys.stdout)
+                except Exception as msg:
+                    print(f'{self.md_file} pandoc failed: {msg}' )
+                else:
+                    if self.verbose:
+                        print(f'{self.html_file} is generated')
+
         else:
             if self.verbose:
-                print(f'No updates to {path}')
+                print(f'{self.md_file} is up-to-date')
+
+        existing_files = list(self.image_files.intersection(prev_image_files))
+        new_files = list(self.image_files.difference(prev_image_files))
+        obsolete_files = list(prev_image_files.difference(self.image_files))
+
+        if self.verbose:
+            print(f'existing_files={list(map(os.path.basename, existing_files))}')
+            print(f'new_files={list(map(os.path.basename, new_files))}')
+            print(f'obsolete_files={list(map(os.path.basename, obsolete_files))}')
+
+        git_add_files = set()
+        git_rm_files = set()
+        rm_files = set()
+
+        if self.use_git:
+            for fn in new_files:
+                print(fn, self.git_check_added(fn))
+                if not self.git_check_added(fn):
+                    git_add_files.add(fn)
+
+            for fn in obsolete_files:
+                if self.git_check_added(fn):
+                    git_rm_files.add(fn)
+                else:
+                    rm_files.add(fn)
+        else:
+            if self.git_check_repo():
+                for fn in obsolete_files:
+                    if self.git_check_added(fn):
+                        pass
+                    else:
+                        rm_files.add(fn)
+            else:
+                rm_files.update(obsolete_files)
+
+        list(map(self.git_add_file, git_add_files))
+        list(map(self.git_rm_file, git_rm_files))
+        list(map(self.rm_file, rm_files))
+
+    def git_update_init(self):
+
+        f = open(self.md_file)
+        content = f.read()
+        f.close()
+
+        for fn in re.findall(os.path.join(str2re(self.image_prefix), r'\w+.svg'), content):
+            svg_file = os.path.join(self.working_dir, fn)
+            if os.path.isfile(svg_file):
+                self.image_files.add(svg_file)
+            else:
+                print(f'{svg_file} does not exist?')
+        
+        git_add_files = set()
+        if self.use_git:
+            for fn in self.image_files:
+                if not self.git_check_added(fn):
+                    git_add_files.add(fn)
+
+        list(map(self.git_add_file, git_add_files))
+
+    def rm_file(self, path):
+        if os.path.isfile(path):
+            if self.verbose:
+                print(f'rm {path}')
+            os.remove(path)
+
+    def git_add_file(self, path):
+        if os.path.isfile(path):
+            if self.verbose:
+                print(f'git add {path}')
+            return subprocess.call(['git', 'add', path],
+                                   #stdout=subprocess.DEVNULL,
+                                   #stderr=subprocess.DEVNULL,
+                                   cwd=self.working_dir) == 0
+
+    def git_rm_file(self, path):
+        if os.path.isfile(path):
+            if self.verbose:
+                print(f'git rm -f {path}')
+            return subprocess.call(['git', 'rm', '-f', path],
+                                   #stdout=subprocess.DEVNULL,
+                                   #stderr=subprocess.DEVNULL,
+                                   cwd=self.working_dir) == 0
+
+    def git_check_repo(self):
+        """Check if working directory is under git control
+        """
+        return subprocess.call(['git', 'rev-parse', '--is-inside-work-tree'],
+                               stdout=subprocess.DEVNULL,
+                               stderr=subprocess.DEVNULL,
+                               cwd=self.working_dir) == 0
+
+        
+    def git_check_added(self, path):
+        """
+        Check if path is under git control.
+        """
+        return subprocess.call(['git', 'ls-files', '--error-unmatch', path],
+                               stdout=subprocess.DEVNULL,
+                               stderr=subprocess.DEVNULL,
+                               cwd=self.working_dir) == 0
+    
+    
+    
+class MarkDownLaTeXHandler(RegexMatchingEventHandler):
+
+    def __init__(self, pattern, run_pandoc=False, verbose=False, use_git=False):
+        super(MarkDownLaTeXHandler, self).__init__(regexes=[pattern])
+        self.run_pandoc = run_pandoc
+        self.verbose = verbose
+        self.use_git = use_git
+        self.image_generators = {}
+
+    def on_modified(self, event):
+        g = self.image_generators.get(event.src_path)
+        if g is None:
+            g = self.image_generators[event.src_path] = ImageGenerator(self, event.src_path)
+        g.update()
 
 
 def main():
@@ -269,6 +437,10 @@ def main():
                         action='store_const', const=True,
                         default=False,
                         help='Generate HTML files, requires pandoc. Default is False.')
+    parser.add_argument('--git', dest='use_git',
+                        action='store_const', const=True,
+                        default=False,
+                        help='Add generated image files automatically to git. Default is False.')
     parser.add_argument('--verbose', dest='verbose',
                         action='store_const', const=True,
                         default=False,
@@ -291,7 +463,9 @@ def main():
         else:
             print(f'Path {path} does not exist. Skipping.')
             continue
-        event_handler = MarkDownLaTeXHandler(pattern, verbose=args.verbose,
+        event_handler = MarkDownLaTeXHandler(pattern,
+                                             verbose=args.verbose,
+                                             use_git=args.use_git,
                                              run_pandoc=args.html)
         observer.schedule(event_handler, path, recursive=recursive)
 
