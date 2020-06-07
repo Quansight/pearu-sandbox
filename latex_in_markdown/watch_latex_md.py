@@ -24,8 +24,6 @@ import os
 import re
 import sys
 import time
-import urllib.request
-import urllib.parse
 import argparse
 import hashlib
 import tempfile
@@ -36,6 +34,7 @@ import subprocess
 import xml.etree.ElementTree as ET
 
 myns = 'https://github.com/Quansight/pearu-sandbox/latex_in_markdown/'
+
 
 def get_latex_expr(latex):
     inline = False
@@ -48,11 +47,11 @@ def get_latex_expr(latex):
         expr = latex[1:-1].strip()
     elif latex.startswith(r'\begin{equation'):
         i = latex.find('}')
-        j = latex.rfind('\end{equation')
-        assert -1 not in [i,j], (i,j)
+        j = latex.rfind(r'\end{equation')
+        assert -1 not in [i, j], (i, j)
         expr = latex[i+1:j].strip()
     elif latex.startswith(r'\begin{'):
-        expr= latex
+        expr = latex
     else:
         inline = True
         if latex.startswith(r'\text{'):
@@ -62,15 +61,6 @@ def get_latex_expr(latex):
             expr = r'\text{%s}' % (latex)
     return inline, expr
 
-def symbolrepl(m):
-    orig = m.string[m.start():m.end()]
-    label = m.group('label')
-    comment = '<!--:' + label + ':-->'
-    label_map = dict(
-        proposal=':large_blue_circle:',
-        impl=':large_blue_diamond:',
-    )
-    return label_map.get(label, '') + comment
 
 def str2re(s):
     """Make re specific characters immune to re.compile.
@@ -104,8 +94,9 @@ Enjoy LaTeXing!
 '''
 
 image_dir_gitattributes = '''
-*.svg binary
+*.svg binary linguist-generated
 '''
+
 
 class ImageGenerator(object):
 
@@ -116,10 +107,9 @@ class ImageGenerator(object):
         self.md_file = md_file
         self.html_file = md_file + '.html'
         self.filename = os.path.basename(fn)
-
         self.working_dir = os.path.dirname(md_file)
         self.temp_dir = tempfile.mkdtemp('', 'watch-latex-md-')
-        self.image_prefix = '.watch-latex-md-images'
+        self.image_prefix = '.images'
         self.image_dir = os.path.join(self.working_dir, self.image_prefix)
 
         self._last_modified = 0
@@ -170,13 +160,15 @@ class ImageGenerator(object):
     def _return_svg(self, svg, inline=None):
         xml = ET.fromstring(svg)
         ns = xml.tag.rstrip('svg')
-        baseline = xml.attrib.get('{'+myns+'}baseline')        
+        baseline = xml.attrib.get('{'+myns+'}baseline')
         width = float(xml.attrib['width'][:-2])
         height = float(xml.attrib['height'][:-2])
         if baseline is None:
             viewBox = list(map(float, xml.attrib['viewBox'].split()))
             gfill = xml.find(ns + 'g')
-            use = gfill.find(ns + 'use')  # that should correspond to the dot when in inline mode
+            # the first use should correspond to the dot when in
+            # inline mode
+            use = gfill.find(ns + 'use')
             y = float(use.attrib['y'])
             baseline = height - (y - viewBox[1])
             if inline:
@@ -186,8 +178,9 @@ class ImageGenerator(object):
             svg = ET.tostring(xml).decode('utf-8')
         else:
             baseline = float(baseline)
-        params = dict(width=round(width, 3), height=round(height, 3), baseline=round(baseline, 3), valign=round(-baseline, 3))
-        return svg, params        
+        params = dict(width=round(width, 3), height=round(height, 3),
+                      baseline=round(baseline, 3), valign=round(-baseline, 3))
+        return svg, params
 
     def load_svg(self, svg_file):
         f = open(svg_file)
@@ -232,7 +225,7 @@ class ImageGenerator(object):
         return f'<img data-latex="{latex}" src="to-be-generated" alt="latex">'
 
     def make_img(self, latex, src, **params):
-        attrs =  ''
+        attrs = ''
         if params.get('inline', False):
             for a in ['valign', 'width', 'height']:
                 if a in params:
@@ -241,7 +234,8 @@ class ImageGenerator(object):
                         attrs += ' {}="{}px"'.format(a, v)
             attrs += ' style="display:inline;"'
         else:
-            attrs += ' style="display:block;margin-left:50px;margin-right:auto;padding:0px"'
+            attrs += (' style="display:block;margin-left:50px;'
+                      'margin-right:auto;padding:0px"')
             latex = f'\n{latex}\n'
         return f'<img data-latex="{latex}" src="{src}" {attrs} alt="latex">'
 
@@ -254,7 +248,8 @@ class ImageGenerator(object):
         if self.verbose:
             print(f'img_to_svg: {inline=} {expr=}')
 
-        hexname = hashlib.md5((f'{self.filename}:{latex}').encode('utf-8')).hexdigest()
+        hexname = hashlib.md5((f'{self.filename}:{latex}')
+                              .encode('utf-8')).hexdigest()
         svg_file = os.path.join(self.image_dir, hexname) + '.svg'
         svg_src = os.path.join(self.image_prefix, hexname) + '.svg'
         if self.force_rerender or not os.path.isfile(svg_file):
@@ -298,7 +293,9 @@ class ImageGenerator(object):
 
         for pattern, repl in [
                 (r'(?P<latex>[$]+[^$]+[$]+)', self.latex_to_img),
-                (r'([<]img\s+data[-]latex=["]\s*)(?P<latex>.*?)["]\s+src=.*?\s+alt="latex">', self.img_to_svg)]:
+                ((r'([<]img\s+data[-]latex=["]\s*)(?P<latex>.*?)'
+                  r'["]\s+src=.*?\s+alt="latex">'),
+                 self.img_to_svg)]:
             content, _count = re.subn(
                 pattern, repl,
                 content,
@@ -310,73 +307,61 @@ class ImageGenerator(object):
             f.write(content)
             f.close()
             self._last_modified = time.time()
-
             if self.verbose:
-                print(f'{self.md_file} is updated{("--force-rerender" if self.force_rerender else "")}')
-
-
+                print(f'{self.md_file} is updated')
         else:
             if self.verbose:
                 print(f'{self.md_file} is up-to-date')
 
         if self.parent.run_pandoc:
             try:
-                check_output(['pandoc',
-                              '-f', 'gfm',
-                              '-t', 'html',
-                              '--metadata', 'title=' + os.path.basename(self.md_file),
-                              '-s', self.md_file,
-                              '-o', self.html_file],
-                             stderr=sys.stdout)
+                check_output(
+                    ['pandoc',
+                     '-f', 'gfm',
+                     '-t', 'html',
+                     '--metadata',
+                     'title=' + os.path.basename(self.md_file),
+                     '-s', self.md_file,
+                     '-o', self.html_file],
+                    stderr=sys.stdout)
             except Exception as msg:
-                print(f'{self.md_file} pandoc failed: {msg}' )
+                print(f'{self.md_file} pandoc failed: {msg}')
             else:
                 if self.verbose:
                     print(f'{self.html_file} is generated')
 
-        existing_files = list(self.image_files.intersection(prev_image_files))
         new_files = list(self.image_files.difference(prev_image_files))
         obsolete_files = list(prev_image_files.difference(self.image_files))
-
-        if self.verbose:
-            print(f'existing_files={list(map(os.path.basename, existing_files))}')
-            print(f'new_files={list(map(os.path.basename, new_files))}')
-            print(f'obsolete_files={list(map(os.path.basename, obsolete_files))}')
-
-        git_add_files = set()
-        git_rm_files = set()
-        rm_files = set()
 
         if self.use_git:
             for fn in new_files:
                 if not self.git_check_added(fn):
-                    git_add_files.add(fn)
-
+                    self.git_add_file(fn)
             for fn in obsolete_files:
                 if self.git_check_added(fn):
-                    git_rm_files.add(fn)
+                    self.git_rm_file(fn)
                 else:
-                    rm_files.add(fn)
+                    self.rm_file(fn)
         else:
             if self.git_check_repo():
                 for fn in obsolete_files:
                     if self.git_check_added(fn):
-                        print(f'{fn} is obsolete in git repo [use --git to enable auto-removal]')
+                        print(f'{fn} is obsolete in git repo '
+                              '[use --git to enable auto-removal]')
                     else:
-                        rm_files.add(fn)
+                        self.rm_file(fn)
             else:
-                rm_files.update(obsolete_files)
-
-        list(map(self.git_add_file, git_add_files))
-        list(map(self.git_rm_file, git_rm_files))
-        list(map(self.rm_file, rm_files))
+                for fn in obsolete_files:
+                    self.rm_file(fn)
 
     def git_update_init(self):
         f = open(self.md_file)
         content = f.read()
         f.close()
 
-        for fn in re.findall(os.path.join(str2re(self.image_prefix), r'\w+.svg'), content):
+        for fn in re.findall(
+                os.path.join(str2re(self.image_prefix),
+                             r'\w+.svg'), content):
             svg_file = os.path.join(self.working_dir, fn)
             if os.path.isfile(svg_file):
                 self.image_files.add(svg_file)
@@ -434,7 +419,6 @@ class ImageGenerator(object):
                                stderr=devnull,
                                cwd=self.working_dir) == 0
 
-        
     def git_check_added(self, path):
         """
         Check if path is under git control.
@@ -448,9 +432,8 @@ class ImageGenerator(object):
                                stdout=devnull,
                                stderr=devnull,
                                cwd=self.working_dir) == 0
-    
-    
-    
+
+
 class MarkDownLaTeXHandler(RegexMatchingEventHandler):
 
     def __init__(self, pattern, run_pandoc=False, verbose=False, use_git=False,
@@ -465,32 +448,41 @@ class MarkDownLaTeXHandler(RegexMatchingEventHandler):
     def on_modified(self, event):
         g = self.image_generators.get(event.src_path)
         if g is None:
-            g = self.image_generators[event.src_path] = ImageGenerator(self, event.src_path)
+            g = ImageGenerator(self, event.src_path)
+            self.image_generators[event.src_path] = g
         g.update()
 
 
 def main():
 
-    parser = argparse.ArgumentParser(description='Watch Markdown files and apply LaTeX processing hooks.')
-    parser.add_argument('paths', metavar='paths', type=str, nargs='*',
-                        default=['.'],
-                        help='Paths to the location of .md files. Default is current working director.')
-    parser.add_argument('--html', dest='html',
-                        action='store_const', const=True,
-                        default=False,
-                        help='Generate HTML files, requires pandoc. Default is False.')
-    parser.add_argument('--git', dest='use_git',
-                        action='store_const', const=True,
-                        default=False,
-                        help='Add generated image files automatically to git. Default is False.')
-    parser.add_argument('--force-rerender', dest='force_rerender',
-                        action='store_const', const=True,
-                        default=False,
-                        help='Always rerender, useful for debugging. Default is False.')
-    parser.add_argument('--verbose', dest='verbose',
-                        action='store_const', const=True,
-                        default=False,
-                        help='Be verbose, useful for debugging. Default is False.')
+    parser = argparse.ArgumentParser(
+        description='Watch Markdown files and apply LaTeX processing hooks.')
+    parser.add_argument(
+        'paths', metavar='paths', type=str, nargs='*',
+        default=['.'],
+        help=('Paths to the location of .md files.'
+              ' Default is current working director.'))
+    parser.add_argument(
+        '--html', dest='html',
+        action='store_const', const=True,
+        default=False,
+        help='Generate HTML files, requires pandoc. Default is False.')
+    parser.add_argument(
+        '--git', dest='use_git',
+        action='store_const', const=True,
+        default=False,
+        help=('Add generated image files automatically to git.'
+              ' Default is False.'))
+    parser.add_argument(
+        '--force-rerender', dest='force_rerender',
+        action='store_const', const=True,
+        default=False,
+        help='Always rerender, useful for debugging. Default is False.')
+    parser.add_argument(
+        '--verbose', dest='verbose',
+        action='store_const', const=True,
+        default=False,
+        help='Be verbose, useful for debugging. Default is False.')
 
     args = parser.parse_args()
     if args.verbose:
@@ -512,12 +504,12 @@ def main():
         else:
             print(f'{path} does not exist. Skip in watching.')
             continue
-        event_handler = MarkDownLaTeXHandler(pattern,
-                                             verbose=args.verbose,
-                                             use_git=args.use_git,
-                                             run_pandoc=args.html,
-                                             force_rerender=args.force_rerender
-        )
+        event_handler = MarkDownLaTeXHandler(
+            pattern,
+            verbose=args.verbose,
+            use_git=args.use_git,
+            run_pandoc=args.html,
+            force_rerender=args.force_rerender)
         observer.schedule(event_handler, path, recursive=recursive)
     print('Press Ctrl-C to stop...')
     observer.start()
@@ -528,6 +520,6 @@ def main():
         observer.stop()
     observer.join()
 
-    
+
 if __name__ == '__main__':
     main()

@@ -24,12 +24,11 @@ Enjoy LaTeXing!
 # Using LaTeX in Github Flavored Markdown documents
 
 For writting technical documents in GitHub Flavored MarkDown (GFM)
-documents that involve mathematics, inserting LaTeX formulas is a
-highly desired prerequisite. This project provides the following
-solution:
+documents that involve mathematics, using LaTeX formulas is a highly
+desired feature. This project provides the following solution:
 
-- Download [watch_latex_md.py](watch_latex_md.py) script and install
-  watchdog, and optionally, pandoc and latex.
+- Download [watch_latex_md.py](watch_latex_md.py) script and make sure
+  you have pdflatex, watchdog, and optionally pandoc installed.
   
 - Run:
   ```
@@ -41,17 +40,22 @@ solution:
   Markdown documents whenever the files are modified in the
   filesystem.
 
-- To have a LaTeX expression in a Markdown document, insert a LaTeX
-  expression surrounded with dollar (&#0036;) signs (single dollar
-  signs lead to LaTeX expressions displayed inline, double dollar
-  signs display the LaTeX as a slightly-left-centered block). When
-  saving the document, the `watch_latex_md.py` script will replace
-  such LaTeX expressions with HTML `img` element that contains a link
-  to LaTeX rendering result. The HTML `img` element has a `data-latex`
-  field that contains the original LaTeX expression and that can be
-  edited at any time. Whenever the Markdown document is saved, the
-  script will automatically update the link of the LaTeX rendering
-  result.
+- When a LaTeX expression surrounded with dollar (&#0036;) signs, is
+  inserted to a Markdown document and the document is save, the
+  `watch_latex_md.py` will replace such LaTeX expressions with HMTL
+  `img` element containing a link to LaTeX rendering result (it's a
+  SVG file created under the directory of the Markdown document).
+  The HTML `img` element has a `data-latex` field that contains the
+  original LaTeX expression which can be edited at any time. Whenever
+  the Markdown document is saved, the script will automatically
+  rerender the LaTeX expression.
+
+- Single dollar signs around the LaTeX expressions will lead to
+  inlined HTML `img` while double dollars (or `\[`-`\]` pair) result a
+  slighly large image. When no dollar signs are used, the LaTeX
+  expression is rendered for inline mode, except when the expression
+  contains a LaTeX environment surrounded with
+  `\begin{...}`-`\end{...}` block.
 
 - For example, when having the following text in a Markdown document:
 
@@ -60,11 +64,11 @@ solution:
   then after saving the document, the `watch_latex_md.py` process will
   update the document with the following content:
   ```
-  Let <img data-latex="$a\in\mathbb{R}$" src=".watch-latex-md-images/eefa3ffc21ccf3c8d25ed9f9c8d2019d.svg"  valign="-0.673px" width="46.621px" height="12.533px" style="display:inline;" alt="latex">, then <img data-latex="$\sqrt{a}$" src=".watch-latex-md-images/5ba233a286631a8918b5ae921f1f3286.svg"  valign="-4.127px" width="27.493px" height="17.215px" style="display:inline;" alt="latex"> is imaginary whenever <img data-latex="$a<0$" src=".watch-latex-md-images/7b62b3f1ca6c1ec6d8f17ca446ec7f64.svg"  valign="-0.459px" width="43.717px" height="11.556px" style="display:inline;" alt="latex">. 
+  Let <img data-latex="$a\in\mathbb{R}$" src=".images/eefa3ffc21ccf3c8d25ed9f9c8d2019d.svg"  valign="-0.673px" width="46.621px" height="12.533px" style="display:inline;" alt="latex">, then <img data-latex="$\sqrt{a}$" src=".images/5ba233a286631a8918b5ae921f1f3286.svg"  valign="-4.127px" width="27.493px" height="17.215px" style="display:inline;" alt="latex"> is imaginary whenever <img data-latex="$a<0$" src=".images/7b62b3f1ca6c1ec6d8f17ca446ec7f64.svg"  valign="-0.459px" width="43.717px" height="11.556px" style="display:inline;" alt="latex">. 
   ```
   that renders in a GitHub repository as follows:
 
-  - Let <img data-latex="$a\in\mathbb{R}$" src=".watch-latex-md-images/eefa3ffc21ccf3c8d25ed9f9c8d2019d.svg"  valign="-0.673px" width="46.621px" height="12.533px" style="display:inline;" alt="latex">, then <img data-latex="$\sqrt{a}$" src=".watch-latex-md-images/5ba233a286631a8918b5ae921f1f3286.svg"  valign="-4.127px" width="27.493px" height="17.215px" style="display:inline;" alt="latex"> is imaginary whenever <img data-latex="$a<0$" src=".watch-latex-md-images/7b62b3f1ca6c1ec6d8f17ca446ec7f64.svg"  valign="-0.459px" width="43.717px" height="11.556px" style="display:inline;" alt="latex">. 
+  - Let <img data-latex="$a\in\mathbb{R}$" src=".images/eefa3ffc21ccf3c8d25ed9f9c8d2019d.svg"  valign="-0.673px" width="46.621px" height="12.533px" style="display:inline;" alt="latex">, then <img data-latex="$\sqrt{a}$" src=".images/5ba233a286631a8918b5ae921f1f3286.svg"  valign="-4.127px" width="27.493px" height="17.215px" style="display:inline;" alt="latex"> is imaginary whenever <img data-latex="$a<0$" src=".images/7b62b3f1ca6c1ec6d8f17ca446ec7f64.svg"  valign="-0.459px" width="43.717px" height="11.556px" style="display:inline;" alt="latex">. 
 
 
 - Here's an example of displayed LaTeX expression:
@@ -81,49 +85,44 @@ solution:
 $$
 A = \int_a^b f(x)\,dx
 $$
-" src=".watch-latex-md-images/4e4ab61f8250368f2d01a961f9b92d11.svg"  style="display:block;margin-left:50px;margin-right:auto;padding:0px" alt="latex">
+" src=".images/4e4ab61f8250368f2d01a961f9b92d11.svg"  style="display:block;margin-left:50px;margin-right:auto;padding:0px" alt="latex">
 
 - The Markdown document writer should not pay attention to the content
   of the HTML `img` element (I know, it looks ugly..) other than the
   `data-latex` field. This field can be updated by the writer at any
-  time but all other fields will be overwritten when saving the
-  Markdown document.
+  time, all other fields are overwritten when saving the Markdown
+  document.
 
 Similar projects:
 
 - [readme2tex](https://github.com/leegao/readme2tex), see
   [comment](https://github.com/Quansight/pearu-sandbox/pull/16#issuecomment-639463851). Update:
   originally, the `watch_latex_md.py` script used online LaTeX
-  rendering service [codecogs.com](https://codecogs.com) but that
-  turned out to be unreliable: worked only locally and often failed
-  when viewing Markdown documents from GitHub. So, here we use
-  basically the same rendering method as used in
-  [readme2tex](https://github.com/leegao/readme2tex) project.
+  rendering service such as [codecogs.com](https://codecogs.com) but
+  that turned out to be unreliable: it worked only locally and it
+  often failed when viewing Markdown documents from a GitHub
+  repository. As a result, now we use basically the same rendering
+  method as used in [readme2tex](https://github.com/leegao/readme2tex)
+  project.
 
 Some hints:
 
-- See the example Markdown document: [basic_latex_template.md](basic_latex_template.md).
+- See the example Markdown document:
+  [basic_latex_template.md](basic_latex_template.md).
 
-- The `--html` option will generate from a Markdown document the
-  corresponding html document so that the output could be checked
-  locally before committing the changes to Markdown document to the
-  GitHub repository.
+- The `--html` option will generate a html document so that the output
+  could be checked locally before committing the changes to a GitHub
+  repository.
 
 - The `--git` option will automatically add new rendering results
   under the git control as well as remove obsolete results. So, when
   done editing Markdown documents, you can simply proceed with `git`
   commit and push commands.
 
-- The `--force-rerender` option will force the rerendering of all
-  LaTeX expressions in the Markdown document. This is useful mostly
-  when debugging but also when some rendering results got lost/broken
-  or when one wishes to add these under git control.
-
-- Usually, the dollar signs in `data-latex` will determine the display
-  view (inline or block) of LaTeX expressions. When the dollar signs
-  are removed, the LaTeX expression in the `data-latex` field will be
-  wrapped with `\text{...}`, except when the LaTeX expression starts
-  with some `\begin{...}` statement.
+- The `--force-rerender` option will force rendering of all LaTeX
+  expressions in Markdown documents. This is useful when debugging, or
+  when some rendering results got lost/broken, or when one wishes to
+  add these under git control.
 
 - Emacs users may want to enable `auto-revert-mode` so that the buffer
   of a Markdown document will be automatically updated when the
