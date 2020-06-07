@@ -87,14 +87,19 @@ This document is processed by watch_latex_md.py program, see
   https://github.com/Quansight/pearu-sandbox/latex_in_markdown/
 
 You can edit this document as you wish. You can also edit the LaTeX
-data in img elements but note:
+data in img elements, but only the content of `latex-data`:
 
-  1. to automatically update the LaTeX rendering in img element, edit
-     the file under the supervision of watch_latex_md.py
+  1. To automatically update the LaTeX rendering in img element, edit
+     the file while watch_latex_md.py is running.
 
-  2. don't change the beginning (`<img latex-data="...`) and the end
-     (`...alt="latex">`) parts of the img element as these are used by
-     the watch_latex_md.py script.
+  2. Never change the beginning (`<img latex-data="...`) and the end
+     (`...alt="latex">`) parts of the LaTeX img elements as these are
+     used by the watch_latex_md.py script.
+
+  3. Changes to other parts of the LaTeX img elements will be
+     overwritten.
+
+Enjoy LaTeXing!
 -->
 '''
 
@@ -137,7 +142,6 @@ class ImageGenerator(object):
         """
         if self._use_git is not None:
             return self._use_git
-        print('use_git=', self._use_git, self.parent.use_git, self.git_check_repo(), self.git_check_added(self.md_file))
         if not self.parent.use_git:
             self._use_git = False
         elif not self.git_check_repo():
@@ -200,8 +204,7 @@ class ImageGenerator(object):
         except Exception:
             print(f'failed to latex {latex!r}')
             return '', {}
-        svg = check_output(['dvisvgm', '-v0', '-a', '-n', '-s',
-                            '--bbox=min','-R',
+        svg = check_output(['dvisvgm', '-v0', '-a', '-n', '-s', '-R',
                             dvi_file]).decode('utf-8')
         return self._return_svg(svg, inline)
 
@@ -296,23 +299,25 @@ class ImageGenerator(object):
             if self.verbose:
                 print(f'{self.md_file} is updated{("--force-rerender" if self.force_rerender else "")}')
 
-            if self.parent.run_pandoc:
-                try:
-                    check_output(['pandoc',
-                                  '-f', 'gfm',
-                                  '-t', 'html',
-                                  '--metadata', 'title=' + os.path.basename(self.md_file),
-                                  '-s', self.md_file,
-                                  '-o', self.html_file],
-                                 stderr=sys.stdout)
-                except Exception as msg:
-                    print(f'{self.md_file} pandoc failed: {msg}' )
-                else:
-                    if self.verbose:
-                        print(f'{self.html_file} is generated')
+
         else:
             if self.verbose:
                 print(f'{self.md_file} is up-to-date')
+
+        if self.parent.run_pandoc:
+            try:
+                check_output(['pandoc',
+                              '-f', 'gfm',
+                              '-t', 'html',
+                              '--metadata', 'title=' + os.path.basename(self.md_file),
+                              '-s', self.md_file,
+                              '-o', self.html_file],
+                             stderr=sys.stdout)
+            except Exception as msg:
+                print(f'{self.md_file} pandoc failed: {msg}' )
+            else:
+                if self.verbose:
+                    print(f'{self.html_file} is generated')
 
         existing_files = list(self.image_files.intersection(prev_image_files))
         new_files = list(self.image_files.difference(prev_image_files))
@@ -329,7 +334,6 @@ class ImageGenerator(object):
 
         if self.use_git:
             for fn in new_files:
-                print(fn, self.git_check_added(fn))
                 if not self.git_check_added(fn):
                     git_add_files.add(fn)
 
@@ -353,7 +357,6 @@ class ImageGenerator(object):
         list(map(self.rm_file, rm_files))
 
     def git_update_init(self):
-
         f = open(self.md_file)
         content = f.read()
         f.close()
@@ -364,7 +367,7 @@ class ImageGenerator(object):
                 self.image_files.add(svg_file)
             else:
                 print(f'{svg_file} does not exist?')
-        
+
         git_add_files = set()
         if self.use_git:
             for fn in self.image_files:
@@ -383,26 +386,37 @@ class ImageGenerator(object):
         if os.path.isfile(path):
             if self.verbose:
                 print(f'git add {path}')
+                devnull = None
+            else:
+                devnull = subprocess.DEVNULL
             return subprocess.call(['git', 'add', path],
-                                   #stdout=subprocess.DEVNULL,
-                                   #stderr=subprocess.DEVNULL,
+                                   stdout=devnull,
+                                   stderr=devnull,
                                    cwd=self.working_dir) == 0
 
     def git_rm_file(self, path):
         if os.path.isfile(path):
             if self.verbose:
                 print(f'git rm -f {path}')
+                devnull = None
+            else:
+                devnull = subprocess.DEVNULL
             return subprocess.call(['git', 'rm', '-f', path],
-                                   #stdout=subprocess.DEVNULL,
-                                   #stderr=subprocess.DEVNULL,
+                                   stdout=devnull,
+                                   stderr=devnull,
                                    cwd=self.working_dir) == 0
 
     def git_check_repo(self):
         """Check if working directory is under git control
         """
+        if self.verbose:
+            print('git rev-parse --is-inside-work-tree')
+            devnull = None
+        else:
+            devnull = subprocess.DEVNULL
         return subprocess.call(['git', 'rev-parse', '--is-inside-work-tree'],
-                               stdout=subprocess.DEVNULL,
-                               stderr=subprocess.DEVNULL,
+                               stdout=devnull,
+                               stderr=devnull,
                                cwd=self.working_dir) == 0
 
         
@@ -410,9 +424,14 @@ class ImageGenerator(object):
         """
         Check if path is under git control.
         """
+        if self.verbose:
+            print(f'git ls-files --error-unmatch {path}')
+            devnull = None
+        else:
+            devnull = subprocess.DEVNULL
         return subprocess.call(['git', 'ls-files', '--error-unmatch', path],
-                               stdout=subprocess.DEVNULL,
-                               stderr=subprocess.DEVNULL,
+                               stdout=devnull,
+                               stderr=devnull,
                                cwd=self.working_dir) == 0
     
     
@@ -459,21 +478,24 @@ def main():
                         help='Be verbose, useful for debugging. Default is False.')
 
     args = parser.parse_args()
-    print(args)
+    if args.verbose:
+        print(args)
 
     observer = Observer()
-
+    print('Start watching the following files:')
     for path in args.paths:
         path = os.path.abspath(path)
         if os.path.isdir(path):
             pattern = '.*[.]md$'
             recursive = True
+            print(f'  recursively all .md files under {path}/')
         elif os.path.isfile(path):
             path, filename = os.path.split(path)
             pattern = str2re(filename) + '$'
             recursive = False
+            print(f'  {path}/{filename}')
         else:
-            print(f'Path {path} does not exist. Skipping.')
+            print(f'{path} does not exist. Skip in watching.')
             continue
         event_handler = MarkDownLaTeXHandler(pattern,
                                              verbose=args.verbose,
@@ -482,7 +504,7 @@ def main():
                                              force_rerender=args.force_rerender
         )
         observer.schedule(event_handler, path, recursive=recursive)
-
+    print('Press Ctrl-C to stop...')
     observer.start()
     try:
         while True:

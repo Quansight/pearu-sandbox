@@ -5,15 +5,22 @@ This document is processed by watch_latex_md.py program, see
   https://github.com/Quansight/pearu-sandbox/latex_in_markdown/
 
 You can edit this document as you wish. You can also edit the LaTeX
-data in img elements but note:
+data in img elements, but only the content of `latex-data`:
 
-  1. to automatically update the LaTeX rendering in img element, edit
-     the file under the supervision of watch_latex_md.py
+  1. To automatically update the LaTeX rendering in img element, edit
+     the file while watch_latex_md.py is running.
 
-  2. don't change the beginning (`<img latex-data="...`) and the end
-     (`...alt="latex">`) parts of the img element as these are used by
-     the watch_latex_md.py script.
+  2. Never change the beginning (`<img latex-data="...`) and the end
+     (`...alt="latex">`) parts of the LaTeX img elements as these are
+     used by the watch_latex_md.py script.
+
+  3. Changes to other parts of the LaTeX img elements will be
+     overwritten.
+
+Enjoy LaTeXing!
 -->
+
+
 
 The content for this Markdown document is copied from
 [template.tex](http://persweb.wabash.edu/facstaff/turnerw/Writing/LaTeX/)
@@ -84,6 +91,7 @@ $$
 " src=".watch-latex-md-images/dd5363b68f9ba74f436c891bb2edac5d.svg"  style="display:block;margin-left:50px;margin-right:auto;padding:0px" alt="latex">
 
 Plugging in our two points, we find the slope of the line between them is
+
 <a name="eqn:slope"></a>
 <img data-latex="
 \begin{equation}
