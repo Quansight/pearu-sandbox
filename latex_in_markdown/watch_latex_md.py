@@ -103,6 +103,10 @@ Enjoy LaTeXing!
 -->
 '''
 
+image_dir_gitattributes = '''
+*.svg binary
+'''
+
 class ImageGenerator(object):
 
     def __init__(self, parent, md_file):
@@ -118,12 +122,23 @@ class ImageGenerator(object):
         self.image_prefix = '.watch-latex-md-images'
         self.image_dir = os.path.join(self.working_dir, self.image_prefix)
 
-        if not os.path.isdir(self.image_dir):
-            os.makedirs(self.image_dir)
-
         self._last_modified = 0
         self._use_git = None
         self.image_files = set()
+
+        gitattrs_file = os.path.join(self.image_dir, '.gitattributes')
+        if not os.path.isdir(self.image_dir):
+            os.makedirs(self.image_dir)
+
+        if self.use_git and not os.path.isfile(gitattrs_file):
+            if self.verbose:
+                print(f'{gitattrs_file} created')
+            f = open(gitattrs_file, 'w')
+            f.write(image_dir_gitattributes)
+            f.close()
+
+            if not self.git_check_added(gitattrs_file):
+                self.git_add_file(gitattrs_file)
 
         self.git_update_init()
 
