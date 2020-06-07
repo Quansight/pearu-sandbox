@@ -71,7 +71,7 @@ solution:
 
   &#0036;&#0036;
   ```
-  S = \int_a^b f(x)\,dx
+  A = \int_a^b f(x)\,dx
   ```
   &#0036;&#0036;
 
@@ -79,9 +79,9 @@ solution:
 
     <img data-latex="
 $$
-S = \int_a^b f(x)\,dx
+A = \int_a^b f(x)\,dx
 $$
-" src=".watch-latex-md-images/9f933fe2ccfca4c1046eab7a1ea29d02.svg"  style="display:block;margin-left:50px;margin-right:auto;padding:0px" alt="latex">
+" src=".watch-latex-md-images/4e4ab61f8250368f2d01a961f9b92d11.svg"  style="display:block;margin-left:50px;margin-right:auto;padding:0px" alt="latex">
 
 - The Markdown document writer should not pay attention to the content
   of the HTML `img` element (I know, it looks ugly..) other than the
