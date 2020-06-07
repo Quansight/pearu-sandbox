@@ -43,14 +43,17 @@ through the two points.
 ## <a name="sec:distance"></a>Distance
 
 We can use the distance formula
+
 <a name="eqn:distance"></a>
 <img data-latex="
 \begin{equation*}
-        d = \sqrt{(x_2 - x_1)^2 + (y_2 - y_1)^2}
+d = \sqrt{(x_2 - x_1)^2 + (y_2 - y_1)^2}
 \end{equation*}
-" src=".watch-latex-md-images/b5fd81da35597a5115a8378406fe28d9.svg"  style="display:block;margin-left:50px;margin-right:auto;padding:25px" alt="latex">
+" src=".watch-latex-md-images/17b37165e230bf3e645afc814450b9dc.svg"  style="display:block;margin-left:50px;margin-right:auto;padding:0px" alt="latex">
+
 to determine the distance between any two points <img data-latex="$(x_1, y_1)$" src=".watch-latex-md-images/9e8098a889a2d093afcd20fbb07856bc.svg"  valign="-4.289px" width="54.543px" height="17.186px" style="display:inline;" alt="latex"> and <img data-latex="$(x_2, y_2)$" src=".watch-latex-md-images/49c752a12ae08cb035584c6853828f3a.svg"  valign="-4.289px" width="54.543px" height="17.186px" style="display:inline;" alt="latex">
 in <img data-latex="$\mathbb{R}^2$" src=".watch-latex-md-images/90d777bda1d64f482bbd7ee431963e17.svg"  width="22.584px" height="13.952px" style="display:inline;" alt="latex">.  For our example, <img data-latex="$(x_1, y_1) = (-1, 16)$" src=".watch-latex-md-images/a30d42f2f3ce8a453e77ddb3e48da254.svg"  valign="-4.289px" width="133.319px" height="17.186px" style="display:inline;" alt="latex"> and <img data-latex="$(x_2, y_2) = (3, 1)$" src=".watch-latex-md-images/99e54d55cdfe5d0112e6c73dcf652c5a.svg"  valign="-4.289px" width="112.034px" height="17.186px" style="display:inline;" alt="latex">, so plugging these values into the distance formula [distance](#eqn:distance) tell us the distance between the two points is
+
 <img data-latex="
 \begin{equation}
         d 
@@ -59,7 +62,7 @@ in <img data-latex="$\mathbb{R}^2$" src=".watch-latex-md-images/90d777bda1d64f48
         = \sqrt{241}
         .
 \end{equation}
-" src=".watch-latex-md-images/5cb7cfb2a2bedefcac9c291821c596f2.svg"  style="display:block;margin-left:50px;margin-right:auto;padding:25px" alt="latex">
+" src=".watch-latex-md-images/5cb7cfb2a2bedefcac9c291821c596f2.svg"  style="display:block;margin-left:50px;margin-right:auto;padding:0px" alt="latex">
 
 ## <a name="sec:linear-fit"></a> Linear Fit
 
@@ -70,6 +73,7 @@ will then determine the <img data-latex="$y$" src=".watch-latex-md-images/76cc81
 ### <a name="sec:slope"></a> Slope
 
 The slope of the line passing through the two points is given by the forumula
+
 <img data-latex="
 $$
         m 
@@ -77,7 +81,8 @@ $$
         = \frac{y_2 - y_1}{x_2 - x_1}
         .
 $$
-" src=".watch-latex-md-images/dd5363b68f9ba74f436c891bb2edac5d.svg"  style="display:block;margin-left:50px;margin-right:auto;padding:25px" alt="latex">
+" src=".watch-latex-md-images/dd5363b68f9ba74f436c891bb2edac5d.svg"  style="display:block;margin-left:50px;margin-right:auto;padding:0px" alt="latex">
+
 Plugging in our two points, we find the slope of the line between them is
 <a name="eqn:slope"></a>
 <img data-latex="
@@ -87,27 +92,32 @@ Plugging in our two points, we find the slope of the line between them is
         = - \frac{15}{4}
         .
 \end{equation}
-" src=".watch-latex-md-images/96c65477199e7ce5ce08884ec8ad8f3b.svg"  style="display:block;margin-left:50px;margin-right:auto;padding:25px" alt="latex">
+" src=".watch-latex-md-images/96c65477199e7ce5ce08884ec8ad8f3b.svg"  style="display:block;margin-left:50px;margin-right:auto;padding:0px" alt="latex">
 
 ### <a name="sec:intercept"></a> Intercept
 
 To find the <img data-latex="$y$" src=".watch-latex-md-images/76cc814eb790ce3c94002e2c22b65534.svg"  valign="-3.347px" width="13.134px" height="10.76px" style="display:inline;" alt="latex">-intercept of the line, we start with the point-slope form of
 the line of slope <img data-latex="$m$" src=".watch-latex-md-images/3289f1f3038516158022b6f14b8fe0c9.svg"  width="19.042px" height="7.412px" style="display:inline;" alt="latex"> through the point <img data-latex="$(x_0, y_0)$" src=".watch-latex-md-images/5e0f411b1034db3caacaffdd3260fc00.svg"  valign="-4.289px" width="54.543px" height="17.186px" style="display:inline;" alt="latex">:
+
 <img data-latex="
 $$
         y - y_0 = m (x - x_0)
         .
 $$
-" src=".watch-latex-md-images/79d40592c0bc60f8c21b3df7c8e18cef.svg"  style="display:block;margin-left:50px;margin-right:auto;padding:25px" alt="latex">
+" src=".watch-latex-md-images/79d40592c0bc60f8c21b3df7c8e18cef.svg"  style="display:block;margin-left:50px;margin-right:auto;padding:0px" alt="latex">
+
 We plug in the point <img data-latex="$(x_0, y_0) = (-1, 16)$" src=".watch-latex-md-images/6d89bf59f45f816e03abd31d58e58022.svg"  valign="-4.289px" width="133.319px" height="17.186px" style="display:inline;" alt="latex"> and the slope we found
 previously [slope](#eqn:slope) to obtain the equation
+
 <img data-latex="
 $$
         y - 16 = - \frac{15}{4} (x + 1)
         .
 $$
-" src=".watch-latex-md-images/c957bdd13cfde4c800b0cec6cb0968d7.svg"  style="display:block;margin-left:50px;margin-right:auto;padding:25px" alt="latex">
+" src=".watch-latex-md-images/c957bdd13cfde4c800b0cec6cb0968d7.svg"  style="display:block;margin-left:50px;margin-right:auto;padding:0px" alt="latex">
+
 Solving for <img data-latex="$y$" src=".watch-latex-md-images/76cc814eb790ce3c94002e2c22b65534.svg"  valign="-3.347px" width="13.134px" height="10.76px" style="display:inline;" alt="latex">, we find the slope-intercept form of the line:
+
 <img data-latex="
 \begin{align*}
         y
@@ -115,7 +125,8 @@ Solving for <img data-latex="$y$" src=".watch-latex-md-images/76cc814eb790ce3c94
         &= - \frac{15}{4} x + \frac{49}{4}
         .
 \end{align*}
-" src=".watch-latex-md-images/595b683d9df64077313c6506297cdf8d.svg"  style="display:block;margin-left:50px;margin-right:auto;padding:25px" alt="latex">
+" src=".watch-latex-md-images/595b683d9df64077313c6506297cdf8d.svg"  style="display:block;margin-left:50px;margin-right:auto;padding:0px" alt="latex">
+
 Therefore, the <img data-latex="$y$" src=".watch-latex-md-images/76cc814eb790ce3c94002e2c22b65534.svg"  valign="-3.347px" width="13.134px" height="10.76px" style="display:inline;" alt="latex">-intercept is <img data-latex="$b = 49/4$" src=".watch-latex-md-images/fa26a6baa727f8bcfb6506e0e2ff527c.svg"  valign="-4.304px" width="65.535px" height="17.215px" style="display:inline;" alt="latex">, and the equation
 <img data-latex="$y = - \frac{15}{4} x + \frac{49}{4}$" src=".watch-latex-md-images/93c6f2fea9492317a03dbd3b97d5a812.svg"  valign="-5.937px" width="105.102px" height="20.419px" style="display:inline;" alt="latex"> describes the line through the two
 points.
@@ -127,6 +138,7 @@ to pass through both points, we must find constants <img data-latex="$A$" src=".
 both equations <img data-latex="$16 = A e^{-k}$" src=".watch-latex-md-images/76d2467ba930d606493c415323b35139.svg"  width="78.282px" height="14.55px" style="display:inline;" alt="latex"> and <img data-latex="$1 = A e^{3 k}$" src=".watch-latex-md-images/7878796e34ebc288137d264f72010cce.svg"  width="66.941px" height="14.55px" style="display:inline;" alt="latex">.  To solve these two
 simultaneous equations, we first take the ratio of the two equations, which
 gives us a single equation involving only <img data-latex="$k$" src=".watch-latex-md-images/bee7b96e0233a5c9db75ddf7bde63a40.svg"  width="13.643px" height="11.955px" style="display:inline;" alt="latex">:
+
 <img data-latex="
 $$
         16
@@ -134,26 +146,32 @@ $$
         = e^{-4 k}
         .
 $$
-" src=".watch-latex-md-images/611f640c7df9068b014dbf394ad86a09.svg"  style="display:block;margin-left:50px;margin-right:auto;padding:25px" alt="latex">
+" src=".watch-latex-md-images/611f640c7df9068b014dbf394ad86a09.svg"  style="display:block;margin-left:50px;margin-right:auto;padding:0px" alt="latex">
+
 We can take the natural logarithm of this equation to solve for <img data-latex="$k$" src=".watch-latex-md-images/bee7b96e0233a5c9db75ddf7bde63a40.svg"  width="13.643px" height="11.955px" style="display:inline;" alt="latex">:
+
 <img data-latex="
 $$
         -4k = \ln(16) = 4 \ln (2)
         ,
 $$
-" src=".watch-latex-md-images/936dbfc8614e987200b04d0a26c5fcef.svg"  style="display:block;margin-left:50px;margin-right:auto;padding:25px" alt="latex">
+" src=".watch-latex-md-images/936dbfc8614e987200b04d0a26c5fcef.svg"  style="display:block;margin-left:50px;margin-right:auto;padding:0px" alt="latex">
+
 which means <img data-latex="$k = - \ln(2)$" src=".watch-latex-md-images/b9cb7ff24483892a44f61aa759debee3.svg"  valign="-4.289px" width="85.039px" height="17.186px" style="display:inline;" alt="latex">.
 
 We can then use this value of <img data-latex="$k$" src=".watch-latex-md-images/bee7b96e0233a5c9db75ddf7bde63a40.svg"  width="13.643px" height="11.955px" style="display:inline;" alt="latex">, along with either of the two points to
 solve for <img data-latex="$A$" src=".watch-latex-md-images/bf178f97bb21c0e45a177271d3c0554a.svg"  width="16.934px" height="11.764px" style="display:inline;" alt="latex">.  Let us consider the point <img data-latex="$(-1, 16)$" src=".watch-latex-md-images/0d0f874dd4bbfe3d9a8765a7632d466a.svg"  valign="-4.289px" width="61.118px" height="17.186px" style="display:inline;" alt="latex">:
+
 <img data-latex="
 $$
         16 = A e^{(-\ln(2))(-1)} = A e^{\ln{2}} = 2 A
         .
 $$
-" src=".watch-latex-md-images/0999d1a3098296a6cc84d4119da287c6.svg"  style="display:block;margin-left:50px;margin-right:auto;padding:25px" alt="latex">
+" src=".watch-latex-md-images/0999d1a3098296a6cc84d4119da287c6.svg"  style="display:block;margin-left:50px;margin-right:auto;padding:0px" alt="latex">
+
 Solving for <img data-latex="$A$" src=".watch-latex-md-images/bf178f97bb21c0e45a177271d3c0554a.svg"  width="16.934px" height="11.764px" style="display:inline;" alt="latex">, we find <img data-latex="$A = 8$" src=".watch-latex-md-images/4f52e58fb1bd3486250940a04338a1e7.svg"  width="46.786px" height="11.764px" style="display:inline;" alt="latex">, and the exponential equation through both
 points is
+
 <img data-latex="
 $$
         y
@@ -162,4 +180,4 @@ $$
         = 8 \left( \frac{1}{2} \right)^x
         .
 $$
-" src=".watch-latex-md-images/9f26e27cce5771191aef62d58697d52a.svg"  style="display:block;margin-left:50px;margin-right:auto;padding:25px" alt="latex">
+" src=".watch-latex-md-images/9f26e27cce5771191aef62d58697d52a.svg"  style="display:block;margin-left:50px;margin-right:auto;padding:0px" alt="latex">

@@ -127,6 +127,10 @@ class ImageGenerator(object):
         return self.parent.verbose
 
     @property
+    def force_rerender(self):
+        return self.parent.force_rerender
+
+    @property
     def use_git(self):
         """
         Use git only when the Markdown document is under git control.
@@ -144,7 +148,7 @@ class ImageGenerator(object):
             return False
         return self._use_git
 
-    def _return_svg(self, svg):
+    def _return_svg(self, svg, inline=None):
         xml = ET.fromstring(svg)
         ns = xml.tag.rstrip('svg')
         baseline = xml.attrib.get('{'+myns+'}baseline')        
@@ -153,10 +157,11 @@ class ImageGenerator(object):
         if baseline is None:
             viewBox = list(map(float, xml.attrib['viewBox'].split()))
             gfill = xml.find(ns + 'g')
-            use = gfill.find(ns + 'use')  # that should correspond to the dot `.`
+            use = gfill.find(ns + 'use')  # that should correspond to the dot when in inline mode
             y = float(use.attrib['y'])
             baseline = height - (y - viewBox[1])
-            gfill.remove(use)
+            if inline:
+                gfill.remove(use)
             xml.set('watch_lated_md:baseline', str(baseline))
             xml.set('xmlns:watch_lated_md', myns)
             svg = ET.tostring(xml).decode('utf-8')
@@ -171,7 +176,7 @@ class ImageGenerator(object):
         f.close()
         return self._return_svg(svg)
 
-    def get_svg(self, latex, hexname):
+    def get_svg(self, latex, hexname, inline):
         doc = r'''
 \documentclass[17pt]{article}
 \usepackage{extsizes}
@@ -179,9 +184,9 @@ class ImageGenerator(object):
 \usepackage{amssymb}
 \pagestyle{empty}
 \begin{document}
-.%s
+%s%s
 \end{document}
-''' % (latex)
+''' % (('.' if inline else ''), latex)
 
         tex_file = os.path.join(self.temp_dir, hexname + '.tex')
         dvi_file = os.path.join(self.temp_dir, hexname + '.dvi')
@@ -195,8 +200,10 @@ class ImageGenerator(object):
         except Exception:
             print(f'failed to latex {latex!r}')
             return '', {}
-        svg = check_output(['dvisvgm', '-v0', '-a', '-n', '-s', dvi_file]).decode('utf-8')
-        return self._return_svg(svg)
+        svg = check_output(['dvisvgm', '-v0', '-a', '-n', '-s',
+                            '--bbox=min','-R',
+                            dvi_file]).decode('utf-8')
+        return self._return_svg(svg, inline)
 
     def latex_to_img(self, m):
         if m.string[:m.start()].rstrip().endswith('"'):
@@ -216,7 +223,7 @@ class ImageGenerator(object):
                         attrs += ' {}="{}px"'.format(a, v)
             attrs += ' style="display:inline;"'
         else:
-            attrs += ' style="display:block;margin-left:50px;margin-right:auto;padding:25px"'
+            attrs += ' style="display:block;margin-left:50px;margin-right:auto;padding:0px"'
             latex = f'\n{latex}\n'
         return f'<img data-latex="{latex}" src="{src}" {attrs} alt="latex">'
 
@@ -232,8 +239,8 @@ class ImageGenerator(object):
         hexname = hashlib.md5((f'{self.filename}:{latex}').encode('utf-8')).hexdigest()
         svg_file = os.path.join(self.image_dir, hexname) + '.svg'
         svg_src = os.path.join(self.image_prefix, hexname) + '.svg'
-        if not os.path.isfile(svg_file):
-            svg, params = self.get_svg(latex, hexname)
+        if self.force_rerender or not os.path.isfile(svg_file):
+            svg, params = self.get_svg(latex, hexname, inline)
             if not svg:
                 return m.string[m.start():m.end()]
             if self.verbose:
@@ -280,14 +287,14 @@ class ImageGenerator(object):
                 flags=re.S | re.M
             )
 
-        if content != orig_content:
+        if self.force_rerender or content != orig_content:
             f = open(self.md_file, 'w')
             f.write(content)
             f.close()
             self._last_modified = time.time()
 
             if self.verbose:
-                print(f'{self.md_file} is updated')
+                print(f'{self.md_file} is updated{("--force-rerender" if self.force_rerender else "")}')
 
             if self.parent.run_pandoc:
                 try:
@@ -303,7 +310,6 @@ class ImageGenerator(object):
                 else:
                     if self.verbose:
                         print(f'{self.html_file} is generated')
-
         else:
             if self.verbose:
                 print(f'{self.md_file} is up-to-date')
@@ -336,7 +342,7 @@ class ImageGenerator(object):
             if self.git_check_repo():
                 for fn in obsolete_files:
                     if self.git_check_added(fn):
-                        pass
+                        print(f'{fn} is obsolete in git repo [use --git to enable auto-removal]')
                     else:
                         rm_files.add(fn)
             else:
@@ -413,11 +419,13 @@ class ImageGenerator(object):
     
 class MarkDownLaTeXHandler(RegexMatchingEventHandler):
 
-    def __init__(self, pattern, run_pandoc=False, verbose=False, use_git=False):
+    def __init__(self, pattern, run_pandoc=False, verbose=False, use_git=False,
+                 force_rerender=False):
         super(MarkDownLaTeXHandler, self).__init__(regexes=[pattern])
         self.run_pandoc = run_pandoc
         self.verbose = verbose
         self.use_git = use_git
+        self.force_rerender = force_rerender
         self.image_generators = {}
 
     def on_modified(self, event):
@@ -441,6 +449,10 @@ def main():
                         action='store_const', const=True,
                         default=False,
                         help='Add generated image files automatically to git. Default is False.')
+    parser.add_argument('--force-rerender', dest='force_rerender',
+                        action='store_const', const=True,
+                        default=False,
+                        help='Always rerender, useful for debugging. Default is False.')
     parser.add_argument('--verbose', dest='verbose',
                         action='store_const', const=True,
                         default=False,
@@ -466,7 +478,9 @@ def main():
         event_handler = MarkDownLaTeXHandler(pattern,
                                              verbose=args.verbose,
                                              use_git=args.use_git,
-                                             run_pandoc=args.html)
+                                             run_pandoc=args.html,
+                                             force_rerender=args.force_rerender
+        )
         observer.schedule(event_handler, path, recursive=recursive)
 
     observer.start()
