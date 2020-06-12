@@ -33,6 +33,7 @@ from subprocess import check_output
 import subprocess
 import xml.etree.ElementTree as ET
 
+
 myns = 'https://github.com/Quansight/pearu-sandbox/latex_in_markdown/'
 
 
@@ -114,6 +115,8 @@ class ImageGenerator(object):
 
         self._last_modified = 0
         self._use_git = None
+        self._force_rerender = None
+
         self.image_files = set()
 
         gitattrs_file = os.path.join(self.image_dir, '.gitattributes')
@@ -138,7 +141,7 @@ class ImageGenerator(object):
 
     @property
     def force_rerender(self):
-        return self.parent.force_rerender
+        return self._force_rerender or self.parent.force_rerender
 
     @property
     def use_git(self):
@@ -169,10 +172,13 @@ class ImageGenerator(object):
             # the first use should correspond to the dot when in
             # inline mode
             use = gfill.find(ns + 'use')
-            y = float(use.attrib['y'])
-            baseline = height - (y - viewBox[1])
-            if inline:
-                gfill.remove(use)
+            if use is None:
+                baseline = 0
+            else:
+                y = float(use.attrib['y'])
+                baseline = height - (y - viewBox[1])
+                if inline:
+                    gfill.remove(use)
             xml.set('watch_lated_md:baseline', str(baseline))
             xml.set('xmlns:watch_lated_md', myns)
             svg = ET.tostring(xml).decode('utf-8')
@@ -190,15 +196,16 @@ class ImageGenerator(object):
 
     def get_svg(self, latex, hexname, inline):
         doc = r'''
-\documentclass[17pt]{article}
+\documentclass[17pt,leqno]{article}
 \usepackage{extsizes}
 \usepackage{amsmath}
 \usepackage{amssymb}
 \pagestyle{empty}
 \begin{document}
+\setcounter{equation}{%s}
 %s%s
 \end{document}
-''' % (('.' if inline else ''), latex)
+''' % (self.equation_counter - 1, ('.' if inline else ''), latex)
 
         tex_file = os.path.join(self.temp_dir, hexname + '.tex')
         dvi_file = os.path.join(self.temp_dir, hexname + '.dvi')
@@ -206,11 +213,20 @@ class ImageGenerator(object):
         f.write(doc)
         f.close()
         try:
-            check_output(['latex', '-output-directory=' + self.temp_dir,
-                          '-interaction', 'nonstopmode', tex_file],
-                         stderr=sys.stdout)
-        except Exception:
-            print(f'failed to latex {latex!r}')
+            result = subprocess.run(['latex',
+                                     '-output-directory=' + self.temp_dir,
+                                     '-interaction', 'nonstopmode', tex_file],
+                                    capture_output=True)
+        except Exception as msg:
+            print(f'FAILED TO LATEX {latex!r}: {msg}')
+            return '', {}
+        if result.returncode:
+            if inline:
+                print(f'FAILED TO LATEX: {latex}')
+            else:
+                print(f'FAILED TO LATEX:\n{"":-^70}\n{latex}\n{"":-^70}\n')
+            print(result.stdout.decode('utf-8'))
+            print(result.stderr.decode('utf-8'))
             return '', {}
         svg = check_output(['dvisvgm', '-v0', '-a', '-n', '-s', '-R',
                             dvi_file]).decode('utf-8')
@@ -237,6 +253,8 @@ class ImageGenerator(object):
             attrs += (' style="display:block;margin-left:50px;'
                       'margin-right:auto;padding:0px"')
             latex = f'\n{latex}\n'
+        for label in params.get('labels', []):
+            attrs += f' id="{label}"'
         return f'<img data-latex="{latex}" src="{src}" {attrs} alt="latex">'
 
     def img_to_svg(self, m):
@@ -244,6 +262,19 @@ class ImageGenerator(object):
         inline, expr = get_latex_expr(latex)
         if inline:
             latex = latex.replace('\n', ' ')
+            orig_latex = latex
+            labels = []
+        else:
+            orig_latex = latex
+            labels = re.findall(r'\\label{([^}]+)}', latex)
+            if labels:
+                self.equation_counter += 1
+                for label in labels:
+                    if label in self.label_counter:
+                        print(f'label already used: resetting its equation'
+                              f' counter to {self.equation_counter} '
+                              f'(was {self.label_counter[label]})')
+                    self.label_counter[label] = self.equation_counter
 
         if self.verbose:
             print(f'img_to_svg: {inline=} {expr=}')
@@ -265,13 +296,24 @@ class ImageGenerator(object):
             if self.verbose:
                 print(f'{svg_file} exists')
             svg, params = self.load_svg(svg_file)
-        params.update(inline=inline)
+        params.update(inline=inline, labels=labels)
         self.image_files.add(svg_file)
-        return self.make_img(latex, svg_src, **params)
+        return self.make_img(orig_latex, svg_src, **params)
+
+    def update_label_title(self, m):
+        orig = m.string[m.start():m.end()]
+        title = m.group('title')
+        label = m.group('label')
+        number = self.label_counter.get(label)
+        if number is None:
+            print(f'no equation number found for `{orig}`')
+            return orig
+        title = re.sub(r'\d+', str(number), title)
+        return f'[{title}](#{label})'
 
     def update(self):
         now = time.time()
-        if now - self._last_modified < 0.1:
+        if now - self._last_modified < 1:
             if self.verbose:
                 print(f'{self.md_file} is likely up-to-date')
             return
@@ -286,16 +328,65 @@ class ImageGenerator(object):
         orig_content = f.read()
         f.close()
 
+        if not orig_content:
+            if self.verbose:
+                print('Got empty content. Sleeping 1 sec and try again.')
+            time.sleep(1)
+            f = open(self.md_file)
+            orig_content = f.read()
+            f.close()
+
+        if not orig_content:
+            print('Empty file. Skip update!')
+            return
+
         content = orig_content
 
         if content.find(header.split(None, 1)[0]) == -1:
             content = header + '\n' + content
+            if not content.rstrip().endswith('<!--EOF-->'):
+                content += '\n<!--EOF-->'
 
+        elif not content.rstrip().endswith('<!--EOF-->'):
+            print('Expected <!--EOF--> at the end of file. Skip update!')
+            return
+
+        if self.parent.run_pandoc:
+            f = open(self.html_file, 'w')
+            f.write('''
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
+ "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head>
+  <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+  <meta http-equiv="Content-Style-Type" content="text/css" />
+  <meta http-equiv="refresh" content="0.5" />
+  <meta name="generator" content="watch_latex_md.py" />
+  <title>Wait...</title>
+  <style type="text/css">code{white-space: pre;}</style>
+</head>
+<body>
+<h1>Please wait until watch_latex_md.py updates %s...</h1>
+<h2>The page will reload automatically.</h2>
+</body>
+</html>
+            ''' % (self.html_file))
+            f.close()
+
+        if 'watch-latex-md:force-rerender' in content:
+            print('Setting force-rerender')
+            self._force_rerender = True
+
+        self.equation_counter = 0
+        self.label_counter = {}
         for pattern, repl in [
                 (r'(?P<latex>[$]+[^$]+[$]+)', self.latex_to_img),
                 ((r'([<]img\s+data[-]latex=["]\s*)(?P<latex>.*?)'
                   r'["]\s+src=.*?\s+alt="latex">'),
-                 self.img_to_svg)]:
+                 self.img_to_svg),
+                ((r'\[(?P<title>.*?)\][(]\s*[#](?P<label>'
+                  r'((equation|eqn|eq)[:]?).*?)[)]'),
+                 self.update_label_title)]:
             content, _count = re.subn(
                 pattern, repl,
                 content,
@@ -312,6 +403,8 @@ class ImageGenerator(object):
         else:
             if self.verbose:
                 print(f'{self.md_file} is up-to-date')
+
+        self._force_rerender = False
 
         if self.parent.run_pandoc:
             try:
