@@ -40,12 +40,14 @@ myns = 'https://github.com/Quansight/pearu-sandbox/latex_in_markdown/'
 def get_latex_expr(latex):
     inline = False
     if latex[:2] in ('$$', r'\['):
-        assert latex[-2:] in ('$$', r'\]'), (latex[:2], latex[-2:])
-        expr = latex[2:-2].strip()
+        if latex[-2:] == r'\]':
+            expr = latex[2:-2].strip()
+        else:
+            expr = latex[2:].rstrip('$')
     elif latex[:1] == '$':
         assert latex[-1] == '$', (latex[-1],)
         inline = True
-        expr = latex[1:-1].strip()
+        expr = latex[1:].rstrip('$')
     elif latex.startswith(r'\begin{equation'):
         i = latex.find('}')
         j = latex.rfind(r'\end{equation')
@@ -91,6 +93,8 @@ data in img elements, but only the content of `latex-data`:
      overwritten.
 
 Enjoy LaTeXing!
+
+watch-latex-md:no-force-rerender
 -->
 '''
 
@@ -200,7 +204,9 @@ class ImageGenerator(object):
 \usepackage{extsizes}
 \usepackage{amsmath}
 \usepackage{amssymb}
+\usepackage[noend]{algpseudocode}
 \pagestyle{empty}
+\newcommand{\inlinemath}[1]{$#1$}
 \begin{document}
 \setcounter{equation}{%s}
 %s%s
@@ -266,7 +272,7 @@ class ImageGenerator(object):
             labels = []
         else:
             orig_latex = latex
-            labels = re.findall(r'\\label{([^}]+)}', latex)
+            labels = re.findall(r'\\label[{]([^}]+)[}]', latex)
             if labels:
                 self.equation_counter += 1
                 for label in labels:
@@ -306,7 +312,9 @@ class ImageGenerator(object):
         label = m.group('label')
         number = self.label_counter.get(label)
         if number is None:
-            print(f'no equation number found for `{orig}`')
+            if label.lower().startswith('eq'):
+                print(f'no equation number found for `[{title}](#{label})`')
+                print(f'  available labels: {list(self.label_counter)}')
             return orig
         title = re.sub(r'\d+', str(number), title)
         return f'[{title}](#{label})'
@@ -380,17 +388,16 @@ class ImageGenerator(object):
         self.equation_counter = 0
         self.label_counter = {}
         for pattern, repl in [
-                (r'(?P<latex>[$]+[^$]+[$]+)', self.latex_to_img),
-                ((r'([<]img\s+data[-]latex=["]\s*)(?P<latex>.*?)'
+                (r'(?m)(?P<latex>[$]+[^$]+[$]+)', self.latex_to_img),
+                ((r'(?m)([<]img\s+data[-]latex=["]\s*)(?P<latex>.*?)'
                   r'["]\s+src=.*?\s+alt="latex">'),
                  self.img_to_svg),
-                ((r'\[(?P<title>.*?)\][(]\s*[#](?P<label>'
-                  r'((equation|eqn|eq)[:]?).*?)[)]'),
+                ((r'(\[(?P<title>[^]]+)\][(][#](?P<label>[^)]+)[)])'),
                  self.update_label_title)]:
             content, _count = re.subn(
                 pattern, repl,
                 content,
-                flags=re.S | re.M
+                flags=re.S
             )
 
         if self.force_rerender or content != orig_content:
