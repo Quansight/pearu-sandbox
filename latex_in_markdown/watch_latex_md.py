@@ -198,13 +198,15 @@ class ImageGenerator(object):
         f.close()
         return self._return_svg(svg)
 
-    def get_svg(self, latex, hexname, inline):
+    def get_svg(self, latex, hexname, inline, svg_file=None):
         doc = r'''
 \documentclass[17pt,leqno]{article}
 \usepackage{extsizes}
 \usepackage{amsmath}
 \usepackage{amssymb}
 \usepackage[noend]{algpseudocode}
+\usepackage{tikz}
+\usetikzlibrary{intersections,math}
 \pagestyle{empty}
 \newcommand{\inlinemath}[1]{$#1$}
 \begin{document}
@@ -234,8 +236,18 @@ class ImageGenerator(object):
             print(result.stdout.decode('utf-8'))
             print(result.stderr.decode('utf-8'))
             return '', {}
-        svg = check_output(['dvisvgm', '-v0', '-a', '-n', '-s', '-R',
-                            dvi_file]).decode('utf-8')
+        if svg_file is None:
+            svg = check_output(['dvisvgm', '-v0', '-a', '-n', '-s', '-R',
+                                dvi_file]).decode('utf-8')
+        else:
+            output = check_output(['dvisvgm', '-v0', '-a', '-n', '-R',
+                                   '-o', svg_file,
+                                   dvi_file]).decode('utf-8')
+            print(output)
+            f = open(svg_file)
+            svg = f.read()
+            f.close()
+
         return self._return_svg(svg, inline)
 
     def latex_to_img(self, m):
@@ -290,21 +302,47 @@ class ImageGenerator(object):
         svg_file = os.path.join(self.image_dir, hexname) + '.svg'
         svg_src = os.path.join(self.image_prefix, hexname) + '.svg'
         if self.force_rerender or not os.path.isfile(svg_file):
-            svg, params = self.get_svg(latex, hexname, inline)
+            svg, params = self.get_svg(latex, hexname, inline, svg_file)
             if not svg:
                 return m.string[m.start():m.end()]
             if self.verbose:
                 print(f'{svg_file} created')
-            f = open(svg_file, 'w')
-            f.write(svg)
-            f.close()
+            #f = open(svg_file, 'w')
+            #f.write(svg)
+            #f.close()
         else:
             if self.verbose:
                 print(f'{svg_file} exists')
             svg, params = self.load_svg(svg_file)
         params.update(inline=inline, labels=labels)
         self.image_files.add(svg_file)
-        return self.make_img(orig_latex, svg_src, **params)
+
+        img = self.make_img(orig_latex, svg_src, **params)
+
+        i = m.start()
+        p = ''
+        if i > 0:
+            i -= 1
+            p = m.string[i]
+        while i > 0 and p == ' ':
+            i -= 1
+            p = m.string[i]
+        tab = ' ' * (m.start() - i - 1)
+        if p not in ['\n', '']:
+            img = '\n' + tab + img
+
+        n = len(m.string)
+        i = m.end() - 1
+        p = ''
+        if i < n:
+            i += 1
+            p = m.string[i]
+        while i < n and p == ' ':
+            i += 1
+            p = m.string[i]
+        if p not in ['\n', '', '-', ',', '.', ':']:
+            img = img + '\n' + tab
+        return img
 
     def update_label_title(self, m):
         orig = m.string[m.start():m.end()]
@@ -480,7 +518,10 @@ class ImageGenerator(object):
         if os.path.isfile(path):
             if self.verbose:
                 print(f'rm {path}')
-            os.remove(path)
+            try:
+                os.remove(path)
+            except FileNotFoundError as msg:
+                print(f'rm_file: {msg}')
 
     def git_add_file(self, path):
         if os.path.isfile(path):
