@@ -192,11 +192,11 @@ class ImageGenerator(object):
                       baseline=round(baseline, 3), valign=round(-baseline, 3))
         return svg, params
 
-    def load_svg(self, svg_file):
+    def load_svg(self, svg_file, inline=None):
         f = open(svg_file)
         svg = f.read()
         f.close()
-        return self._return_svg(svg)
+        return self._return_svg(svg, inline=inline)
 
     def get_svg(self, latex, hexname, inline, svg_file=None):
         doc = r'''
@@ -243,7 +243,8 @@ class ImageGenerator(object):
             output = check_output(['dvisvgm', '-v0', '-a', '-n', '-R',
                                    '-o', svg_file,
                                    dvi_file]).decode('utf-8')
-            print(output)
+            if self.verbose:
+                print(output)
             f = open(svg_file)
             svg = f.read()
             f.close()
@@ -307,13 +308,13 @@ class ImageGenerator(object):
                 return m.string[m.start():m.end()]
             if self.verbose:
                 print(f'{svg_file} created')
-            #f = open(svg_file, 'w')
-            #f.write(svg)
-            #f.close()
+            f = open(svg_file, 'w')
+            f.write(svg)
+            f.close()
         else:
             if self.verbose:
                 print(f'{svg_file} exists')
-            svg, params = self.load_svg(svg_file)
+            svg, params = self.load_svg(svg_file, inline=inline)
         params.update(inline=inline, labels=labels)
         self.image_files.add(svg_file)
 
