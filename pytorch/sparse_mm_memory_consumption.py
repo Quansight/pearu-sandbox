@@ -33,7 +33,7 @@ def find_sparse_dense_equivalence(N, last_sparsity=None):
 
     for A in generate_coo_tensor(shape):
         assert A.is_coalesced()
-        sparsity = A._values().numel() / A.numel()
+        density = A._values().numel() / A.numel()
 
         B = A.to_dense()
         AA = torch.sparse.mm(A, A)
@@ -44,7 +44,7 @@ def find_sparse_dense_equivalence(N, last_sparsity=None):
             sparse_mm_storage_coalesce = 2*get_storage_size(A) + get_storage_size(AA.coalesce()),
             dense_mm_storage = 2*get_storage_size(A) + 2*get_storage_size(B) + get_storage_size(BB),
             sparse_vs_dense = get_storage_size(A) / get_storage_size(B),
-            sparsity = sparsity
+            sparsity = 1 - density
         )
         if same_storage_coalesce is None and data['dense_mm_storage'] < data['sparse_mm_storage_coalesce']:
             data['kind'] = 'coalesce'
