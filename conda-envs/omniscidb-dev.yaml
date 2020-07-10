@@ -16,9 +16,9 @@ dependencies:
   - go-cgo
   - maven
   - boost-cpp
-  - llvmdev
-  - clangdev
-  - llvm
+  - llvmdev=9
+  - clangdev=9
+  - llvm=9
   - double-conversion
   - snappy
   - gflags
