@@ -40,6 +40,8 @@ dependencies:
   - bzip2
   - zlib
   - librdkafka
+  - tbb
+  - tbb-devel
 # when using omniscidb-internal repo
   - openldap
   - compilers
