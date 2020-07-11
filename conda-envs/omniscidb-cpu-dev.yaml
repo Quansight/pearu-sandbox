@@ -42,7 +42,6 @@ dependencies:
   - librdkafka
   - tbb
   - tbb-devel
-  - tbb4py
 # when using omniscidb-internal repo
   - openldap
   - compilers
