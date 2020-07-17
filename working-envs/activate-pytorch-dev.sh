@@ -69,8 +69,6 @@ then
         #export LDFLAGS="${LDFLAGS} -Wl,-rpath,${CUDA_HOME}/lib64 -Wl,-rpath-link,${CUDA_HOME}/lib64 -L${CUDA_HOME}/lib64"
         export LDFLAGS="${LDFLAGS} -Wl,-rpath-link,${CUDA_HOME}/lib64 -L${CUDA_HOME}/lib64"
     fi
-    # fixes mkl linking error:
-    export CFLAGS="$CFLAGS -L$CONDA_PREFIX/lib"
 
     #export NCCL_ROOT=${CUDA_HOME}
     #export PKG_CONFIG_PATH=$PKG_CONFIG_PATH:${CUDA_HOME}/pkgconfig/
@@ -149,6 +147,9 @@ else
     export USE_CUDA=0
     export USE_NCCL=0
 fi
+
+# fixes mkl linking error:
+export CFLAGS="$CFLAGS -L$CONDA_PREFIX/lib"
 
 export CONDA_BUILD_SYSROOT=$CONDA_PREFIX/$HOST/sysroot
 export LD_LIBRARY_PATH=$CONDA_PREFIX/lib:$LD_LIBRARY_PATH
