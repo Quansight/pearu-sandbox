@@ -314,7 +314,7 @@ class ImageGenerator(object):
         else:
             if self.verbose:
                 print(f'{svg_file} exists')
-            svg, params = self.load_svg(svg_file, inline=inline)
+            svg, params = self.load_svg(svg_file)
         params.update(inline=inline, labels=labels)
         self.image_files.add(svg_file)
 
