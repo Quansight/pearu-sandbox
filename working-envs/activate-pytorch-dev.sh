@@ -154,6 +154,18 @@ export CFLAGS="$CFLAGS -L$CONDA_PREFIX/lib"
 export CONDA_BUILD_SYSROOT=$CONDA_PREFIX/$HOST/sysroot
 export LD_LIBRARY_PATH=$CONDA_PREFIX/lib:$LD_LIBRARY_PATH
 
+if [ -v CXXFLAGS_CONDA_NVCC_BACKUP ] ; then
+    export CXXFLAGS_CONDA_NVCC_BACKUP="`echo $CXXFLAGS_CONDA_NVCC_BACKUP | sed 's/-std=c++17/-std=c++14/'`"
+fi
+if [ -v CXXFLAGS_USED ] ; then
+    export CXXFLAGS_USED="`echo $CXXFLAGS_USED | sed 's/-std=c++17/-std=c++14/'`"
+fi
+if [ -v DEBUG_CXXFLAGS ] ; then
+    export DEBUG_CXXFLAGS="`echo $DEBUG_CXXFLAGS | sed 's/-std=c++17/-std=c++14/'`"
+fi
+if [ -v DEBUG_CXXFLAGS_USED ] ; then
+    export DEBUG_CXXFLAGS_USED="`echo $DEBUG_CXXFLAGS_USED | sed 's/-std=c++17/-std=c++14/'`"
+fi
 export CXXFLAGS="`echo $CXXFLAGS | sed 's/-std=c++17/-std=c++14/'`"
 # fixes Linking CXX shared library lib/libtorch_cpu.so ... ld: cannot find -lmkl_intel_lp64
 export CXXFLAGS="$CXXFLAGS -L$CONDA_PREFIX/lib"
