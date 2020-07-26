@@ -74,52 +74,7 @@ then
     #export PKG_CONFIG_PATH=$PKG_CONFIG_PATH:${CUDA_HOME}/pkgconfig/
 
     export USE_NCCL=0
-    # See https://github.com/NVIDIA/nccl/issues/244
-    # https://github.com/pytorch/pytorch/issues/35363
-    if [[ "" && ! -f third_party/nccl/nccl/issue244.patch ]]
-    then
-        cat > third_party/nccl/nccl/issue244.patch <<EOF
-diff --git a/src/include/socket.h b/src/include/socket.h
-index 68ce235..b4f09b9 100644
---- a/src/include/socket.h
-+++ b/src/include/socket.h
-@@ -327,7 +327,11 @@ static ncclResult_t createListenSocket(int *fd, union socketAddress *localAddr)
-   if (socketToPort(&localAddr->sa)) {
-     // Port is forced by env. Make sure we get the port.
-     int opt = 1;
-+#if defined(SO_REUSEPORT)
-     SYSCHECK(setsockopt(sockfd, SOL_SOCKET, SO_REUSEADDR | SO_REUSEPORT, &opt, sizeof(opt)), "setsockopt");
-+#else
-+    SYSCHECK(setsockopt(sockfd, SOL_SOCKET, SO_REUSEADDR, &opt, sizeof(opt)), "setsockopt");
-+#endif
-   }
- 
-   // localAddr port should be 0 (Any port)
-EOF
-        patch --verbose third_party/nccl/nccl/src/include/socket.h third_party/nccl/nccl/issue244.patch
-    fi
 
-    if [[ "" && ! -f torch/nccl_python.patch ]]
-    then
-        cat > torch/nccl_python.patch  <<EOF
-diff --git a/torch/CMakeLists.txt b/torch/CMakeLists.txt
-index 6167ceb1d9..aeb275d0d7 100644
---- a/torch/CMakeLists.txt
-+++ b/torch/CMakeLists.txt
-@@ -249,7 +249,9 @@ endif()
- 
- if (USE_NCCL)
-     list(APPEND TORCH_PYTHON_SRCS
--      \${TORCH_SRC_DIR}/csrc/cuda/python_nccl.cpp)
-+      \${TORCH_SRC_DIR}/csrc/cuda/python_nccl.cpp
-+      \${TORCH_SRC_DIR}/csrc/cuda/nccl.cpp
-+      )
-     list(APPEND TORCH_PYTHON_COMPILE_DEFINITIONS USE_NCCL)
-     list(APPEND TORCH_PYTHON_LINK_LIBRARIES __caffe2_nccl)
- endif()
-EOF
-        patch --verbose torch/CMakeLists.txt torch/nccl_python.patch
-    fi
 else
     # wget https://raw.githubusercontent.com/Quansight/pearu-sandbox/master/conda-envs/pytorch-dev.yaml
     # conda env create  --file=pytorch-dev.yaml -n pytorch-dev
