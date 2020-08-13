@@ -26,10 +26,18 @@ if [[ -x "$(command -v nvidia-smi)" ]]
 then
     # wget https://raw.githubusercontent.com/Quansight/pearu-sandbox/master/set_cuda_env.sh
     # read set_cuda_env.sh reader
-    
-    # . /usr/local/cuda-10.1.243/env.sh
-    test -f /usr/local/cuda-10.2.89/env.sh && source /usr/local/cuda-10.2.89/env.sh || source /usr/local/cuda-10.1.243/env.sh
- 
+
+    if [[ -f /usr/local/cuda-11.0.3/env.sh ]]
+    then
+        CUDA_VERSION=${CUDA_VERSION:-11.0.3}
+    elif [[ -f /usr/local/cuda-10.2.89/env.sh ]]
+    then
+        CUDA_VERSION=${CUDA_VERSION:-10.2.89}
+    else
+        CUDA_VERSION=${CUDA_VERSION:-10.1.243}
+    fi
+    source /usr/local/cuda-${CUDA_VERSION}/env.sh
+
     export CMAKE_OPTIONS_CUDA_EXTRA="-DCUDA_TOOLKIT_ROOT_DIR=$CUDA_HOME -DENABLE_CUDA=on"
     # wget https://raw.githubusercontent.com/Quansight/pearu-sandbox/master/conda-envs/omniscidb-dev.yaml
     # conda env create  --file=omniscidb-dev.yaml -n omniscidb-cuda-dev
@@ -130,6 +138,13 @@ To select conda environment, define:
   export USE_ENV=$USE_ENV
 
 for instance, before sourcing this script.
+
+To enable different CUDA version, say 11.0, run
+  conda install -c conda-forge -c nvcc_linux-64=11.0  [Is this required??]
+  conda deactivate
+  export CUDA_VERSION=11.0.3  [currently CUDA_VERSION=${CUDA_VERSION}]
+  <source the activate-omniscidb-internal-dev.sh script>
+  <clean & re-build>
 
 To apply patches, run:
 
