@@ -20,6 +20,9 @@ export CMAKE_OPTIONS="-DCMAKE_BUILD_TYPE=release -DMAPD_EDITION=EE -DMAPD_DOCS_D
 export CMAKE_OPTIONS_CUDA_EXTRA=""
 export CMAKE_OPTIONS_NOCUDA_EXTRA="-DENABLE_CUDA=off"
 
+# Temporarily disable GEOS due to https://github.com/xnd-project/rbc/issues/196
+export CMAKE_OPTIONS="$CMAKE_OPTIONS -DENABLE_GEOS=off"
+
 CONDA_ENV_LIST=$(conda env list | awk '{print $1}' )
 
 if [[ -x "$(command -v nvidia-smi)" ]]
