@@ -18,8 +18,8 @@ CORES_PER_SOCKET=`lscpu | grep 'Core(s) per socket' | awk '{print $NF}'`
 NUMBER_OF_SOCKETS=`lscpu | grep 'Socket(s)' | awk '{print $NF}'`
 export NCORES=`echo "$CORES_PER_SOCKET * $NUMBER_OF_SOCKETS"| bc`
 
-export USE_XNNPACK=1
-export USE_MKLDNN=0
+export USE_XNNPACK={USE_XNNPACK:1}
+export USE_MKLDNN={USE_MKLDNN:-0}
 
 CONDA_ENV_LIST=$(conda env list | awk '{print $1}' )
 
@@ -181,6 +181,7 @@ To clean, run:
   git submodule foreach --recursive git clean -xfdd
 
 To build, run:
+  export PYTHONPATH=`pwd`  [optional for some pytorch versions]
   python setup.py develop
 
 To test, run:
@@ -198,6 +199,12 @@ To enable CUDA version, say 10.2, run
   export CUDA_VERSION=10.2.89  [currently CUDA_VERSION=${CUDA_VERSION}]
   <source the activate-pytorch-dev.sh script>
   <clean & re-build>
+
+To enable MKL-DNN build, run
+
+  conda deactivate
+  export USE_MKLDNN=1  [currently USE_MKLDNN=${USE_MKLDNN}]
+  <source the activate-pytorch-dev.sh script>
 
 EndOfMessage
 
