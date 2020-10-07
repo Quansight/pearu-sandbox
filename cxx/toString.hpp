@@ -7,8 +7,16 @@
 #include <sstream>
 #include <type_traits>
 #include <vector>
+#include <unordered_map>
 
 #define PRINT(VAR) std::cout << __func__ << ": "#VAR "=" << ::toString(VAR) << std::endl;
+#define PRINT2(VAR, VAR2) std::cout << __func__ << ": "#VAR "=" << ::toString(VAR) \
+  << ", "#VAR2 "=" << ::toString(VAR2) \
+  << std::endl;
+#define PRINT3(VAR, VAR2, VAR3) std::cout << __func__ << ": "#VAR "=" << ::toString(VAR) \
+  << ", "#VAR2 "=" << ::toString(VAR2) \
+  << ", "#VAR3 "=" << ::toString(VAR3) \
+  << std::endl;
 
 template <typename T>
 std::string typeName(const T* v) {
@@ -73,7 +81,12 @@ std::string toString(const T& v) {
 
 template <typename T>
 std::string toString(const std::pair<T, T>& v) {
-  return cat("(", toString(v.first), ", ", toString(v.second), ")");
+  return "(" + toString(v.first) + ", " + toString(v.second) + ")";
+}
+
+template <typename T1, typename T2>
+std::string toString(const std::pair<T1, T2>& v) {
+  return "(" + toString(v.first) + ", " + toString(v.second) + ")";
 }
 
 template <typename T>
@@ -86,6 +99,21 @@ std::string toString(const std::vector<T>& v) {
     result += toString(v[i]);
   }
   result += "]";
+  return result;
+}
+
+template <typename T1, typename T2>
+std::string toString(const std::unordered_map<T1, T2>& v) {
+  auto result = std::string("{");
+  size_t i = 0;
+  for (const auto& p : v) {
+    if (i) {
+      result += ", ";
+    }
+    result += toString(p);
+    i++;
+  }
+  result += "}";
   return result;
 }
 
