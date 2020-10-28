@@ -26,8 +26,8 @@ dependencies:
   - flake8
   - psutil
   - hypothesis
-  - nvcc_linux-64=10.1
-  - magma-cuda101
+  - nvcc_linux-64=11.0
+  - magma-cuda110
   - mypy
   - clang-tools  # provides clang-format
 # to use a different CUDA version, say 10.2, run
