@@ -9,15 +9,6 @@
 #include <vector>
 #include <unordered_map>
 
-#define PRINT(VAR) std::cout << __func__ << ": "#VAR "=" << ::toString(VAR) << std::endl;
-#define PRINT2(VAR, VAR2) std::cout << __func__ << ": "#VAR "=" << ::toString(VAR) \
-  << ", "#VAR2 "=" << ::toString(VAR2) \
-  << std::endl;
-#define PRINT3(VAR, VAR2, VAR3) std::cout << __func__ << ": "#VAR "=" << ::toString(VAR) \
-  << ", "#VAR2 "=" << ::toString(VAR2) \
-  << ", "#VAR3 "=" << ::toString(VAR3) \
-  << std::endl;
-
 template <typename T>
 std::string typeName(const T* v) {
   std::stringstream stream;

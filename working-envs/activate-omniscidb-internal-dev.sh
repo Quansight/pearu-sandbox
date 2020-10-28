@@ -98,6 +98,8 @@ else
 fi
 
 # export CXXFLAGS="$CXXFLAGS -include $HOME/git/Quansight/pearu-sandbox/cxx/toString.hpp"
+# export CXXFLAGS="$CXXFLAGS -include $HOME/git/Quansight/pearu-sandbox/cxx/toString_utils.hpp"
+export CXXFLAGS="$CXXFLAGS -DENABLE_TOSTRING_LLVM"
 
 export CONDA_BUILD_SYSROOT=$CONDA_PREFIX/$HOST/sysroot
 
