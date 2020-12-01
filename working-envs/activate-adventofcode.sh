@@ -13,9 +13,9 @@ then
         conda deactivate
     fi
     if [[ -n "$(type -t layout_conda)" ]]; then
-        layout_conda rbc-dev
+        layout_conda $USE_ENV
     else
-        conda activate rbc-dev
+        conda activate $USE_ENV
     fi
 else
     echo "conda environment does not exist. To create $USE_ENV, run:"
