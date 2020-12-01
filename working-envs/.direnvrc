@@ -42,9 +42,13 @@ install_envrc() {
     for d in $(ls -d */)
     do
         local ENVSH="${MY_DIRENV}/activate-$(basename $d)-dev.sh"
+        local ENVSH2="${MY_DIRENV}/activate-$(basename $d).sh"
         if [[ -f $ENVSH && ! -f $d/.envrc ]]
         then
             ln -svf $ENVSH $d/.envrc
+        elif [[ -f $ENVSH2 && ! -f $d/.envrc ]]
+        then
+            ln -svf $ENVSH2 $d/.envrc
         fi
     done
 }
