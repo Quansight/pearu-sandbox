@@ -181,7 +181,13 @@ To test, run:
 To serve, run:
 
   mkdir data && bin/initdb data
-  bin/omnisci_server --enable-runtime-udf --enable-table-functions
+  bin/omnisci_server --enable-runtime-udf --enable-table-functions 
+
+Use the following server options as needed (see \`bin/omnisci_server --help\` for details):
+
+  --log-channels PTX,IR
+  --udf ../Tests/Udf/device_selection_samples.cpp
+  --log-severity-clog=WARNING
 
 EndOfMessage
 
