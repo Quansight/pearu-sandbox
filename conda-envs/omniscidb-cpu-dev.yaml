@@ -44,5 +44,8 @@ dependencies:
   - tbb-devel
 # when using omniscidb-internal repo
   - openldap
-  - compilers
-
+  # - compilers  # this gives gcc 7.5
+  - gcc_impl_linux-64=8
+  - gcc_linux-64=8
+  - gxx_impl_linux-64=8
+  - gxx_linux-64=8
