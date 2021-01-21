@@ -1,0 +1,14 @@
+#
+# Author: Pearu Peterson
+# Created: September 2020
+#
+# sudo apt-get install texlive texlive-science texlive-pictures
+
+name: rfcs-dev
+channels:
+  - conda-forge
+  - defaults
+dependencies:
+  - python=3
+  - watchdog
+  - pandoc
