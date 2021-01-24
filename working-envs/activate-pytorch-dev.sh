@@ -154,6 +154,7 @@ export CFLAGS="$CFLAGS -L$CONDA_PREFIX/lib"
 export CONDA_BUILD_SYSROOT=$CONDA_PREFIX/$HOST/sysroot
 export LD_LIBRARY_PATH=$CONDA_PREFIX/lib:$LD_LIBRARY_PATH
 
+# PyTorch uses C++14
 export CXXFLAGS="`echo $CXXFLAGS | sed 's/-std=c++17/-std=c++14/'`"
 # fixes Linking CXX shared library lib/libtorch_cpu.so ... ld: cannot find -lmkl_intel_lp64
 export CXXFLAGS="$CXXFLAGS -L$CONDA_PREFIX/lib"
@@ -168,6 +169,11 @@ fi
 
 echo -e "Local branches:\n"
 git branch
+
+echo -e "\nApply ctng-compilers-feedstock issue 49 workaround:"
+# A workaround to libgomp.so.1: version `OACC_2.0' not found
+# See also https://github.com/conda-forge/ctng-compilers-feedstock/issues/49
+ln -fvs $CONDA_PREFIX/lib/libgomp.so $CONDA_PREFIX/lib/libgomp.so.1
 
 cat << EndOfMessage
 

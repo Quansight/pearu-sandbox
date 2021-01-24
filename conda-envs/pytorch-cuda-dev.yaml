@@ -26,9 +26,13 @@ dependencies:
   - flake8
   - psutil
   - hypothesis
+  # check out here
+  # https://anaconda.org/conda-forge/nvcc_linux-64/files what is the
+  # latest support cuda version in conda nvcc package:
   - nvcc_linux-64=11.0
   - magma-cuda110
   - mypy
-  - clang-tools  # provides clang-format
+  # provides clang-format
+  - clang-tools
 # to use a different CUDA version, say 10.2, run
 #   conda install -c conda-forge -c pytorch nvcc_linux-64=10.2 magma-cuda102
