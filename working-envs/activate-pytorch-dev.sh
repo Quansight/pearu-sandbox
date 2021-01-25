@@ -20,6 +20,12 @@ export NCORES=`echo "$CORES_PER_SOCKET * $NUMBER_OF_SOCKETS"| bc`
 
 export USE_XNNPACK=${USE_XNNPACK:1}
 export USE_MKLDNN=${USE_MKLDNN:-0}
+echo -e "\nApply ctng-compilers-feedstock issue 49 workaround:"
+
+# A workaround to libgomp.so.1: version `OACC_2.0' not found
+# See also https://github.com/conda-forge/ctng-compilers-feedstock/issues/49
+# Replaces `ln -fvs $CONDA_PREFIX/lib/libgomp.so $CONDA_PREFIX/lib/libgomp.so.1`
+export USE_KINETO=${USE_KINETO:-0}
 
 CONDA_ENV_LIST=$(conda env list | awk '{print $1}' )
 
@@ -169,11 +175,6 @@ fi
 
 echo -e "Local branches:\n"
 git branch
-
-echo -e "\nApply ctng-compilers-feedstock issue 49 workaround:"
-# A workaround to libgomp.so.1: version `OACC_2.0' not found
-# See also https://github.com/conda-forge/ctng-compilers-feedstock/issues/49
-ln -fvs $CONDA_PREFIX/lib/libgomp.so $CONDA_PREFIX/lib/libgomp.so.1
 
 cat << EndOfMessage
 
