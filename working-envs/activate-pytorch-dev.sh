@@ -20,11 +20,9 @@ export NCORES=`echo "$CORES_PER_SOCKET * $NUMBER_OF_SOCKETS"| bc`
 
 export USE_XNNPACK=${USE_XNNPACK:1}
 export USE_MKLDNN=${USE_MKLDNN:-0}
-echo -e "\nApply ctng-compilers-feedstock issue 49 workaround:"
 
-# A workaround to libgomp.so.1: version `OACC_2.0' not found
-# See also https://github.com/conda-forge/ctng-compilers-feedstock/issues/49
-# Replaces `ln -fvs $CONDA_PREFIX/lib/libgomp.so $CONDA_PREFIX/lib/libgomp.so.1`
+# Disable KINETO as a workaround to libgomp.so.1: version `OACC_2.0' not found
+# See https://github.com/pytorch/pytorch/issues/51026
 export USE_KINETO=${USE_KINETO:-0}
 
 CONDA_ENV_LIST=$(conda env list | awk '{print $1}' )
@@ -74,6 +72,16 @@ then
 
         #export LDFLAGS="${LDFLAGS} -Wl,-rpath,${CUDA_HOME}/lib64 -Wl,-rpath-link,${CUDA_HOME}/lib64 -L${CUDA_HOME}/lib64"
         export LDFLAGS="${LDFLAGS} -Wl,-rpath-link,${CUDA_HOME}/lib64 -L${CUDA_HOME}/lib64"
+    fi
+
+    if [[ "$USE_KINETO" = "1" ]]
+    then
+        export USE_CUPTI_SO=${USE_CUPTI_SO:-1}
+    fi
+
+    if [[ "$USE_CUPTI_SO" = "1" ]]
+    then
+        export LDFLAGS="${LDFLAGS} -Wl,-rpath-link,${CUDA_HOME}/extras/CUPTI/lib64 -L${CUDA_HOME}/extras/CUPTI/lib64"
     fi
 
     #export NCCL_ROOT=${CUDA_HOME}
