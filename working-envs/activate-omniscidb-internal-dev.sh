@@ -30,7 +30,10 @@ then
     # wget https://raw.githubusercontent.com/Quansight/pearu-sandbox/master/set_cuda_env.sh
     # read set_cuda_env.sh reader
 
-    if [[ -f /usr/local/cuda-11.0.3/env.sh ]]
+    if [[ -f /DISABLE/usr/local/cuda-11.2.0/env.sh ]]
+    then
+        CUDA_VERSION=${CUDA_VERSION:-11.2.0}
+    elif [[ -f /usr/local/cuda-11.0.3/env.sh ]]
     then
         CUDA_VERSION=${CUDA_VERSION:-11.0.3}
     elif [[ -f /usr/local/cuda-10.2.89/env.sh ]]
@@ -66,7 +69,7 @@ then
     else
         echo "conda environment does not exist. To create $USE_ENV, run:"
         echo "conda env create  --file=~/git/Quansight/pearu-sandbox/conda-envs/omniscidb-dev.yaml -n $USE_ENV"
-        exit
+        exit 1
     fi
     export CXXFLAGS="$CXXFLAGS -I$CUDA_HOME/include"
     export CPPFLAGS="$CPPFLAGS -I$CUDA_HOME/include"
@@ -93,7 +96,7 @@ else
     else
         echo "conda environment does not exist. To create $USE_ENV, run:"
         echo "conda env create  --file=~/git/Quansight/pearu-sandbox/conda-envs/omniscidb-cpu-dev.yaml -n $USE_ENV"
-        exit
+        exit 1
     fi
 fi
 

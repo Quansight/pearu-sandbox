@@ -82,6 +82,7 @@ then
     if [[ "$USE_CUPTI_SO" = "1" ]]
     then
         export LDFLAGS="${LDFLAGS} -Wl,-rpath-link,${CUDA_HOME}/extras/CUPTI/lib64 -L${CUDA_HOME}/extras/CUPTI/lib64"
+        export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:${CUDA_HOME}/extras/CUPTI/lib64
     fi
 
     #export NCCL_ROOT=${CUDA_HOME}
