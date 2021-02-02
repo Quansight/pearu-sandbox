@@ -182,8 +182,26 @@ if [[ "" && ! -n "$(type -t layout_conda)" ]]; then
     cd ~/git/Quansight/pytorch${Python-}
 fi
 
-echo -e "Local branches:\n"
-git branch
+
+if [[ "$(git rev-parse --is-inside-work-tree 2>&1)" = "true" ]]
+then
+    echo -e "Local branches:\n"
+    git branch
+else
+    cat << EndOfMessage
+Not inside a git repository.
+
+To clone pytorch from Quansight fork, run:
+
+  git clone git@github.com:Quansight/pytorch.git
+  cd pytorch
+  git remote add upstream https://github.com/pytorch/pytorch.git
+  git remote add Quansight git@github.com:Quansight/pytorch.git
+  git fetch upstream
+  git rebase upstream/master
+
+EndOfMessage
+fi
 
 cat << EndOfMessage
 
