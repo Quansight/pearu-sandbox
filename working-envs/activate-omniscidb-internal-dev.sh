@@ -19,6 +19,7 @@ export NCORES=`echo "$CORES_PER_SOCKET * $NUMBER_OF_SOCKETS"| bc`
 export CMAKE_OPTIONS="-DCMAKE_BUILD_TYPE=release -DMAPD_EDITION=EE -DMAPD_DOCS_DOWNLOAD=off -DENABLE_AWS_S3=off -DENABLE_FOLLY=off -DENABLE_JAVA_REMOTE_DEBUG=off -DENABLE_PROFILER=off -DPREFER_STATIC_LIBS=off -DENABLE_AWS_S3=OFF"
 export CMAKE_OPTIONS_CUDA_EXTRA=""
 export CMAKE_OPTIONS_NOCUDA_EXTRA="-DENABLE_CUDA=off"
+export CMAKE_OPTIONS_DBE_EXTRA="-DENABLE_DBE=ON -DENABLE_FSI=ON -DENABLE_ITT=OFF -DENABLE_JIT_DEBUG=OFF -DENABLE_INTEL_JIT_LISTENER=OFF"
 
 # Temporarily disable GEOS due to https://github.com/xnd-project/rbc/issues/196
 export CMAKE_OPTIONS="$CMAKE_OPTIONS -DENABLE_GEOS=off"
@@ -129,6 +130,8 @@ export CMAKE_OPTIONS="$CMAKE_OPTIONS -DCMAKE_SYSROOT=$CONDA_BUILD_SYSROOT"
 export CMAKE_OPTIONS="$CMAKE_OPTIONS -DENABLE_TESTS=on"
 export CMAKE_OPTIONS_NOCUDA="$CMAKE_OPTIONS $CMAKE_OPTIONS_NOCUDA_EXTRA"
 export CMAKE_OPTIONS_CUDA="$CMAKE_OPTIONS $CMAKE_OPTIONS_CUDA_EXTRA"
+export CMAKE_OPTIONS_CUDA_DBE="$CMAKE_OPTIONS $CMAKE_OPTIONS_CUDA_EXTRA $CMAKE_OPTIONS_DBE_EXTRA"
+export CMAKE_OPTIONS_NOCUDA_DBE="$CMAKE_OPTIONS $CMAKE_OPTIONS_NOCUDA_EXTRA $CMAKE_OPTIONS_DBE_EXTRA"
 
 # resolves `fatal error: boost/regex.hpp: No such file or directory`
 echo -e "#!/bin/sh\n${CUDA_HOME}/bin/nvcc -ccbin $CC -v \$@" > $PWD/nvcc
@@ -171,6 +174,12 @@ To configure, run:
 
   mkdir -p build && cd build
   cmake -Wno-dev \$CMAKE_OPTIONS_CUDA ..
+
+  mkdir -p build-nocuda-dbe && cd build-nocuda-dbe
+  cmake -Wno-dev \$CMAKE_OPTIONS_NOCUDA_DBE ..
+
+  mkdir -p build-dbe && cd build-cuda-dbe
+  cmake -Wno-dev \$CMAKE_OPTIONS_CUDA_DBE ..
 
 To build, run:
 
