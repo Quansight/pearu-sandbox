@@ -23,7 +23,7 @@ export USE_MKLDNN=${USE_MKLDNN:-0}
 
 # Disable KINETO as a workaround to libgomp.so.1: version `OACC_2.0' not found
 # See https://github.com/pytorch/pytorch/issues/51026
-export USE_KINETO=${USE_KINETO:-0}
+export USE_KINETO=${USE_KINETO:-1}
 
 CONDA_ENV_LIST=$(conda env list | awk '{print $1}' )
 
@@ -76,7 +76,7 @@ then
 
     if [[ "$USE_KINETO" = "1" ]]
     then
-        export USE_CUPTI_SO=${USE_CUPTI_SO:-1}
+        export USE_CUPTI_SO=${USE_CUPTI_SO:-0}
     fi
 
     if [[ "$USE_CUPTI_SO" = "1" ]]
