@@ -3,7 +3,7 @@
 
 Requirements:
 
-  - watchdoc - required
+  - watchdog - required
   - pandoc - required when using --html
   - git - required when using --git
   - latex - optional, used to fix the vertical alignment of img elements
