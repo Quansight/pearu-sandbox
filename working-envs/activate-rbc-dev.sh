@@ -2,8 +2,12 @@
 #  wget https://raw.githubusercontent.com/Quansight/pearu-sandbox/master/conda-envs/rbc-dev.yaml
 # conda env create  --file=rbc-dev.yaml -n rbc-dev
 
-CONDA_ENV_LIST=$(conda env list | awk '{print $1}' )
 export USE_ENV=${USE_ENV:-rbc-dev}
+if hash conda; then
+    CONDA_ENV_LIST=$(conda env list | awk '{print $1}' )
+else
+    CONDA_ENV_LIST=$USE_ENV
+fi
 
 echo "USE_ENV=$USE_ENV"
 if [[ $CONDA_ENV_LIST = *"$USE_ENV"* ]]
