@@ -1,6 +1,6 @@
-
-#  wget https://raw.githubusercontent.com/Quansight/pearu-sandbox/master/conda-envs/rbc-dev.yaml
-# conda env create  --file=rbc-dev.yaml -n rbc-dev
+CORES_PER_SOCKET=`lscpu | grep 'Core(s) per socket' | awk '{print $NF}'`
+NUMBER_OF_SOCKETS=`lscpu | grep 'Socket(s)' | awk '{print $NF}'`
+export NCORES=`echo "$CORES_PER_SOCKET * $NUMBER_OF_SOCKETS"| bc`
 
 export USE_ENV=${USE_ENV:-gcs-dev}
 if hash conda; then
@@ -37,7 +37,7 @@ function h () {
 
 To test, run:
 
-  pytest -sv . -x -r s
+  pytest -sv -n $NCORES . -x -r s
 
 EndOfMessage
 
