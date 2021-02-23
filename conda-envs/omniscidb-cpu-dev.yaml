@@ -29,7 +29,7 @@ dependencies:
   - libiconv
   - blosc
   - libgdal>=2.3
-  - arrow-cpp=1.0=*cpu
+  - arrow-cpp=2.0=*cpu
   - thrift-cpp=0.13
   - ncurses
   - flex
