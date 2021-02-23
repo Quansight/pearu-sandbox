@@ -50,4 +50,4 @@ dependencies:
   - gxx_impl_linux-64=8
   - gxx_linux-64=8
 # when cuda is enabled, install also
-  - nvcc_linux-64
+  - nvcc_linux-64=11.0
