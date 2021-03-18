@@ -31,7 +31,7 @@ dependencies:
   # latest support cuda version in conda nvcc package:
   - nvcc_linux-64=11.0
   - magma-cuda110
-  - mypy
+  - mypy=0.770
   # provides clang-format
   - clang-tools
 # to use a different CUDA version, say 10.2, run

@@ -26,5 +26,5 @@ dependencies:
   - flake8
   - psutil
   - hypothesis
-  - mypy
+  - mypy=0.770
 
