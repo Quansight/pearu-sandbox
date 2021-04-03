@@ -132,6 +132,7 @@ export CMAKE_OPTIONS_NOCUDA="$CMAKE_OPTIONS $CMAKE_OPTIONS_NOCUDA_EXTRA"
 export CMAKE_OPTIONS_CUDA="$CMAKE_OPTIONS $CMAKE_OPTIONS_CUDA_EXTRA"
 export CMAKE_OPTIONS_CUDA_DBE="$CMAKE_OPTIONS $CMAKE_OPTIONS_CUDA_EXTRA $CMAKE_OPTIONS_DBE_EXTRA"
 export CMAKE_OPTIONS_NOCUDA_DBE="$CMAKE_OPTIONS $CMAKE_OPTIONS_NOCUDA_EXTRA $CMAKE_OPTIONS_DBE_EXTRA"
+export CMAKE_OPTIONS_NOCUDA_MLPACK="$CMAKE_OPTIONS_NOCUDA -DENABLE_MLPACK=ON"
 
 # resolves `fatal error: boost/regex.hpp: No such file or directory`
 echo -e "#!/bin/sh\n${CUDA_HOME}/bin/nvcc -ccbin $CC -v \$@" > $PWD/nvcc
@@ -180,6 +181,9 @@ To configure, run:
 
   mkdir -p build-dbe && cd build-cuda-dbe
   cmake -Wno-dev \$CMAKE_OPTIONS_CUDA_DBE ..
+
+  mkdir -p build-nocuda-mlpack && cd build-nocuda-mlpack
+  cmake -Wno-dev \$CMAKE_OPTIONS_NOCUDA_MLPACK ..
 
 To build, run:
 

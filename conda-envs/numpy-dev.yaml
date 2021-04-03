@@ -9,3 +9,4 @@ dependencies:
   - setuptools
   - cython
   - hypothesis
+  - flake8
