@@ -11,41 +11,46 @@ channels:
   - conda-forge
   - defaults
 dependencies:
-  - cmake
-  - make
-  - go-cgo
-  - maven
+  - arrow-cpp=2.0=*cpu
+  - bisonpp
+  - blosc
   - boost-cpp
-  - llvmdev=9
-  - clangdev=9
-  - llvm=9
+  - bzip2
+  - clangdev=11
+  - cmake
   - double-conversion
+  - flex
   - snappy
   - gflags
   - glog
+  # go 1.16 fails with Licensing/JWT.go:11:2: no required module
+  # provides package github.com/dgrijalva/jwt-go: go.mod file not
+  # found in current directory or any parent directory; see 'go help
+  # modules'
+  - go-cgo<1.16
   - libarchive
   - libkml
   - libpng
   - libiconv
-  - blosc
   - libgdal>=2.3
-  - arrow-cpp=2.0=*cpu
-  - thrift-cpp=0.13
+  - librdkafka
+  - llvmdev=11
+  - llvm=11
+  - mamba
+  - make
+  - maven
   - ncurses
-  - flex
-  - bisonpp
   - openssl
   - openjdk=8
-  - xz
-  - bzip2
-  - zlib
-  - librdkafka
   - tbb
   - tbb-devel
+  - thrift-cpp=0.13
+  - xz
+  - zlib
 # when using omniscidb-internal repo
   - openldap
   # - compilers  # this gives gcc 7.5
-  - gcc_impl_linux-64=8
-  - gcc_linux-64=8
-  - gxx_impl_linux-64=8
-  - gxx_linux-64=8
+  - gcc_impl_linux-64=9
+  - gcc_linux-64=9
+  - gxx_impl_linux-64=9
+  - gxx_linux-64=9
