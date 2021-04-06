@@ -11,7 +11,7 @@ channels:
   - conda-forge
   - defaults
 dependencies:
-  - arrow-cpp=3.0=*cuda
+  - arrow-cpp=2.0=*cuda
   - bisonpp
   - blosc
   - boost-cpp
