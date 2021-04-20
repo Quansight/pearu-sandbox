@@ -1,0 +1,8 @@
+name: iperf-benchmark-server
+channels:
+  - conda-forge
+  - defaults
+dependencies:
+  - python>=3
+  - iperf
+  - requests
