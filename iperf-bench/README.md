@@ -27,7 +27,7 @@ benchmark environment as follows:
    ```bash
    cd Quansight/pearu-sandbox/iperf-bench
    conda env create --file=iperf-benchmark-server.yaml
-       conda activate iperf-benchmark-server
+   conda activate iperf-benchmark-server
    pip install iperf3
    ```
 
@@ -66,7 +66,7 @@ follows:
    ```bash
    cd Quansight/pearu-sandbox/iperf-bench
    conda env create --file=iperf-benchmark-client.yaml
-       conda activate iperf-benchmark-client
+   conda activate iperf-benchmark-client
    pip install iperf3 tcp_latency
    ```
 
