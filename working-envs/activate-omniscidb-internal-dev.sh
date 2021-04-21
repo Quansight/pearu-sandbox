@@ -1,5 +1,5 @@
 #
-# Prepare pytorch development environment, detect CUDA availability
+# Prepare omniscidb development environment, detect CUDA availability
 #
 # Usage:
 #  source <this file.sh>
