@@ -25,7 +25,7 @@ else:
 
 fn = f'server-{hostname}.txt'
 print(f'output: {fn}. Press Ctrl-C to stop the server.')
-f = open(fn, 'w+')
+f = open(fn, 'a+')
 while 1:
     try:
         result = server.run()

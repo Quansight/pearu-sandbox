@@ -82,7 +82,7 @@ for section in conf:
 for server in servers:
     fn = f'client-{hostname}-{server["host"]}.txt'
     print(f'SERVER {server["host"]} {server["port"]}, output: {fn}')
-    f = open(fn, 'w+')
+    f = open(fn, 'a+')
 
     tcp_mss_default = None
     with tempfile.TemporaryDirectory() as td:
