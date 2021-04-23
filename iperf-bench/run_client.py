@@ -1,10 +1,8 @@
 import os
-import iperf3 as iperf
 import requests
 import socket
 import tempfile
 
-from tcp_latency import measure_latency
 from iperf_utils import show, dump, get_config
 hostname = socket.gethostname()
 conf = get_config()
@@ -88,34 +86,42 @@ for server in servers:
     with tempfile.TemporaryDirectory() as td:
         for test in tests:
             if test['section'].startswith('iperf'):
-                client = iperf.Client(verbose=False)
-                for k, v in test.items():
-                    setattr(client, k, v)
-                if client.protocol == 'udp' and tcp_mss_default is not None:
-                    client.blksize = tcp_mss_default
-                client.server_hostname = server['host']
-                client.port = server['port']
-                result = client.run()
-                show(client, result)
-                f.write(f'{test["section"]},')
-                dump(client, result, f)
-                if client.protocol == 'tcp' and tcp_mss_default is None and result.error is None:
-                    tcp_mss_default = result.tcp_mss_default
-                del client
+                try:
+                    import iperf3 as iperf
+                    client = iperf.Client(verbose=False)
+                    for k, v in test.items():
+                        setattr(client, k, v)
+                    if client.protocol == 'udp' and tcp_mss_default is not None:
+                        client.blksize = tcp_mss_default
+                    client.server_hostname = server['host']
+                    client.port = server['port']
+                    result = client.run()
+                    show(client, result)
+                    f.write(f'{test["section"]},')
+                    dump(client, result, f)
+                    if client.protocol == 'tcp' and tcp_mss_default is None and result.error is None:
+                        tcp_mss_default = result.tcp_mss_default
+                    del client
+                except Exception as msg:
+                    print(f'Failed running iperf test: {msg}')
             elif test['section'].startswith('latency'):
                 print(f'Measure latency..')
-                data = measure_latency(host=server['host'],
-                                       port=server['latency_port'],
-                                       runs=test.get('runs', 10),
-                                       wait=test.get('wait', 1),
-                                       timeout=test.get('timeout', 5))
-                data = [d for d in data if not d]
-                if data:
-                    print(f'{test["section"]} min/avg/max: {min(data)}/{sum(data)/len(data)}/{max(data)} ms')
-                    f.write(f'{test["section"]},{min(data)},{sum(data)/len(data)},{max(data)}\n')
-                    f.flush()
-                else:
-                    print('Skipping latency test: no data.')
+                try:
+                    from tcp_latency import measure_latency
+                    data = measure_latency(host=server['host'],
+                                           port=server['latency_port'],
+                                           runs=test.get('runs', 10),
+                                           wait=test.get('wait', 1),
+                                           timeout=test.get('timeout', 5))
+                    data = [d for d in data if not d]
+                    if data:
+                        print(f'{test["section"]} min/avg/max: {min(data)}/{sum(data)/len(data)}/{max(data)} ms')
+                        f.write(f'{test["section"]},{min(data)},{sum(data)/len(data)},{max(data)}\n')
+                        f.flush()
+                    else:
+                        print('Skipping latency test: no data.')
+                except Exception as msg:
+                    print(f'Failed running latency test: {msg}')
             elif test['section'].startswith('ping'):
                 print(f'Ping..')
                 tfn = os.path.join(td, 'ping.txt')
