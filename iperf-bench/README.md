@@ -67,7 +67,7 @@ follows:
    cd Quansight/pearu-sandbox/iperf-bench
    conda env create --file=iperf-benchmark-client.yaml
    conda activate iperf-benchmark-client
-   pip install iperf3 tcp_latency
+   python -m pip install git+https://github.com/thiezn/iperf3-python/
    ```
 
 3. Run the benchmarks script:
