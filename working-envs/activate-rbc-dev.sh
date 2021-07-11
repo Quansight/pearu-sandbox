@@ -28,6 +28,9 @@ else
     exit 1
 fi
 
+
+export OMNISCIDB_DEV_LABEL=${OMNISCIDB_DEV_LABEL:-master}
+
 echo -e "Local branches:\n"
 git branch
 
@@ -42,6 +45,17 @@ To develop, run:
 To test, run:
 
   pytest -sv rbc -x -r s
+
+or
+
+  OMNISCIDB_DEV_LABEL=<label> pytest -sv rbc -x -r s
+
+where <label> (currently OMNISCIDB_DEV_LABEL=${OMNISCIDB_DEV_LABEL}) can be
+
+  master        - assumes testing against omniscidb master
+  docker-dev    - assumes testing against omniscidb dev docker image
+  <undefined>   - assumes testing against some omniscidb release version
+  <branch name> - assumes testing against omniscidb branch
 
 To use different conda environment, run:
   conda deactivate

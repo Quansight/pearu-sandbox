@@ -1,0 +1,58 @@
+#
+# To create environment, execute:
+#  conda env create --file=~/git/Quansight/pearu-sandbox/conda-envs/omniscidb-llvm9-dev.yaml
+#
+# Author: Pearu Peterson
+# Created: November 2019
+#
+name: omniscidb-llvm9-dev
+channels:
+  - local
+  - conda-forge
+  - defaults
+dependencies:
+  - arrow-cpp=2.0=*cuda
+  - bisonpp
+  - blosc
+  - boost-cpp
+  - bzip2
+  - clangdev=9
+  - cmake
+  - double-conversion
+  - flex
+  - gflags
+  - glog
+  # go 1.16 fails with Licensing/JWT.go:11:2: no required module
+  # provides package github.com/dgrijalva/jwt-go: go.mod file not
+  # found in current directory or any parent directory; see 'go help
+  # modules'
+  - go-cgo<1.16
+  - llvmdev=9
+  - llvm=9
+  - libarchive
+  - libgdal>=2.3
+  - libiconv
+  - libkml
+  - libpng
+  - librdkafka
+  - make
+  - maven
+  - ncurses
+  - openssl
+  - openjdk=8
+  - snappy
+  - tbb
+  - tbb-devel
+  # omniscidb 5.5 is not thrift-cpp 0.14 ready
+  - thrift-cpp=0.13
+  - xz
+  - zlib
+  # when using omniscidb-internal repo
+  - openldap
+  # - compilers  # this gives gcc 7.5
+  - gcc_impl_linux-64=9
+  - gcc_linux-64=9
+  - gxx_impl_linux-64=9
+  - gxx_linux-64=9
+  # when cuda is enabled, install also
+  - nvcc_linux-64=11.0

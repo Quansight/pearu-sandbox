@@ -1,0 +1,38 @@
+#
+# For usage, see https://github.com/Quansight/dev-notes/
+#
+# Author: Pearu Peterson
+# Created: October 2019
+#
+
+name: pytorch-nomkl-dev
+channels:
+  - conda-forge
+  - pytorch
+  - defaults
+dependencies:
+  - python=3
+  - numpy
+  - ninja
+  - pyyaml
+  #- mkl
+  #- mkl-include
+  - setuptools
+  - cmake
+  - cffi
+  - typing
+  - pytest
+  - compilers
+  - flake8
+  - psutil
+  - hypothesis
+  # check out here
+  # https://anaconda.org/conda-forge/nvcc_linux-64/files what is the
+  # latest support cuda version in conda nvcc package:
+  - nvcc_linux-64=11.0
+  #- magma-cuda110
+  - mypy=0.812
+  # provides clang-format
+  - clang-tools
+# to use a different CUDA version, say 10.2, run
+#   conda install -c conda-forge -c pytorch nvcc_linux-64=10.2 magma-cuda102

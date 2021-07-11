@@ -1,11 +1,11 @@
 #
-# Prepare numpy development environment
+# Prepare scipy development environment
 #
 # Usage:
 #  source <this file.sh>
 #
 # Assumptions:
-#   Existence of numpy-dev conda environment
+#   Existence of scipy-dev conda environment
 #
 # Author: Pearu Peterson
 # Created: January 2021
@@ -16,8 +16,8 @@ NUMBER_OF_SOCKETS=`lscpu | grep 'Socket(s)' | awk '{print $NF}'`
 export NCORES=`echo "$CORES_PER_SOCKET * $NUMBER_OF_SOCKETS"| bc`
 CONDA_ENV_LIST=$(conda env list | awk '{print $1}' )
 
-USE_ENV=${USE_ENV:-numpy-dev}
-ENV_DEV_YAML=numpy-dev.yaml
+USE_ENV=${USE_ENV:-scipy-dev}
+ENV_DEV_YAML=scipy-dev.yaml
 
 if [[ "$CONDA_DEFAULT_ENV" = "$USE_ENV" ]]
 then
@@ -45,12 +45,6 @@ git branch
 
 cat << EndOfMessage
 
-To select conda environment, define:
-
-  export USE_ENV=$USE_ENV
-
-for instance, before sourcing this script.
-
 To update, run:
 
   git pull --rebase
@@ -61,6 +55,6 @@ To build, run:
 
 To test, run:
 
-  pytest -sv numpy/tests
+  pytest -sv scipy/tests
 
 EndOfMessage
