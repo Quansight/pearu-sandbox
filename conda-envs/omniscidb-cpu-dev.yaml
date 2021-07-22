@@ -39,6 +39,7 @@ dependencies:
   - mamba
   - make
   - maven
+  - mlpack
   - ncurses
   - openssl
   - openjdk=8

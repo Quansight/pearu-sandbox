@@ -37,6 +37,7 @@ dependencies:
   - librdkafka
   - make
   - maven
+  - mlpack
   - ncurses
   - openssl
   - openjdk=8
