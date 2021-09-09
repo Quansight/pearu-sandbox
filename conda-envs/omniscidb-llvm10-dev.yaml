@@ -27,6 +27,7 @@ dependencies:
   # found in current directory or any parent directory; see 'go help
   # modules'
   - go-cgo<1.16
+  - fmt
   - llvmdev=10
   - llvm=10
   - libarchive

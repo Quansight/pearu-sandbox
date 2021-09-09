@@ -11,7 +11,8 @@ channels:
   - conda-forge
   - defaults
 dependencies:
-  - arrow-cpp=2.0=*cuda
+  # omniscidb 5.7 is not arrow-cpp 4.0 ready
+  - arrow-cpp=3.0=*cuda
   - bisonpp
   - blosc
   - boost-cpp
@@ -27,6 +28,8 @@ dependencies:
   # found in current directory or any parent directory; see 'go help
   # modules'
   - go-cgo<1.16
+  - fmt
+  - folly
   - llvmdev=11
   - llvm=11
   - libarchive
@@ -43,7 +46,7 @@ dependencies:
   - snappy
   - tbb
   - tbb-devel
-  # omniscidb 5.5 is not thrift-cpp 0.14 ready
+  # omniscidb 5.7 is not thrift-cpp 0.14 ready
   - thrift-cpp=0.13
   - xz
   - zlib

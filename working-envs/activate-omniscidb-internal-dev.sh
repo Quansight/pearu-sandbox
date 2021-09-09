@@ -16,7 +16,7 @@ CORES_PER_SOCKET=`lscpu | grep 'Core(s) per socket' | awk '{print $NF}'`
 NUMBER_OF_SOCKETS=`lscpu | grep 'Socket(s)' | awk '{print $NF}'`
 export NCORES=`echo "$CORES_PER_SOCKET * $NUMBER_OF_SOCKETS"| bc`
 
-export CMAKE_OPTIONS="-DCMAKE_BUILD_TYPE=release -DMAPD_EDITION=EE -DMAPD_DOCS_DOWNLOAD=off -DENABLE_AWS_S3=off -DENABLE_FOLLY=off -DENABLE_JAVA_REMOTE_DEBUG=off -DENABLE_PROFILER=off -DPREFER_STATIC_LIBS=off -DENABLE_AWS_S3=OFF"
+export CMAKE_OPTIONS="-DCMAKE_BUILD_TYPE=release -DMAPD_EDITION=EE -DMAPD_DOCS_DOWNLOAD=off -DENABLE_AWS_S3=off -DENABLE_FOLLY=ON -DENABLE_JAVA_REMOTE_DEBUG=off -DENABLE_PROFILER=off -DPREFER_STATIC_LIBS=off -DENABLE_AWS_S3=OFF"
 export CMAKE_OPTIONS_CUDA_EXTRA=""
 export CMAKE_OPTIONS_NOCUDA_EXTRA="-DENABLE_CUDA=off"
 export CMAKE_OPTIONS_DBE_EXTRA="-DENABLE_DBE=ON -DENABLE_FSI=ON -DENABLE_ITT=OFF -DENABLE_JIT_DEBUG=OFF -DENABLE_INTEL_JIT_LISTENER=OFF -DENABLE_TESTS=OFF"
@@ -100,6 +100,11 @@ else
         exit 1
     fi
 fi
+
+# Fixes H3LibExtFuncTest.cpp.o: undefined reference to symbol 'curl_easy_init'
+export LDFLAGS="${LDFLAGS} -lcurl"
+# Remove --as-needed to resolve undefined reference to `__vdso_clock_gettime@GLIBC_PRIVATE'
+export LDFLAGS="`echo $LDFLAGS | sed 's/-Wl,--as-needed//'`"
 
 # export CXXFLAGS="$CXXFLAGS -include $HOME/git/Quansight/pearu-sandbox/cxx/toString.hpp"
 # export CXXFLAGS="$CXXFLAGS -include $HOME/git/Quansight/pearu-sandbox/cxx/toString_utils.hpp"

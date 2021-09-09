@@ -16,7 +16,7 @@ dependencies:
   - blosc
   - boost-cpp
   - bzip2
-  - clangdev=9
+  - clangdev=11
   - cmake
   - double-conversion
   - flex
@@ -27,8 +27,9 @@ dependencies:
   # found in current directory or any parent directory; see 'go help
   # modules'
   - go-cgo<1.16
-  - llvmdev=9
-  - llvm=9
+  - fmt
+  - llvmdev=11
+  - llvm=11
   - libarchive
   - libgdal>=2.3
   - libiconv
