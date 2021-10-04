@@ -272,6 +272,14 @@ Found $(command ghstack --version):
     <resolve any conflicts and re-run git rebase --continue>
     ghstack
 
+  Rebase with master:
+    git checkout master
+    git pull --rebase
+    git submodule sync --recursive
+    git submodule update -f --init --recursive
+    git rebase origin/master
+    ghstack
+
   For more information, see
     https://github.com/ezyang/ghstack
     https://gist.github.com/pmeier/09dfb12c6ebfc8ab0a7ca18de8449707
