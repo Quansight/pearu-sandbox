@@ -43,12 +43,22 @@ install_envrc() {
     do
         local ENVSH="${MY_DIRENV}/activate-$(basename $d)-dev.sh"
         local ENVSH2="${MY_DIRENV}/activate-$(basename $d).sh"
+        local ENVSH_PYTORCH="${MY_DIRENV}/activate-pytorch-dev.sh"
         if [[ -f $ENVSH && ! -f $d/.envrc ]]
         then
             ln -svf $ENVSH $d/.envrc
         elif [[ -f $ENVSH2 && ! -f $d/.envrc ]]
         then
             ln -svf $ENVSH2 $d/.envrc
+        elif [[ ! -f $d/.envrc ]]
+        then
+            if [[ $d == *"pytorch"* ]]
+            then
+                (>&2 echo Using pytorch-dev for $d);
+                ln -svf $ENVSH_PYTORCH $d/.envrc
+            else
+                (>&2 echo No activate script found for $d);
+            fi
         fi
     done
 }

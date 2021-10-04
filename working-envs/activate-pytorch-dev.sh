@@ -242,6 +242,51 @@ To enable MKL-DNN build, run
 
 EndOfMessage
 
+if [[ -x "$(command -v ghstack)" ]]
+then
+    cat << EndOfMessage
+Found $(command ghstack --version):
+
+  Start a new feature:
+    git checkout -b $(command whoami)/new-feature
+    <add a sub-feature>
+    git add ...
+    git commit -m "New-feature 1"
+    <add another sub-feature>
+    git add ...
+    git commit -m "New-feature 2"
+    ghstack  # this will push each commit to a separate ghstack PR
+
+  Modify the last commit:
+    git checkout $(command whoami)/new-feature
+    <modify>
+    git commit -a --amend --no-edit
+    ghstack
+
+  Modify a not-the-last commit:
+    git rebase -i master
+    <change 'pick' of the commit to 'edit'>
+    <modify>
+    git commit -a --amend --no-edit
+    git rebase --continue
+    <resolve any conflicts and re-run git rebase --continue>
+    ghstack
+
+  For more information, see
+    https://github.com/ezyang/ghstack
+    https://gist.github.com/pmeier/09dfb12c6ebfc8ab0a7ca18de8449707
+
+EndOfMessage
+else
+    cat << EndOfMessage
+ghstack not found
+To install ghstack, run:
+  conda install -c conda-forge ghstack
+  conda deactivate
+  <source the activate-pytorch-dev.sh script>
+EndOfMessage
+fi
+
 if [[ -x "$(command -v katex)" ]]
 then
     cat << EndOfMessage
@@ -253,7 +298,7 @@ EndOfMessage
 else
     cat << EndOfMessage
 katex not found, you cannot build documentation
-To install katex, run:"
+To install katex, run:
   conda install -c conda-forge yarn nodejs matplotlib
   yarn global add katex --prefix \$CONDA_PREFIX
   python -m pip install -r docs/requirements.txt

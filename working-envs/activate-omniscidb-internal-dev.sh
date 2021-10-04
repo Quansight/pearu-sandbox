@@ -16,7 +16,7 @@ CORES_PER_SOCKET=`lscpu | grep 'Core(s) per socket' | awk '{print $NF}'`
 NUMBER_OF_SOCKETS=`lscpu | grep 'Socket(s)' | awk '{print $NF}'`
 export NCORES=`echo "$CORES_PER_SOCKET * $NUMBER_OF_SOCKETS"| bc`
 
-export CMAKE_OPTIONS="-DCMAKE_BUILD_TYPE=release -DMAPD_EDITION=EE -DMAPD_DOCS_DOWNLOAD=off -DENABLE_AWS_S3=off -DENABLE_FOLLY=ON -DENABLE_JAVA_REMOTE_DEBUG=off -DENABLE_PROFILER=off -DPREFER_STATIC_LIBS=off -DENABLE_AWS_S3=OFF"
+export CMAKE_OPTIONS="-DCMAKE_BUILD_TYPE=release -DMAPD_EDITION=EE -DMAPD_DOCS_DOWNLOAD=off -DENABLE_AWS_S3=off -DENABLE_FOLLY=ON -DENABLE_JAVA_REMOTE_DEBUG=off -DENABLE_PROFILER=off -DPREFER_STATIC_LIBS=off -DENABLE_AWS_S3=OFF -DENABLE_FSI_ODBC=OFF"
 export CMAKE_OPTIONS_CUDA_EXTRA=""
 export CMAKE_OPTIONS_NOCUDA_EXTRA="-DENABLE_CUDA=off"
 export CMAKE_OPTIONS_DBE_EXTRA="-DENABLE_DBE=ON -DENABLE_FSI=ON -DENABLE_ITT=OFF -DENABLE_JIT_DEBUG=OFF -DENABLE_INTEL_JIT_LISTENER=OFF -DENABLE_TESTS=OFF"
@@ -206,9 +206,10 @@ To serve, run:
 
 Use the following server options as needed (see \`bin/omnisci_server --help\` for details):
 
-  --log-channels PTX,IR
-  --udf ../Tests/Udf/device_selection_samples.cpp
-  --log-severity-clog=WARNING
+  --udf ../Tests/Udf/device_selection_samples.cpp \\
+  --log-channels PTX,IR \\
+  --log-severity-clog=WARNING \\
+  --num-executors=4
 
 EndOfMessage
 

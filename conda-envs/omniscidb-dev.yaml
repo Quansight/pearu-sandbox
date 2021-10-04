@@ -47,7 +47,7 @@ dependencies:
   - tbb
   - tbb-devel
   # omniscidb 5.7 is not thrift-cpp 0.14 ready
-  - thrift-cpp=0.13
+  - thrift-cpp=0.14
   - xz
   - zlib
   # when using omniscidb-internal repo
