@@ -18,8 +18,9 @@ export NCORES=`echo "$CORES_PER_SOCKET * $NUMBER_OF_SOCKETS"| bc`
 
 export CMAKE_OPTIONS="-DCMAKE_BUILD_TYPE=release -DMAPD_EDITION=EE -DMAPD_DOCS_DOWNLOAD=off -DENABLE_AWS_S3=off -DENABLE_FOLLY=ON -DENABLE_JAVA_REMOTE_DEBUG=off -DENABLE_PROFILER=off -DPREFER_STATIC_LIBS=off -DENABLE_AWS_S3=OFF -DENABLE_FSI_ODBC=OFF"
 export CMAKE_OPTIONS_CUDA_EXTRA=""
-export CMAKE_OPTIONS_NOCUDA_EXTRA="-DENABLE_CUDA=off"
+export CMAKE_OPTIONS_NOCUDA_EXTRA="-DENABLE_CUDA=OFF"
 export CMAKE_OPTIONS_DBE_EXTRA="-DENABLE_DBE=ON -DENABLE_FSI=ON -DENABLE_ITT=OFF -DENABLE_JIT_DEBUG=OFF -DENABLE_INTEL_JIT_LISTENER=OFF -DENABLE_TESTS=OFF"
+export CMAKE_OPTIONS_TSAN_EXTRA="-DENABLE_FOLLY=OFF -DENABLE_TSAN=ON -DENABLE_CUDA=OFF -DCMAKE_BUILD_TYPE=RELWITHDEBINFO"
 
 # Temporarily disable GEOS due to https://github.com/xnd-project/rbc/issues/196
 export CMAKE_OPTIONS="$CMAKE_OPTIONS -DENABLE_GEOS=off"
@@ -112,6 +113,7 @@ export CXXFLAGS="$CXXFLAGS -DENABLE_TOSTRING_LLVM"
 export CXXFLAGS="$CXXFLAGS -DENABLE_TOSTRING_RAPIDJSON"
 export CXXFLAGS="$CXXFLAGS -DENABLE_TOSTRING_str"
 export CXXFLAGS="$CXXFLAGS -DENABLE_TOSTRING_to_string"
+# export CXXFLAGS="$CXXFLAGS -DENABLE_TOSTRING_PTHREAD"
 
 export CONDA_BUILD_SYSROOT=$CONDA_PREFIX/$HOST/sysroot
 
@@ -138,6 +140,7 @@ export CMAKE_OPTIONS_CUDA="$CMAKE_OPTIONS $CMAKE_OPTIONS_CUDA_EXTRA"
 export CMAKE_OPTIONS_CUDA_DBE="$CMAKE_OPTIONS $CMAKE_OPTIONS_CUDA_EXTRA $CMAKE_OPTIONS_DBE_EXTRA"
 export CMAKE_OPTIONS_NOCUDA_DBE="$CMAKE_OPTIONS $CMAKE_OPTIONS_NOCUDA_EXTRA $CMAKE_OPTIONS_DBE_EXTRA"
 export CMAKE_OPTIONS_NOCUDA_MLPACK="$CMAKE_OPTIONS_NOCUDA -DENABLE_MLPACK=ON"
+export CMAKE_OPTIONS_TSAN="$CMAKE_OPTIONS $CMAKE_OPTIONS_TSAN_EXTRA"
 
 # resolves `fatal error: boost/regex.hpp: No such file or directory`
 echo -e "#!/bin/sh\n${CUDA_HOME}/bin/nvcc -ccbin $CC -v \$@" > $PWD/nvcc
@@ -190,6 +193,9 @@ To configure, run:
   mkdir -p build-nocuda-mlpack && cd build-nocuda-mlpack
   cmake -Wno-dev \$CMAKE_OPTIONS_NOCUDA_MLPACK ..
 
+  mkdir -p build-tsan && cd build-tsan
+  cmake -Wno-dev \$CMAKE_OPTIONS_TSAN ..
+
 To build, run:
 
   make -j $NCORES
@@ -199,10 +205,21 @@ To test, run:
   mkdir tmp && bin/initdb tmp
   make sanity_tests
 
+To valgrind, run:
+
+  cd Tests
+  mkdir tmp && ../bin/initdb tmp
+  valgrind --suppressions=../../config/valgrind.suppressions --gen-suppressions=all \\
+           --show-leak-kinds=definite --tool=memcheck \\
+           --exit-on-first-error=yes --error-exitcode=777 \\
+           --leak-check=full \\
+           ./ExecuteTest --with-sharding
+
 To serve, run:
 
   mkdir data && bin/initdb data
-  bin/omnisci_server --enable-runtime-udf --enable-table-functions 
+  bin/omnisci_server --enable-runtime-udf --enable-table-functions       #  <5.9
+  bin/omnisci_server --enable-runtime-udf --enable-dev-table-functions   # >=5.9
 
 Use the following server options as needed (see \`bin/omnisci_server --help\` for details):
 

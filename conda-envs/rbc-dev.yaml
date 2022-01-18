@@ -18,5 +18,6 @@ dependencies:
   - ply
   - flake8
   - six
+  - cffi
   # - cudatoolkit-dev   # disable temporary
 

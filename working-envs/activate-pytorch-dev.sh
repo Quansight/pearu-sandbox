@@ -46,7 +46,7 @@ then
     else
         # when using cuda version different from 10.1, say 10.2, then run
         #   conda install -c conda-forge nvcc_linux-64=10.2 magma-cuda102
-        CUDA_VERSION=${CUDA_VERSION:-11.0.3}
+        CUDA_VERSION=${CUDA_VERSION:-11.2.0}
         . /usr/local/cuda-${CUDA_VERSION}/env.sh
     fi
 
@@ -203,6 +203,12 @@ To clone pytorch from Quansight fork, run:
 EndOfMessage
 fi
 
+# https://github.com/pytorch/pytorch/wiki/clang-format
+# export PATH=`pwd`/tools/linter:$PATH
+
+test -d .clang-tidy-bin || mkdir .clang-tidy-bin
+test -f .clang-tidy-bin/clang-tidy || ln -s `which clang-tidy` .clang-tidy-bin/
+
 cat << EndOfMessage
 
 To update, run:
@@ -240,6 +246,9 @@ To enable MKL-DNN build, run
   export USE_MKLDNN=1  [currently USE_MKLDNN=${USE_MKLDNN}]
   <source the activate-pytorch-dev.sh script>
 
+To prepare commits:
+  make clang-tidy CHANGED_ONLY=--changed-only
+
 EndOfMessage
 
 if [[ -x "$(command -v ghstack)" ]]
@@ -260,24 +269,25 @@ Found $(command ghstack --version):
   Modify the last commit:
     git checkout $(command whoami)/new-feature
     <modify>
-    git commit -a --amend --no-edit
+    git add <modified/created files>
+    git commit --amend --no-edit  # Don't use -a to prevent adding submodule changes!
     ghstack
 
   Modify a not-the-last commit:
-    git rebase -i master
+    git rebase -i origin/master
     <change 'pick' of the commit to 'edit'>
     <modify>
-    git commit -a --amend --no-edit
+    git add <modified/created files>
+    git commit --amend --no-edit  # Don't use -a to prevent adding submodule changes!
     git rebase --continue
-    <resolve any conflicts and re-run git rebase --continue>
+    <resolve any conflicts, git add, and re-run git rebase --continue>
     ghstack
 
   Rebase with master:
-    git checkout master
-    git pull --rebase
+    git fetch
+    git rebase origin/master
     git submodule sync --recursive
     git submodule update -f --init --recursive
-    git rebase origin/master
     ghstack
 
   For more information, see
