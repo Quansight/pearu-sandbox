@@ -245,11 +245,10 @@ To test concurrency, run
 
 To serve, run:
 
-  mkdir data && bin/initdb data
-  bin/heavyai_server --enable-runtime-udf --enable-table-functions       #  <5.9
-  bin/heavyai_server --enable-runtime-udf --enable-dev-table-functions   # >=5.9
+  mkdir -p data && bin/initheavy -f data
+  bin/heavydb --data data --enable-dev-table-functions --enable-udf-registration-for-all-users
 
-Use the following server options as needed (see \`bin/heavyai_server --help\` for details):
+Use the following server options as needed (see \`bin/heavydb --help\` for details):
 
   --udf ../Tests/Udf/device_selection_samples.cpp \\
   --log-channels PTX,IR \\
