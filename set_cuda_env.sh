@@ -33,7 +33,7 @@ export CUDA_HOME=$(dirname ${BASH_SOURCE[0]})
 export PATH=${CUDA_HOME}/bin:${PATH}
 export LD_LIBRARY_PATH=${CUDA_HOME}/lib64:${LD_LIBRARY_PATH}
 # Required for cmake-3.17 or newer:
-export CUDAToolkit_ROOT=$(CUDA_HOME)
+export CUDAToolkit_ROOT=${CUDA_HOME}
 
 
 # Show new environment
