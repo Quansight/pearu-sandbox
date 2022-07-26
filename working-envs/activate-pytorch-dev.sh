@@ -20,12 +20,19 @@ export NCORES=`echo "$CORES_PER_SOCKET * $NUMBER_OF_SOCKETS"| bc`
 
 export USE_XNNPACK=${USE_XNNPACK:1}
 export USE_MKLDNN=${USE_MKLDNN:-0}
+export USE_FBGEMM=${USE_FBGEMM:-0}
 
 # Disable KINETO as a workaround to libgomp.so.1: version `OACC_2.0' not found
 # See https://github.com/pytorch/pytorch/issues/51026
 export USE_KINETO=${USE_KINETO:-1}
 
 CONDA_ENV_LIST=$(conda env list | awk '{print $1}' )
+
+export USE_ASAN=${USE_ASAN:-0}
+if [[ "$USE_ASAN" = "1" ]]
+then
+    export USE_CUDA=0
+fi
 
 if [[ -x "$(command -v nvidia-smi)" ]]
 then
@@ -178,6 +185,29 @@ export CXXFLAGS="$CXXFLAGS -D__STDC_FORMAT_MACROS"
 
 export MAX_JOBS=$NCORES
 
+if [[ "$USE_ASAN" = "1" ]]
+then
+    export CMAKE_PREFIX_PATH=$CONDA_PREFIX
+    export PYTORCH_ROOT=`pwd`
+    export LLVM_ROOT=$CONDA_PREFIX
+    export ASAN_OPTIONS=detect_leaks=0:symbolize=1:strict_init_order=true
+    export UBSAN_OPTIONS=print_stacktrace=1:suppressions=$PYTORCH_ROOT/ubsan.supp
+    export ASAN_SYMBOLIZER_PATH=$LLVM_ROOT/bin/llvm-symbolizer
+
+    export LLVM_VER=11.0.1
+    export LIBASAN_RT=$CONDA_PREFIX/lib/clang/$LLVM_VER/lib/linux/libclang_rt.asan-x86_64.so
+    echo "LIBASAN_RT=$LIBASAN_RT"
+    export GLIBCXX_USE_CXX11_ABI=0
+    export ASAN_BUILD_ENV="LD_PRELOAD=${LIBASAN_RT} \
+CC=$LLVM_ROOT/bin/clang \
+CXX=$LLVM_ROOT/bin/clang++ \
+LDSHARED=\"clang --shared\" \
+LDFLAGS=\"-stdlib=libstdc++ -L$CONDA_PREFIX/lib\" \
+CFLAGS=\"-fsanitize=address -fno-sanitize-recover=all -shared-libasan -pthread -D_GLIBCXX_USE_CXX11_ABI=0\" \
+CXXFLAGS=\"-shared-libasan -pthread -D_GLIBCXX_USE_CXX11_ABI=0\" \
+USE_CUDA=0 USE_OPENMP=0 BUILD_CAFFE2_OPS=0 USE_DISTRIBUTED=0 DEBUG=1"
+fi
+
 if [[ "" && ! -n "$(type -t layout_conda)" ]]; then
     cd ~/git/Quansight/pytorch${Python-}
 fi
@@ -248,6 +278,14 @@ To enable MKL-DNN build, run
 
 To prepare commits:
   make clang-tidy CHANGED_ONLY=--changed-only
+
+To use ASAN:
+  conda install -c conda-forge compiler-rt
+  conda deactivate
+  export USE_ASAN=1  [currently USE_ASAN=${USE_ASAN}]
+  <source the activate-pytorch-dev.sh script>
+  $ASAN_BUILD_ENV python setup.py develop
+  LD_PRELOAD=${LIBASAN_RT} pytest -sv test/test_jit.py
 
 EndOfMessage
 
