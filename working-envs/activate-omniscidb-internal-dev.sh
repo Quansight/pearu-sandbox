@@ -124,11 +124,11 @@ export CXXFLAGS="$CXXFLAGS -Dsecure_getenv=getenv"
 
 # export CXXFLAGS="$CXXFLAGS -g"
 
-#export CC=$CONDA_PREFIX/bin/clang
-#export CXX=$CONDA_PREFIX/bin/clang++
+# export CC=$CONDA_PREFIX/bin/clang
+# export CXX=$CONDA_PREFIX/bin/clang++
 
-export CMAKE_CC=$CC
-export CMAKE_CXX=$CXX
+export CMAKE_CC="${CMAKE_CC:-$CC}"
+export CMAKE_CXX="${CMAKE_CXX:-$CXX}"
 
 export CMAKE_OPTIONS="$CMAKE_OPTIONS -DCMAKE_C_COMPILER=$CMAKE_CC -DCMAKE_CXX_COMPILER=$CMAKE_CXX"
 export CMAKE_OPTIONS="$CMAKE_OPTIONS -DCMAKE_PREFIX_PATH=$CONDA_PREFIX"
@@ -155,6 +155,8 @@ export CPLUS_INCLUDE_PATH=$(get_cxx_include_path)
 
 echo -e "Local branches:\n"
 git branch
+
+export SOURCE_DIR=`git rev-parse --show-toplevel`
 
 function h () {
 cat << EndOfMessage
@@ -202,18 +204,44 @@ To build, run:
 
 To test, run:
 
-  mkdir tmp && bin/initdb tmp
+  mkdir -p tmp && bin/initdb -f tmp
   make sanity_tests
 
 To valgrind, run:
 
   cd Tests
-  mkdir tmp && ../bin/initdb tmp
+  mkdir -p tmp && ../bin/initdb -f tmp
   valgrind --suppressions=../../config/valgrind.suppressions --gen-suppressions=all \\
            --show-leak-kinds=definite --tool=memcheck \\
            --exit-on-first-error=yes --error-exitcode=777 \\
            --leak-check=full \\
            ./ExecuteTest --with-sharding
+
+To test concurrency, run
+
+  mkdir -p chaos && bin/initdb -f chaos
+
+  export TSAN_OPTIONS=suppressions=\$SOURCE_DIR/config/tsan.suppressions
+  bin/omnisci_server --data chaos
+  java -Dfile.encoding=UTF-8 -cp ../java/utility/target/utility-1.0-SNAPSHOT-jar-with-dependencies.jar com.mapd.tests.AlterDropTruncateValidateConcurrencyTest
+  java -Dfile.encoding=UTF-8 -cp ../java/utility/target/utility-1.0-SNAPSHOT-jar-with-dependencies.jar com.mapd.tests.CatalogConcurrencyTest
+  java -Dfile.encoding=UTF-8 -cp ../java/utility/target/utility-1.0-SNAPSHOT-jar-with-dependencies.jar com.mapd.tests.SelectUpdateDeleteDifferentTables
+
+  export TSAN_OPTIONS=suppressions=\$SOURCE_DIR/config/tsan.suppressions:history_size=7
+  bin/omnisci_server --data chaos
+  java -Dfile.encoding=UTF-8 -cp ../java/utility/target/utility-1.0-SNAPSHOT-jar-with-dependencies.jar com.mapd.tests.EagainConcurrencyTest
+
+  export TSAN_OPTIONS=suppressions=\$SOURCE_DIR/config/tsan.suppressions:history_size=7:halt_on_error=1
+  bin/omnisci_server --data chaos
+  java -Dfile.encoding=UTF-8 -cp ../java/utility/target/utility-1.0-SNAPSHOT-jar-with-dependencies.jar com.mapd.tests.ForeignStorageConcurrencyTest
+
+  export TSAN_OPTIONS=suppressions=\$SOURCE_DIR/config/tsan.suppressions:second_deadlock_stack=true:detect_deadlocks=true:history_size=7:halt_on_error=1
+  bin/omnisci_server --data chaos
+  java -Dfile.encoding=UTF-8 -cp ../java/utility/target/utility-1.0-SNAPSHOT-jar-with-dependencies.jar com.mapd.tests.ForeignTableRefreshConcurrencyTest
+
+  export TSAN_OPTIONS=suppressions=\$SOURCE_DIR/config/tsan.suppressions
+  bin/omnisci_server --data chaos --allowed-import-paths '["/"]' --allowed-export-paths '["/"]'
+  java -Dfile.encoding=UTF-8 -cp ../java/utility/target/utility-1.0-SNAPSHOT-jar-with-dependencies.jar com.mapd.tests.ImportAlterValidateSelectConcurrencyTest ../Tests/Import/datafiles/mixed_varlen.txt ../Tests/Import/datafiles/geospatial_mpoly/geospatial_mpoly.shp
 
 To serve, run:
 
