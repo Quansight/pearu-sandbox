@@ -1,17 +1,17 @@
 #
 # To create environment, execute:
-#  conda env create --file=~/git/Quansight/pearu-sandbox/conda-envs/omniscidb-dev.yaml
+#  conda env create --file=~/git/Quansight/pearu-sandbox/conda-envs/heavydb-cpu-dev.yaml
 #
 # Author: Pearu Peterson
-# Created: November 2019
+# Created: March 2022
 #
-name: omniscidb-cpu-dev
+name: heavydb-cpu-dev
 channels:
   - local
   - conda-forge
   - defaults
 dependencies:
-  - arrow-cpp=2.0=*cpu
+  - arrow-cpp=5.0=*cpu
   - bisonpp
   - blosc
   - boost-cpp
@@ -20,7 +20,6 @@ dependencies:
   - cmake
   - double-conversion
   - flex
-  - snappy
   - gflags
   - glog
   # go 1.16 fails with Licensing/JWT.go:11:2: no required module
@@ -28,26 +27,29 @@ dependencies:
   # found in current directory or any parent directory; see 'go help
   # modules'
   - go-cgo<1.16
-  - libarchive
-  - libkml
-  - libpng
-  - libiconv
-  - libgdal>=2.3
-  - librdkafka
+  - fmt
+  - folly
+  - unixodbc
   - llvmdev=11
   - llvm=11
-  - mamba
+  - libarchive
+  - libgdal>=2.3
+  - libiconv
+  - libkml
+  - libpng
+  - librdkafka
   - make
   - maven
   - ncurses
   - openssl
   - openjdk=8
+  - snappy
   - tbb
   - tbb-devel
-  - thrift-cpp=0.13
+  - thrift-cpp=0.15
   - xz
   - zlib
-# when using omniscidb-internal repo
+  # when using omniscidb-internal repo
   - openldap
   # - compilers  # this gives gcc 7.5
   - gcc_impl_linux-64=9
