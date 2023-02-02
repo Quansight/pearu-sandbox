@@ -1,0 +1,27 @@
+name: heavyai-dev
+channels:
+  - conda-forge
+  # - rapidsai-nightly
+  - rapidsai
+  - nvidia
+  - defaults
+dependencies:
+  - python>=3.8
+  - pyheavydb>=6
+  - cudf
+  # - cupy=11
+  # from cudf follows pyarrow, numpy, numba
+  # - pyarrow=9=*cuda
+  - pytest
+  - pytest-mock
+  - flake8
+  - six
+  - coverage
+  - geopandas
+  - pandas
+  - shapely
+  - sphinx_rtd_theme
+  - numpydoc
+  - sphinx
+  - flit
+  # - pre-commit

@@ -11,7 +11,7 @@ channels:
   - conda-forge
   - defaults
 dependencies:
-  - arrow-cpp=5.0=*cuda
+  - arrow-cpp=9.0=*cuda
   - bisonpp
   - blosc
   - boost-cpp
@@ -46,7 +46,7 @@ dependencies:
   - snappy
   - tbb
   - tbb-devel
-  - thrift-cpp=0.15
+  - thrift-cpp=0.16
   - xz
   - zlib
   # when using omniscidb-internal repo
@@ -57,4 +57,4 @@ dependencies:
   - gxx_impl_linux-64=9
   - gxx_linux-64=9
   # when cuda is enabled, install also
-  - nvcc_linux-64=11.0
+  - nvcc_linux-64=11.5

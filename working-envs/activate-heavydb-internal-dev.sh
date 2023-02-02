@@ -17,13 +17,15 @@ NUMBER_OF_SOCKETS=`lscpu | grep 'Socket(s)' | awk '{print $NF}'`
 export NCORES=`echo "$CORES_PER_SOCKET * $NUMBER_OF_SOCKETS"| bc`
 
 export CMAKE_OPTIONS="-DCMAKE_BUILD_TYPE=release -DMAPD_EDITION=EE -DMAPD_DOCS_DOWNLOAD=off -DENABLE_AWS_S3=off -DENABLE_FOLLY=ON -DENABLE_JAVA_REMOTE_DEBUG=off -DENABLE_PROFILER=off -DPREFER_STATIC_LIBS=off -DENABLE_AWS_S3=OFF -DENABLE_FSI_ODBC=OFF"
+export CMAKE_OPTIONS="$CMAKE_OPTIONS -DENABLE_WARNINGS_AS_ERRORS=OFF"
 export CMAKE_OPTIONS_CUDA_EXTRA=""
 export CMAKE_OPTIONS_NOCUDA_EXTRA="-DENABLE_CUDA=OFF"
 export CMAKE_OPTIONS_DBE_EXTRA="-DENABLE_DBE=ON -DENABLE_FSI=ON -DENABLE_ITT=OFF -DENABLE_JIT_DEBUG=OFF -DENABLE_INTEL_JIT_LISTENER=OFF -DENABLE_TESTS=OFF"
 export CMAKE_OPTIONS_TSAN_EXTRA="-DENABLE_FOLLY=OFF -DENABLE_TSAN=ON -DENABLE_CUDA=OFF -DCMAKE_BUILD_TYPE=RELWITHDEBINFO"
 
+
 # Temporarily disable GEOS due to https://github.com/xnd-project/rbc/issues/196
-export CMAKE_OPTIONS="$CMAKE_OPTIONS -DENABLE_GEOS=off"
+# export CMAKE_OPTIONS="$CMAKE_OPTIONS -DENABLE_GEOS=off"
 
 CONDA_ENV_LIST=$(conda env list | awk '{print $1}' )
 
@@ -32,9 +34,9 @@ then
     # wget https://raw.githubusercontent.com/Quansight/pearu-sandbox/master/set_cuda_env.sh
     # read set_cuda_env.sh reader
 
-    if [[ -f /DISABLE/usr/local/cuda-11.2.0/env.sh ]]
+    if [[ -f /usr/local/cuda-11.5.0/env.sh ]]
     then
-        CUDA_VERSION=${CUDA_VERSION:-11.2.0}
+        CUDA_VERSION=${CUDA_VERSION:-11.5.0}
     elif [[ -f /usr/local/cuda-11.0.3/env.sh ]]
     then
         CUDA_VERSION=${CUDA_VERSION:-11.0.3}
@@ -107,6 +109,19 @@ export LDFLAGS="${LDFLAGS} -lcurl"
 # Remove --as-needed to resolve undefined reference to `__vdso_clock_gettime@GLIBC_PRIVATE'
 export LDFLAGS="`echo $LDFLAGS | sed 's/-Wl,--as-needed//'`"
 
+# Using conda ld (make -j18 -> 12m25s/113m40s; change heavydbTypes.h -> 2m14s/10m18s)
+
+# Use gold linker (make -j18 -> 12m9s)
+# export LDFLAGS="${LDFLAGS} -fuse-ld=gold -Wl,--threads -Wl,--thread-count=$NCORES"
+
+# Use mold linker via replacing compiler linker ($LD) with ld.mold
+# manually in <conda env>/x86_64-conda-linux-gnu/bin:
+#  mv ld ld.orig;
+#  ld -s /usr/local/bin/ld.mold ld
+# (make -j18 -> 12m5s/107m25; change heavydbTypes.h -> 1m48s/3m46s)
+export CMAKE_OPTIONS="$CMAKE_OPTIONS -DCMAKE_LINKER=/usr/local/bin/ld.mold"  # this might not be necessary!
+
+
 # export CXXFLAGS="$CXXFLAGS -include $HOME/git/Quansight/pearu-sandbox/cxx/toString.hpp"
 # export CXXFLAGS="$CXXFLAGS -include $HOME/git/Quansight/pearu-sandbox/cxx/toString_utils.hpp"
 export CXXFLAGS="$CXXFLAGS -DENABLE_TOSTRING_LLVM"
@@ -122,6 +137,8 @@ export CXXFLAGS="$CXXFLAGS -DBOOST_ERROR_CODE_HEADER_ONLY"
 export CXXFLAGS="$CXXFLAGS -DBOOST_DISABLE_PRAGMA_MESSAGE"
 export CXXFLAGS="$CXXFLAGS -D__STDC_FORMAT_MACROS"
 export CXXFLAGS="$CXXFLAGS -Dsecure_getenv=getenv"
+export CXXFLAGS="$CXXFLAGS -DFLATBUFFER_ERROR_ABORTS"
+export CFLAGS="$CFLAGS -DFLATBUFFER_ERROR_ABORTS"
 
 # export CXXFLAGS="$CXXFLAGS -g"
 
@@ -136,6 +153,11 @@ export CMAKE_OPTIONS="$CMAKE_OPTIONS -DCMAKE_PREFIX_PATH=$CONDA_PREFIX"
 export CMAKE_OPTIONS="$CMAKE_OPTIONS -DCMAKE_INSTALL_PREFIX=$CONDA_PREFIX"
 export CMAKE_OPTIONS="$CMAKE_OPTIONS -DCMAKE_SYSROOT=$CONDA_BUILD_SYSROOT"
 export CMAKE_OPTIONS="$CMAKE_OPTIONS -DENABLE_TESTS=on"
+export CMAKE_OPTIONS="$CMAKE_OPTIONS -DENABLE_OMNIVERSE_CONNECTOR=off"
+export CMAKE_OPTIONS="$CMAKE_OPTIONS -DENABLE_POINT_CLOUD_TFS=off"
+export CMAKE_OPTIONS="$CMAKE_OPTIONS -DENABLE_RF_PROP_TFS=off"
+# export CMAKE_OPTIONS="$CMAKE_OPTIONS -DENABLE_SYSTEM_TFS=off"
+
 export CMAKE_OPTIONS_NOCUDA="$CMAKE_OPTIONS $CMAKE_OPTIONS_NOCUDA_EXTRA"
 export CMAKE_OPTIONS_CUDA="$CMAKE_OPTIONS $CMAKE_OPTIONS_CUDA_EXTRA"
 export CMAKE_OPTIONS_CUDA_DBE="$CMAKE_OPTIONS $CMAKE_OPTIONS_CUDA_EXTRA $CMAKE_OPTIONS_DBE_EXTRA"
@@ -205,13 +227,13 @@ To build, run:
 
 To test, run:
 
-  mkdir -p tmp && bin/initdb -f tmp
+  mkdir -p tmp && bin/initheavy -f tmp
   make sanity_tests
 
 To valgrind, run:
 
   cd Tests
-  mkdir -p tmp && ../bin/initdb -f tmp
+  mkdir -p tmp && ../bin/initheavy -f tmp
   valgrind --suppressions=../../config/valgrind.suppressions --gen-suppressions=all \\
            --show-leak-kinds=definite --tool=memcheck \\
            --exit-on-first-error=yes --error-exitcode=777 \\
@@ -220,7 +242,7 @@ To valgrind, run:
 
 To test concurrency, run
 
-  mkdir -p chaos && bin/initdb -f chaos
+  mkdir -p chaos && bin/initheavy -f chaos
 
   export TSAN_OPTIONS=suppressions=\$SOURCE_DIR/config/tsan.suppressions
   bin/heavyai_server --data chaos
