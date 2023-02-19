@@ -16,7 +16,7 @@ dependencies:
   - blosc
   - boost-cpp
   - bzip2
-  - clangdev=11
+  - clangdev=14
   - cmake
   - double-conversion
   - flex
@@ -26,12 +26,13 @@ dependencies:
   # provides package github.com/dgrijalva/jwt-go: go.mod file not
   # found in current directory or any parent directory; see 'go help
   # modules'
-  - go-cgo<1.16
+  # - go-cgo<1.16
+  - go-cgo
   - fmt
   - folly
   - unixodbc
-  - llvmdev=11
-  - llvm=11
+  - llvmdev=14
+  - llvm=14
   - libarchive
   - libgdal>=2.3
   - libiconv
@@ -52,9 +53,9 @@ dependencies:
   # when using omniscidb-internal repo
   - openldap
   # - compilers  # this gives gcc 7.5
-  - gcc_impl_linux-64=9
-  - gcc_linux-64=9
-  - gxx_impl_linux-64=9
-  - gxx_linux-64=9
+  - gcc_impl_linux-64=11
+  - gcc_linux-64=11
+  - gxx_impl_linux-64=11
+  - gxx_linux-64=11
   # when cuda is enabled, install also
   - nvcc_linux-64=11.5

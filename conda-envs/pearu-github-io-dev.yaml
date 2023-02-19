@@ -1,0 +1,12 @@
+name: pearu-github-io-dev
+channels:
+  - conda-forge
+  - defaults
+dependencies:
+  - python>=3
+  - numba
+  - llvmlite>=0.29
+  - clangdev=11
+  - make
+  - rbc
+  - cxx-compiler

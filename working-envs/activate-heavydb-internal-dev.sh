@@ -34,7 +34,10 @@ then
     # wget https://raw.githubusercontent.com/Quansight/pearu-sandbox/master/set_cuda_env.sh
     # read set_cuda_env.sh reader
 
-    if [[ -f /usr/local/cuda-11.5.0/env.sh ]]
+    if [[ -f /usr/local/cuda-11.7.1/env.sh ]]
+    then
+        CUDA_VERSION=${CUDA_VERSION:-11.7.1}
+    elif [[ -f /usr/local/cuda-11.5.0/env.sh ]]
     then
         CUDA_VERSION=${CUDA_VERSION:-11.5.0}
     elif [[ -f /usr/local/cuda-11.0.3/env.sh ]]
@@ -72,7 +75,7 @@ then
         fi
     else
         echo "conda environment does not exist. To create $USE_ENV, run:"
-        echo "conda env create  --file=~/git/Quansight/pearu-sandbox/conda-envs/heavydb-dev.yaml -n $USE_ENV"
+        echo "mamba env create  --file=~/git/Quansight/pearu-sandbox/conda-envs/heavydb-dev.yaml -n $USE_ENV"
         exit 1
     fi
     export CXXFLAGS="$CXXFLAGS -I$CUDA_HOME/include"
@@ -120,7 +123,6 @@ export LDFLAGS="`echo $LDFLAGS | sed 's/-Wl,--as-needed//'`"
 #  ld -s /usr/local/bin/ld.mold ld
 # (make -j18 -> 12m5s/107m25; change heavydbTypes.h -> 1m48s/3m46s)
 export CMAKE_OPTIONS="$CMAKE_OPTIONS -DCMAKE_LINKER=/usr/local/bin/ld.mold"  # this might not be necessary!
-
 
 # export CXXFLAGS="$CXXFLAGS -include $HOME/git/Quansight/pearu-sandbox/cxx/toString.hpp"
 # export CXXFLAGS="$CXXFLAGS -include $HOME/git/Quansight/pearu-sandbox/cxx/toString_utils.hpp"
@@ -193,7 +195,7 @@ for instance, before sourcing this script.
 To enable different CUDA version, say 11.0, run
   conda install -c conda-forge -c nvcc_linux-64=11.0  [Is this required??]
   conda deactivate
-  export CUDA_VERSION=11.0.3  [currently CUDA_VERSION=${CUDA_VERSION}]
+  export CUDA_VERSION=11.7.1  [currently CUDA_VERSION=${CUDA_VERSION}]
   <source the activate-heavydb-internal-dev.sh script>
   <clean & re-build>
 
@@ -277,6 +279,10 @@ Use the following server options as needed (see \`bin/heavydb --help\` for detai
   --log-channels PTX,IR \\
   --log-severity-clog=WARNING \\
   --num-executors=4
+
+To try out sql commands, serve (see above) and run:
+
+  echo "select * from table (generate_series(1, 5));" | bin/heavysql -p HyperInteractive -u admin
 
 EndOfMessage
 
