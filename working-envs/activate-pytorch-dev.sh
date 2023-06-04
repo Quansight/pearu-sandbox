@@ -228,7 +228,7 @@ To clone pytorch from Quansight fork, run:
   git remote add upstream https://github.com/pytorch/pytorch.git
   git remote add Quansight git@github.com:Quansight/pytorch.git
   git fetch upstream
-  git rebase upstream/master
+  git rebase upstream/main
 
 EndOfMessage
 fi
@@ -312,7 +312,7 @@ Found $(command ghstack --version):
     ghstack
 
   Modify a not-the-last commit:
-    git rebase -i origin/master
+    git rebase -i origin/main
     <change 'pick' of the commit to 'edit'>
     <modify>
     git add <modified/created files>
@@ -321,9 +321,9 @@ Found $(command ghstack --version):
     <resolve any conflicts, git add, and re-run git rebase --continue>
     ghstack
 
-  Rebase with master:
+  Rebase with main:
     git fetch
-    git rebase origin/master
+    git rebase origin/main
     git submodule sync --recursive
     git submodule update -f --init --recursive
     ghstack

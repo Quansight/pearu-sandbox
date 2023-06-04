@@ -120,7 +120,7 @@ export LDFLAGS="`echo $LDFLAGS | sed 's/-Wl,--as-needed//'`"
 # Use mold linker via replacing compiler linker ($LD) with ld.mold
 # manually in <conda env>/x86_64-conda-linux-gnu/bin:
 #  mv ld ld.orig;
-#  ld -s /usr/local/bin/ld.mold ld
+#  ln -s /usr/local/bin/ld.mold ld
 # (make -j18 -> 12m5s/107m25; change heavydbTypes.h -> 1m48s/3m46s)
 export CMAKE_OPTIONS="$CMAKE_OPTIONS -DCMAKE_LINKER=/usr/local/bin/ld.mold"  # this might not be necessary!
 
@@ -131,6 +131,9 @@ export CXXFLAGS="$CXXFLAGS -DENABLE_TOSTRING_RAPIDJSON"
 export CXXFLAGS="$CXXFLAGS -DENABLE_TOSTRING_str"
 export CXXFLAGS="$CXXFLAGS -DENABLE_TOSTRING_to_string"
 # export CXXFLAGS="$CXXFLAGS -DENABLE_TOSTRING_PTHREAD"
+
+# resolve undefined reference to `llvm::DisableABIBreakingChecks'
+export CXXFLAGS="$CXXFLAGS -DLLVM_DISABLE_ABI_BREAKING_CHECKS_ENFORCING=1"
 
 export CONDA_BUILD_SYSROOT=$CONDA_PREFIX/$HOST/sysroot
 
@@ -155,9 +158,9 @@ export CMAKE_OPTIONS="$CMAKE_OPTIONS -DCMAKE_PREFIX_PATH=$CONDA_PREFIX"
 export CMAKE_OPTIONS="$CMAKE_OPTIONS -DCMAKE_INSTALL_PREFIX=$CONDA_PREFIX"
 export CMAKE_OPTIONS="$CMAKE_OPTIONS -DCMAKE_SYSROOT=$CONDA_BUILD_SYSROOT"
 export CMAKE_OPTIONS="$CMAKE_OPTIONS -DENABLE_TESTS=on"
-export CMAKE_OPTIONS="$CMAKE_OPTIONS -DENABLE_OMNIVERSE_CONNECTOR=off"
-export CMAKE_OPTIONS="$CMAKE_OPTIONS -DENABLE_POINT_CLOUD_TFS=off"
-export CMAKE_OPTIONS="$CMAKE_OPTIONS -DENABLE_RF_PROP_TFS=off"
+#export CMAKE_OPTIONS="$CMAKE_OPTIONS -DENABLE_OMNIVERSE_CONNECTOR=off"
+#export CMAKE_OPTIONS="$CMAKE_OPTIONS -DENABLE_POINT_CLOUD_TFS=off"
+#export CMAKE_OPTIONS="$CMAKE_OPTIONS -DENABLE_RF_PROP_TFS=off"
 # export CMAKE_OPTIONS="$CMAKE_OPTIONS -DENABLE_SYSTEM_TFS=off"
 
 export CMAKE_OPTIONS_NOCUDA="$CMAKE_OPTIONS $CMAKE_OPTIONS_NOCUDA_EXTRA"
