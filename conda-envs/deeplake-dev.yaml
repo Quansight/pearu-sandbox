@@ -1,0 +1,76 @@
+#
+# Author: Pearu Peterson
+# Created: June 2023
+#
+
+name: deeplake-dev
+channels:
+  - nvidia
+  - "nvidia/label/cuda-11.8.0"
+  - conda-forge
+  - pytorch
+  - bioconda
+  - defaults
+dependencies:
+  - python=3
+  # Test requirements
+  - black  
+  - pytest
+  - pytest-cases
+  - pytest-benchmark
+  - pytest-cov
+  - pytest-timeout
+  - mypy
+  - black
+  - darglint
+  - typing_extensions>=3.10.0.0
+  - types-requests
+  - types-click
+  - boto3-stubs[essential]
+  - lz4
+  - rich
+  - wandb
+  # Plugin requirements
+  - pytorch
+  - torchvision
+  - torchaudio
+  - pytorch-cuda=11.8
+  - cuda-toolkit=11.8
+  - cuda-nvml-dev=11.8
+  - cuda-libraries=11.8
+  - libnvjpeg>=11.9
+  - libnpp=11.8
+  # ray 2.3 seems to require python 3.8
+  # - ray-default==2.3.0
+  - datasets~=1.17
+  # mmcv requires py-opencv>=4.6
+  # - mmcv-full==1.7.1
+  - mmdet==2.28.1
+  - mmengine
+  - pandas
+  # Common requirements:
+  - numpy  
+  - pillow
+  - boto3
+  - click
+  - google-cloud-storage~=1.42.0
+  - google-auth~=2.0.1
+  - google-auth-oauthlib~=0.4.5
+  - google-api-python-client~=2.31.0
+  - oauth2client~=4.1.3
+  - pathos
+  - humbug>=0.3.1
+  - tqdm
+  - numcodecs
+  # av requires ffmpeg>=5.1.2
+  # - av>=8.1.0
+  - pydicom
+  - IPython
+  - flask
+  - pyjwt
+  - laspy
+  - nibabel
+  # https://github.com/conda-forge/aioboto3-feedstock provides 10.1.0 atm
+  # - aioboto3 >= 10.4.0
+  - nest-asyncio
+ 
