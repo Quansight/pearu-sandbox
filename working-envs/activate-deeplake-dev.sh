@@ -136,4 +136,8 @@ To enable CUDA version, say 10.2, run
   <source the activate-deeplake-dev.sh script>
   <clean & re-build>
 
-EndOfMessage
+Example python sessions:
+
+>>> import deeplake
+>>> ds = deeplake.load("hub://activeloop/mnist-train")
+>>> ds = deeplake.load('hub://activeloop/objectron_bike_train')
