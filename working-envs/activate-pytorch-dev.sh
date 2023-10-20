@@ -21,6 +21,10 @@ export NCORES=`echo "$CORES_PER_SOCKET * $NUMBER_OF_SOCKETS"| bc`
 export USE_XNNPACK=${USE_XNNPACK:1}
 export USE_MKLDNN=${USE_MKLDNN:-0}
 export USE_FBGEMM=${USE_FBGEMM:-0}
+# workaround FAILED: test_api/CMakeFiles/test_api.dir/dataloader.cpp.o ...c++ stl_algobase.h:431:30: error: argument 1 null where non-null expected [-Werror=nonnull]
+# see also gh-77646
+export BUILD_TEST=${BUILD_TEST:-0}
+export PYTHONWARNINGS=${PYTHONWARNINGS:ignore}
 
 # Disable KINETO as a workaround to libgomp.so.1: version `OACC_2.0' not found
 # See https://github.com/pytorch/pytorch/issues/51026
@@ -182,7 +186,9 @@ export CXXFLAGS="`echo $CXXFLAGS | sed 's/-std=c++17/-std=c++14/'`"
 export CXXFLAGS="$CXXFLAGS -L$CONDA_PREFIX/lib"
 # fixes FAILED: caffe2/torch/CMakeFiles/torch_python.dir/csrc/DataLoader.cpp.o ... error: expected ')' before 'PRId64'
 export CXXFLAGS="$CXXFLAGS -D__STDC_FORMAT_MACROS"
-
+# fixes FAILED: test_api/CMakeFiles/test_api.dir/dataloader.cpp.o ...c++ stl_algobase.h:431:30: error: argument 1 null where non-null expected [-Werror=nonnull]
+# see also gh-77646
+export CXXFLAGS="$CXXFLAGS -Wno-error=nonnull"
 export MAX_JOBS=$NCORES
 
 if [[ "$USE_ASAN" = "1" ]]

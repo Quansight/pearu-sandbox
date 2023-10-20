@@ -26,13 +26,22 @@ dependencies:
   - flake8
   - psutil
   - hypothesis
+  - expecttest
+  - ruff
+  - ufmt
+  # Fix `ssh -V` -> OpenSSL version mismatch. Built against 30000020, you have 30100030
+  - openssl=3.0
   # check out here
   # https://anaconda.org/conda-forge/nvcc_linux-64/files what is the
   # latest support cuda version in conda nvcc package:
-  - nvcc_linux-64=11.0
-  - magma-cuda110
-  - mypy=0.812
+  - nvcc_linux-64=11.8
+  - magma-cuda121
+  - mypy=1.4
   # provides clang-format
   - clang-tools
 # to use a different CUDA version, say 10.2, run
 #   conda install -c conda-forge -c pytorch nvcc_linux-64=10.2 magma-cuda102
+# to install triton, run
+#   pip install --extra-index-url https://download.pytorch.org/whl/nightly/cu121 pytorch-triton
+# extra pip packages:
+#   lintrunner ghstack
