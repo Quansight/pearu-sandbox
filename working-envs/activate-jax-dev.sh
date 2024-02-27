@@ -63,7 +63,7 @@ then
         # fixes FAILED: lib/libc10_cuda.so ... ld: cannot find -lcudart
         #export CXXFLAGS="$CXXFLAGS -L$CUDA_HOME/lib64"
         #export LDFLAGS="${LDFLAGS} -Wl,-rpath-link,${CUDA_HOME}/lib64 -L${CUDA_HOME}/lib64"
-        export JAX_BUILD_OPTIONS="${JAX_BUILD_OPTIONS} --enable_cuda --cuda_path ${CUDA_PATH}"
+        export JAX_BUILD_OPTIONS="${JAX_BUILD_OPTIONS} --enable_cuda --cuda_path ${CUDA_HOME}"
     fi
 
     #export NCCL_ROOT=${CUDA_HOME}
