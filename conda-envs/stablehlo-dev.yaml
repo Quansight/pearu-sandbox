@@ -1,0 +1,21 @@
+#
+# Author: Pearu Peterson
+# Created: February 2024
+#
+
+name: stablehlo-dev
+channels:
+  - conda-forge
+  - defaults
+dependencies:
+  - python=3
+  - numpy
+  - pybind11
+  - PyYAML
+  - dataclasses
+  - openssl=3.0
+  - compilers
+  - cmake
+  - ninja
+  - lld
+  - ccache

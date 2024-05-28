@@ -1,0 +1,21 @@
+name: scipy-dev
+channels:
+  - conda-forge
+  - defaults
+dependencies:
+  - python=3.7
+  - pytest
+  - compilers
+  - setuptools
+  - cython
+  - hypothesis
+  - flake8
+  - pybind11
+  - blas
+  - lapack
+  # for pythran:
+  - gast
+  - beniget
+  - six
+  - networkx
+  - ply

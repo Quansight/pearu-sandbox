@@ -1,0 +1,11 @@
+name: functional_algorithms-dev
+channels:
+  - conda-forge
+  - defaults
+dependencies:
+  - python>=3
+  - pytest
+  - pytest-xdist
+  - numpy
+  - flake8
+  - mpmath
