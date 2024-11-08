@@ -1,0 +1,10 @@
+name: markdown_api_docs-dev
+channels:
+  - conda-forge
+  - defaults
+dependencies:
+  - python>=3
+  - pytest
+  - pytest-xdist
+  - black
+  - flake8
