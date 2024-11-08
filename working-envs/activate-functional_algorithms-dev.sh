@@ -39,6 +39,19 @@ To test, run:
 
   pytest -sv -n $NCORES . -x -r s
 
+To release:
+- make sure that main branch is greem
+- https://github.com/pearu/functional_algorithms/releases
+  -> Draft a new release
+     -> Create new tag: vX.Y.Z
+     -> Title: Release X.Y
+     -> Generate release notes
+     -> Publish release
+- https://github.com/pearu/functional_algorithms/actions
+  -> check that package is succesfully uploaded to PyPi
+- https://github.com/conda-forge/functional_algorithms-feedstock
+  -> check that PR is auto-created and landed
+
 EndOfMessage
 
 }

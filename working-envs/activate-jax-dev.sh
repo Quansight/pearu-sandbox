@@ -39,7 +39,7 @@ then
     else
         # when using cuda version different from 10.1, say 10.2, then run
         #   conda install -c conda-forge nvcc_linux-64=10.2
-        CUDA_VERSION=${CUDA_VERSION:-12.1.0}
+        CUDA_VERSION=${CUDA_VERSION:-12.6.0}
         . /usr/local/cuda-${CUDA_VERSION}/env.sh
     fi
 
@@ -63,7 +63,7 @@ then
         # fixes FAILED: lib/libc10_cuda.so ... ld: cannot find -lcudart
         #export CXXFLAGS="$CXXFLAGS -L$CUDA_HOME/lib64"
         #export LDFLAGS="${LDFLAGS} -Wl,-rpath-link,${CUDA_HOME}/lib64 -L${CUDA_HOME}/lib64"
-        export JAX_BUILD_OPTIONS="${JAX_BUILD_OPTIONS} --enable_cuda --cuda_path ${CUDA_HOME}"
+        export JAX_BUILD_OPTIONS="${JAX_BUILD_OPTIONS} --enable_cuda --cuda_version ${CUDA_VERSION} --build_gpu_plugin"
     fi
 
     #export NCCL_ROOT=${CUDA_HOME}
@@ -148,7 +148,7 @@ To clean, run:
 To build, run:
   export PYTHONPATH=`pwd`  [optional]
   python build/build.py --bazel_options=--override_repository=xla=$(realpath ../xla) ${JAX_BUILD_OPTIONS}
-  pip install -e /home/pearu/git/pearu/jax/dist  [run once]
+  pip install -e dist/jax_gpu_pjrt dist/jaxlib dist/jax_gpu_plugin
 
 To test, run:
   pytest -n auto tests

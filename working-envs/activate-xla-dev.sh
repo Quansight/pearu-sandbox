@@ -39,7 +39,7 @@ then
     else
         # when using cuda version different from 10.1, say 10.2, then run
         #   conda install -c conda-forge nvcc_linux-64=10.2
-        CUDA_VERSION=${CUDA_VERSION:-12.1.0}
+        CUDA_VERSION=${CUDA_VERSION:-12.3.2}
         . /usr/local/cuda-${CUDA_VERSION}/env.sh
     fi
 
@@ -95,6 +95,11 @@ else
 
 fi
 
+# use clang
+export CC=`which clang`
+export CXX=`which clang++`
+export USE_BAZEL_VERSION=6.5.0
+
 # fixes mkl linking error:
 export CFLAGS="$CFLAGS -L$CONDA_PREFIX/lib"
 
@@ -135,14 +140,18 @@ fi
 
 cat << EndOfMessage
 
+Install bazel:
+  # download bazelisk from https://github.com/bazelbuild/bazelisk/releases
+  # move bazelisk-linux-amd64 to your PATH and apply chmod +x
+  export USE_BAZEL_VERSION=<desired version> (currently, $(bazel --version))
+  bazel --version
+
 To setup, run:
   git remote add upstream https://github.com/openxla/xla.git
 
 To update, run:
   git fetch upstream
   git rebase upstream/main
-
-  # you may need to update xla local copy as well
 
 To clean, run:
   git clean -xddf
@@ -154,7 +163,7 @@ To build, run:
   #pip install -e /home/pearu/git/pearu/jax/dist  [run once]
 
 To test, run:
-  ./configure.py --backend=CUDA
+  ./configure.py --backend=CUDA --cuda_compiler=CLANG
   bazel build --test_output=all --spawn_strategy=sandboxed //xla/tests:complex_unary_op_test
   bazel-out/k8-opt/bin/xla/tests/complex_unary_op_test_gpu
 
@@ -171,6 +180,10 @@ To enable CUDA version, say 10.2, run
   <clean & re-build>
 
 To prepare commits:
+
+  wget https://google.github.io/styleguide/pylintrc
+  ylint --rcfile pylintrc xla/client/lib/generate_math_impl.py
+
   #mypy --config=pyproject.toml --show-error-codes jax
   #ruff jax
   # make clang-tidy CHANGED_ONLY=--changed-only

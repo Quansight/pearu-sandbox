@@ -102,6 +102,10 @@ export LD_LIBRARY_PATH=$CONDA_PREFIX/lib:$LD_LIBRARY_PATH
 # fixes: CUDA backend failed to initialize: Unable to load cuPTI
 # export LD_LIBRARY_PATH=$CUDA_HOME/extras/CUPTI/lib64:$LD_LIBRARY_PATH
 
+
+# workaround https://github.com/llvm/llvm-project/issues/76515
+export CXXFLAGS="$CXXFLAGS -Wno-deprecated-declarations"
+
 # PyTorch uses C++14
 #export CXXFLAGS="`echo $CXXFLAGS | sed 's/-std=c++17/-std=c++14/'`"
 # fixes Linking CXX shared library lib/libtorch_cpu.so ... ld: cannot find -lmkl_intel_lp64
@@ -150,6 +154,7 @@ cat << EndOfMessage
 
 To setup, run:
   git remote add upstream https://github.com/openxla/stablehlo.git
+  cd stablehlo
   git clone https://github.com/llvm/llvm-project.git
 
 To update, run:
@@ -167,6 +172,12 @@ To build, run:
   mkdir -p build && cd build
   cmake .. \$STABLEHLO_CMAKE_OPTIONS
   cmake --build . -j $NCORES
+
+  ./build_tools/github_actions/ci_build_cmake.sh "`pwd`/llvm-build" "`pwd`/build"
+
+  # to workaround not found zlib.h:
+  bazel build --lockfile_mode=error //... --@llvm_zlib//:llvm_enable_zlib=false
+  bazel test //... --@llvm_zlib//:llvm_enable_zlib=false
 
 To test, run:
   ninja check-stablehlo-tests
@@ -190,9 +201,10 @@ To enable CUDA version, say 10.2, run
   <clean & re-build>
 
 To prepare commits:
-  yapf --style google stablehlo/tests/math/generate_tests.py -i
-  yapf --style google stablehlo/transforms/generate_ChloDecompositionPatternsMath.py -i
+  yapf --style='{based_on_style: google, indent_width: 2}' build_tools/math/generate_tests.py -i
+  yapf --style='{based_on_style: google, indent_width: 2}' build_tools/math/generate_ChloDecompositionPatternsMath.py -i
   clang-format --style Google -i /path/to/cpp-file
+  ./build_tools/github_actions/lint_whitespace_checks.sh -f
 
 See also:
   TBD

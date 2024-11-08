@@ -19,3 +19,4 @@ dependencies:
   - ninja
   - lld
   - ccache
+  - clangxx

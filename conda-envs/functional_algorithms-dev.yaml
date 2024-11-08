@@ -9,3 +9,4 @@ dependencies:
   - numpy
   - flake8
   - mpmath
+  - tqdm
