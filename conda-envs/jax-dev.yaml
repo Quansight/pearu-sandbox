@@ -1,0 +1,41 @@
+#
+# For usage, see https://github.com/Quansight/dev-notes/
+#
+# Author: Pearu Peterson
+# Created: December 2023
+#
+
+name: jax-cuda-dev
+channels:
+  - conda-forge
+  - defaults
+dependencies:
+  - python=3.10
+  - python-build
+  - numpy=1
+  - ninja
+  - setuptools
+  - cmake
+  - compilers
+  - clangxx=18
+  # Fix `ssh -V` -> OpenSSL version mismatch. Built against 30000020, you have 30100030
+  - openssl  # =3.0
+  # provides clang-format
+  - clang-tools
+  - mypy
+  - ruff
+  - opt_einsum
+  # for testing:
+  - absl-py
+  - cloudpickle
+  - colorama>=0.4.4
+  - flatbuffers
+  - hypothesis
+  - pillow>=9.1.0
+  - portpicker
+  - pytest-xdist
+  - wheel
+  - rich
+  - setuptools
+  - ml_dtypes
+  - scipy

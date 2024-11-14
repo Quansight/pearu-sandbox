@@ -96,7 +96,9 @@ else
 fi
 
 # fixes mkl linking error:
-export CFLAGS="$CFLAGS -L$CONDA_PREFIX/lib"
+export CFLAGS="$CFLAGS -L$CONDA_PREFIX/lib -std=c++23"
+# fixes error: defining a type within 'offsetof' is a C23 extension
+export CFLAGS="$CFLAGS -std=c23"
 
 export CONDA_BUILD_SYSROOT=$CONDA_PREFIX/$HOST/sysroot
 export LD_LIBRARY_PATH=$CONDA_PREFIX/lib:$LD_LIBRARY_PATH
