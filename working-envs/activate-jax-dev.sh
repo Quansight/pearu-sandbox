@@ -10,10 +10,16 @@
 #
 # Author: Pearu Peterson
 # Created: December 2023
+# -Wgnu-offsetof-extensions
 
-CORES_PER_SOCKET=`lscpu | grep 'Core(s) per socket' | awk '{print $NF}'`
-NUMBER_OF_SOCKETS=`lscpu | grep 'Socket(s)' | awk '{print $NF}'`
-export NCORES=`echo "$CORES_PER_SOCKET * $NUMBER_OF_SOCKETS"| bc`
+if [[ -x "$(command -v lscpu)" ]]
+then
+  CORES_PER_SOCKET=`lscpu | grep 'Core(s) per socket' | awk '{print $NF}'`
+  NUMBER_OF_SOCKETS=`lscpu | grep 'Socket(s)' | awk '{print $NF}'`
+  export NCORES=`echo "$CORES_PER_SOCKET * $NUMBER_OF_SOCKETS"| bc`
+else
+  export NCORES=8
+fi
 
 export PYTHONWARNINGS=${PYTHONWARNINGS:ignore}
 
@@ -98,7 +104,7 @@ fi
 # fixes mkl linking error:
 export CFLAGS="$CFLAGS -L$CONDA_PREFIX/lib -std=c++23"
 # fixes error: defining a type within 'offsetof' is a C23 extension
-export CFLAGS="$CFLAGS -std=c23"
+export CFLAGS="$CFLAGS -std=c23 -Wno-gnu-offsetof-extensions"
 
 export CONDA_BUILD_SYSROOT=$CONDA_PREFIX/$HOST/sysroot
 export LD_LIBRARY_PATH=$CONDA_PREFIX/lib:$LD_LIBRARY_PATH

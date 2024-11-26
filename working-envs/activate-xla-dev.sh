@@ -11,10 +11,14 @@
 # Author: Pearu Peterson
 # Created: December 2023
 
-CORES_PER_SOCKET=`lscpu | grep 'Core(s) per socket' | awk '{print $NF}'`
-NUMBER_OF_SOCKETS=`lscpu | grep 'Socket(s)' | awk '{print $NF}'`
-export NCORES=`echo "$CORES_PER_SOCKET * $NUMBER_OF_SOCKETS"| bc`
-
+if [[ -x "$(command -v lscpu)" ]]
+then
+    CORES_PER_SOCKET=`lscpu | grep 'Core(s) per socket' | awk '{print $NF}'`
+    NUMBER_OF_SOCKETS=`lscpu | grep 'Socket(s)' | awk '{print $NF}'`
+    export NCORES=`echo "$CORES_PER_SOCKET * $NUMBER_OF_SOCKETS"| bc`
+else
+    export NCORES=8
+fi
 export PYTHONWARNINGS=${PYTHONWARNINGS:ignore}
 
 CONDA_ENV_LIST=$(conda env list | awk '{print $1}' )

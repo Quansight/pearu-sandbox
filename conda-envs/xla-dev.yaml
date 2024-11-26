@@ -2,40 +2,26 @@
 # For usage, see https://github.com/Quansight/dev-notes/
 #
 # Author: Pearu Peterson
-# Created: December 2023
+# Created: January 2024
 #
 
-name: jax-dev
+name: xla-cuda-dev
 channels:
   - conda-forge
   - defaults
 dependencies:
-  - python=3.12
+  - bazel=6.1.2
+  - python=3
   - python-build
-  - numpy=2
-  - ninja
-  - setuptools
+  - numpy
   - cmake
   # - compilers
   - clangxx=18
   # Fix `ssh -V` -> OpenSSL version mismatch. Built against 30000020, you have 30100030
   - openssl  # =3.0
+  # check out here
+  # https://anaconda.org/conda-forge/nvcc_linux-64/files what is the
+  # latest support cuda version in conda nvcc package:
+  # - nvcc_linux-64=11.8
   # provides clang-format
   - clang-tools
-  - mypy
-  - ruff
-  - opt_einsum
-  # for testing:
-  - absl-py
-  - cloudpickle
-  - colorama>=0.4.4
-  - flatbuffers
-  - hypothesis
-  - pillow>=9.1.0
-  - portpicker
-  - pytest-xdist
-  - wheel
-  - rich
-  - setuptools
-  - ml_dtypes
-  - scipy
