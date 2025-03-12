@@ -64,14 +64,14 @@ then
 
     # Don't set *FLAGS before activating the conda environment.
 
-    #if [[ "$USE_CUDA" = "1" ]]
-    #then
+    if [[ "$USE_CUDA" = "1" ]]
+    then
         # fixes FAILED: lib/libc10_cuda.so ... ld: cannot find -lcudart
         #export CXXFLAGS="$CXXFLAGS -L$CUDA_HOME/lib64"
         #export LDFLAGS="${LDFLAGS} -Wl,-rpath-link,${CUDA_HOME}/lib64 -L${CUDA_HOME}/lib64"
         # This is not supported anymore, TODO: how to specify cuda version?:
-        # export JAX_BUILD_OPTIONS="${JAX_BUILD_OPTIONS} --enable_cuda --cuda_version ${CUDA_VERSION} --build_gpu_plugin"
-    #fi
+        export JAX_BUILD_OPTIONS="${JAX_BUILD_OPTIONS} --wheels=jaxlib,jax-cuda-plugin,jax-cuda-pjrt"
+    fi
 
     #export NCCL_ROOT=${CUDA_HOME}
     #export PKG_CONFIG_PATH=$PKG_CONFIG_PATH:${CUDA_HOME}/pkgconfig/
@@ -157,7 +157,7 @@ To clean, run:
 To build, run:
   export PYTHONPATH=`pwd`  [optional]
   python build/build.py build --bazel_options=--override_repository=xla=$(realpath ../xla) ${JAX_BUILD_OPTIONS}
-  pip install -e dist/jax_gpu_pjrt dist/jaxlib dist/jax_gpu_plugin
+  pip install -e dist/jax-cuda-pjrt dist/jax-cuda-plugin dist/jaxlib
 
 To test, run:
   pytest -n auto tests
