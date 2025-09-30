@@ -73,6 +73,9 @@ then
         export JAX_BUILD_OPTIONS="${JAX_BUILD_OPTIONS} --wheels=jaxlib,jax-cuda-plugin,jax-cuda-pjrt"
     fi
 
+    # resolves build_gpu_kernels_wheel.py: error: the following arguments are required: --nvidia_wheel_versions_data
+    export JAX_BUILD_OPTIONS="${JAX_BUILD_OPTIONS} --use_new_wheel_build_rule"
+
     #export NCCL_ROOT=${CUDA_HOME}
     #export PKG_CONFIG_PATH=$PKG_CONFIG_PATH:${CUDA_HOME}/pkgconfig/
 

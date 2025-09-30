@@ -26,6 +26,10 @@ export USE_FBGEMM=${USE_FBGEMM:-0}
 export BUILD_TEST=${BUILD_TEST:-0}
 export PYTHONWARNINGS=${PYTHONWARNINGS:ignore}
 
+export TORCHCODEC_CMAKE_BUILD_DIR="${PWD}/build"
+
+export USE_KENLM=0
+
 # Disable KINETO as a workaround to libgomp.so.1: version `OACC_2.0' not found
 # See https://github.com/pytorch/pytorch/issues/51026
 export USE_KINETO=${USE_KINETO:-1}
@@ -42,7 +46,7 @@ if [[ -x "$(command -v nvidia-smi)" ]]
 then
     # wget https://raw.githubusercontent.com/Quansight/pearu-sandbox/master/set_cuda_env.sh
     # read set_cuda_env.sh reader
-    USE_ENV=${USE_ENV:-pytorch${Python-}-cuda-dev}
+    USE_ENV=${USE_ENV:-pytorch${Python-}-audio-cuda-dev}
 
     if [[ "$CONDA_DEFAULT_ENV" = "$USE_ENV" ]]
     then
@@ -59,6 +63,7 @@ then
         #   conda install -c conda-forge nvcc_linux-64=10.2 magma-cuda102
         CUDA_VERSION=${CUDA_VERSION:-12.6.1}
         . /usr/local/cuda-${CUDA_VERSION}/env.sh
+        export ENABLE_CUDA=1
     fi
 
     if [[ $CONDA_ENV_LIST = *"$USE_ENV"* ]]
@@ -70,7 +75,7 @@ then
         fi
     else
         echo "conda environment does not exist. To create $USE_ENV, run:"
-        echo "conda env create --file=~/git/Quansight/pearu-sandbox/conda-envs/pytorch-cuda-dev.yaml -n $USE_ENV"
+        echo "mamba env create --file=~/git/Quansight/pearu-sandbox/conda-envs/pytorch-audio-cuda-dev.yaml -n $USE_ENV"
         exit 1
     fi
 
@@ -149,7 +154,7 @@ EOF
 else
     # wget https://raw.githubusercontent.com/Quansight/pearu-sandbox/master/conda-envs/pytorch-dev.yaml
     # conda env create  --file=pytorch-dev.yaml -n pytorch-dev
-    USE_ENV=${USE_ENV:-pytorch${Python-}-dev}
+    USE_ENV=${USE_ENV:-pytorch${Python-}-audio-dev}
 
     if [[ $CONDA_ENV_LIST = *"$USE_ENV"* ]]
     then
@@ -165,7 +170,7 @@ else
         fi
     else
         echo "conda environment does not exist. To create $USE_ENV, run:"
-        echo "conda env create --file=~/git/Quansight/pearu-sandbox/conda-envs/pytorch-dev.yaml -n $USE_ENV"
+        echo "mamba env create --file=~/git/Quansight/pearu-sandbox/conda-envs/pytorch-audio-dev.yaml -n $USE_ENV"
         exit 1
     fi
     # Don't set *FLAGS before activating the conda environment.
@@ -189,6 +194,7 @@ export CXXFLAGS="$CXXFLAGS -D__STDC_FORMAT_MACROS"
 # fixes FAILED: test_api/CMakeFiles/test_api.dir/dataloader.cpp.o ...c++ stl_algobase.h:431:30: error: argument 1 null where non-null expected [-Werror=nonnull]
 # see also gh-77646
 export CXXFLAGS="$CXXFLAGS -Wno-error=nonnull"
+export CXXFLAGS="$CXXFLAGS -Wno-error=deprecated-declarations"
 export MAX_JOBS=$NCORES
 
 if [[ "$USE_ASAN" = "1" ]]
@@ -227,7 +233,7 @@ else
     cat << EndOfMessage
 Not inside a git repository.
 
-To clone pytorch from Quansight fork, run:
+To clone pytorch from Quansight fork, run [OBSOLETE]:
 
   git clone git@github.com:Quansight/pytorch.git
   cd pytorch

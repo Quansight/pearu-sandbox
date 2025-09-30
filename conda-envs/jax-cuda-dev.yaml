@@ -10,7 +10,7 @@ channels:
   - conda-forge
   - defaults
 dependencies:
-  - python=3
+  - python=3.13
   - python-build
   - numpy
   - ninja
@@ -18,15 +18,16 @@ dependencies:
   - cmake
   - compilers
   # Fix `ssh -V` -> OpenSSL version mismatch. Built against 30000020, you have 30100030
-  - openssl=3.0
+  - openssl  # =3.0
   # check out here
   # https://anaconda.org/conda-forge/nvcc_linux-64/files what is the
   # latest support cuda version in conda nvcc package:
   - nvcc_linux-64=11.8
   # provides clang-format
   - clang-tools
-  - mypy
-  - ruff
+  - clangxx=18
+  # - mypy
+  # - ruff
   - opt_einsum
   # for testing:
   - absl-py
@@ -40,5 +41,5 @@ dependencies:
   - wheel
   - rich
   - setuptools
-  - ml_dtypes
+  # - ml_dtypes
   - scipy

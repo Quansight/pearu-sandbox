@@ -5,7 +5,7 @@
 # Created: October 2019
 #
 
-name: pytorch-cuda-dev
+name: pytorch-audio-cuda-dev
 channels:
   - conda-forge
   - pytorch
@@ -29,17 +29,22 @@ dependencies:
   - expecttest
   - ruff
   - ufmt
+  - six
+  - parameterized
+  - pybind11
+  - pkg-config
   # Fix `ssh -V` -> OpenSSL version mismatch. Built against 30000020, you have 30100030
   - openssl  # =3.0
   # check out here
   # https://anaconda.org/conda-forge/nvcc_linux-64/files what is the
   # latest support cuda version in conda nvcc package:
   - nvcc_linux-64=11.8
-  - magma-cuda121
+  - magma-cuda126
   - mypy  #=1.4
   # provides clang-format
   - clang-tools
   - clangxx=16
+  - gcc<=13
 # to use a different CUDA version, say 10.2, run
 #   conda install -c conda-forge -c pytorch nvcc_linux-64=10.2 magma-cuda102
 # to install triton, run
