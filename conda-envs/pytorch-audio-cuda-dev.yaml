@@ -44,10 +44,10 @@ dependencies:
   # provides clang-format
   - clang-tools
   - clangxx=16
-  - gcc<=13
+  - gcc=14
 # to use a different CUDA version, say 10.2, run
 #   conda install -c conda-forge -c pytorch nvcc_linux-64=10.2 magma-cuda102
 # to install triton, run
-#   pip install --extra-index-url https://download.pytorch.org/whl/nightly/cu121 pytorch-triton
+#   pip install --extra-index-url https://download.pytorch.org/whl/nightly/cu130 pytorch-triton
 # extra pip packages:
 #   lintrunner ghstack

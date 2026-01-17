@@ -26,9 +26,11 @@ export USE_FBGEMM=${USE_FBGEMM:-0}
 export BUILD_TEST=${BUILD_TEST:-0}
 export PYTHONWARNINGS=${PYTHONWARNINGS:ignore}
 
+export USE_DISTRIBUTED=${USE_DISTRIBUTED:-0}
+export USE_XPU=${USE_XPU:-0}
 # Disable KINETO as a workaround to libgomp.so.1: version `OACC_2.0' not found
 # See https://github.com/pytorch/pytorch/issues/51026
-export USE_KINETO=${USE_KINETO:-1}
+export USE_KINETO=${USE_KINETO:-0}
 
 CONDA_ENV_LIST=$(conda env list | awk '{print $1}' )
 
@@ -42,7 +44,7 @@ if [[ -x "$(command -v nvidia-smi)" ]]
 then
     # wget https://raw.githubusercontent.com/Quansight/pearu-sandbox/master/set_cuda_env.sh
     # read set_cuda_env.sh reader
-    USE_ENV=${USE_ENV:-pytorch${Python-}-cuda-dev}
+    USE_ENV=${USE_ENV:-pytorch${Python-}-cuda-gcc14-dev}
 
     if [[ "$CONDA_DEFAULT_ENV" = "$USE_ENV" ]]
     then
@@ -57,7 +59,7 @@ then
     else
         # when using cuda version different from 10.1, say 10.2, then run
         #   conda install -c conda-forge nvcc_linux-64=10.2 magma-cuda102
-        CUDA_VERSION=${CUDA_VERSION:-12.6.1}
+        CUDA_VERSION=${CUDA_VERSION:-13.0.2}
         . /usr/local/cuda-${CUDA_VERSION}/env.sh
     fi
 
@@ -165,7 +167,7 @@ else
         fi
     else
         echo "conda environment does not exist. To create $USE_ENV, run:"
-        echo "conda env create --file=~/git/Quansight/pearu-sandbox/conda-envs/pytorch-dev.yaml -n $USE_ENV"
+        echo "mamba env create --file=~/git/Quansight/pearu-sandbox/conda-envs/pytorch-dev.yaml -n $USE_ENV"
         exit 1
     fi
     # Don't set *FLAGS before activating the conda environment.
@@ -258,7 +260,10 @@ To clean, run:
 
 To build, run:
   export PYTHONPATH=`pwd`  [optional for some pytorch versions]
-  python setup.py develop
+  python setup.py develop  [deprecated]
+
+    USE_CUDA=0 BUILD_TEST=1 \
+  python -m pip install -v -e . --no-build-isolation
 
 To test, run:
   pytest -sv test/test_torch.py -k ...
@@ -343,9 +348,7 @@ else
     cat << EndOfMessage
 ghstack not found
 To install ghstack, run:
-  conda install -c conda-forge ghstack
-  conda deactivate
-  <source the activate-pytorch-dev.sh script>
+  pip install ghstack
 EndOfMessage
 fi
 

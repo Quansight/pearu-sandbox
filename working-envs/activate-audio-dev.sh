@@ -32,7 +32,7 @@ export USE_KENLM=0
 
 # Disable KINETO as a workaround to libgomp.so.1: version `OACC_2.0' not found
 # See https://github.com/pytorch/pytorch/issues/51026
-export USE_KINETO=${USE_KINETO:-1}
+export USE_KINETO=${USE_KINETO:-0}
 
 CONDA_ENV_LIST=$(conda env list | awk '{print $1}' )
 

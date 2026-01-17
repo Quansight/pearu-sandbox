@@ -160,7 +160,7 @@ To clean, run:
 To build, run:
   export PYTHONPATH=`pwd`  [optional]
   python build/build.py build --bazel_options=--override_repository=xla=$(realpath ../xla) ${JAX_BUILD_OPTIONS}
-  pip install -e dist/jax-cuda-pjrt dist/jax-cuda-plugin dist/jaxlib
+  pip install -e . dist/jax_cuda12_pjrt dist/jax_cuda12_plugin dist/jaxlib
 
 To test, run:
   pytest -n auto tests
