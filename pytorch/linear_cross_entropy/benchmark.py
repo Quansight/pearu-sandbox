@@ -1,4 +1,4 @@
-from copy import copy
+from copy import copy, deepcopy
 from itertools import product
 from pathlib import Path
 import time
@@ -10,7 +10,7 @@ from torch import nn
 
 
 import efficient_cross_entropy_modules
-
+import modules
 
 class FusedProjectionPlusCrossEntropyLoss(nn.Module):
     # Wraps the class from https://github.com/mgmalek/efficient_cross_entropy/blob/main/modules.py
@@ -52,14 +52,15 @@ class PyTorchProjectionPlusCrossEntropyLoss(nn.Module):
         logits = self.proj(x)
         return self.loss(logits, targ)
 
+
 config_defaults = dict(num_classes=[32768, 8192][1], num_tokens=8192, in_features=2048)
 
-def configs():
+def configs(default_force=False):
     params = dict(
         dtype = [torch.float32],
-        token_dtype = [torch.long, torch.float32][1:],
+        token_dtype = [torch.long, torch.float32][:1],
         device = ["cuda", "cpu"][:1],
-        in_features = [1024, 2048, 4096, 8192],
+        in_features = [1024, 2048, 4096, 8192, 16384],
         num_classes = [2048, 4096, 8192, 16384, 32768, 65536],
         num_tokens = [1024, 2048, 4096, 8192, 16384],
         bias = [False],
@@ -67,8 +68,9 @@ def configs():
         ignore_index = [-100],
         label_smoothing = [0.0],
         module_extra_kwargs = [
-            (PyTorchProjectionPlusCrossEntropyLoss, {}),
-            (nn.LinearCrossEntropyLoss, {}),
+            (modules.MyLinearCrossEntropyLoss, dict()),
+            (nn.LinearCrossEntropyLoss, dict()),
+            (PyTorchProjectionPlusCrossEntropyLoss, dict()),
             (FusedProjectionPlusCrossEntropyLoss, dict(n_loop_iters=1)),
             (FusedProjectionPlusCrossEntropyLoss, dict(n_loop_iters=2)),
             (FusedProjectionPlusCrossEntropyLoss, dict(n_loop_iters=4)),
@@ -85,8 +87,9 @@ def configs():
                 config[name] = values[i]
             key = [k for k, v in config.items() if isinstance(v, list)][0]
             for value in config[key]:
-                kwargs = copy(config)
+                kwargs = deepcopy(config)
                 cls, extra_kwargs = kwargs.pop("module_extra_kwargs")
+                force = extra_kwargs.pop("force", default_force)
                 num_tokens = kwargs.pop("num_tokens")
                 token_dtype = kwargs.pop("token_dtype")
                 if key == "num_tokens":
@@ -97,10 +100,10 @@ def configs():
                     kwargs[key] = value
                 label = ' '.join([f'{k}={v}' for k, v in extra_kwargs.items()])
                 label = f"{cls.__name__}[{label}]" if label else cls.__name__
-                if issubclass(cls, FusedProjectionPlusCrossEntropyLoss) and token_dtype != torch.int64:
+                if (issubclass(cls, FusedProjectionPlusCrossEntropyLoss)
+                    or issubclass(cls, modules.MyLinearCrossEntropyLoss)) and token_dtype != torch.int64:
                     continue
-                yield label, cls, kwargs, extra_kwargs, num_tokens, token_dtype
-
+                yield label, cls, kwargs, extra_kwargs, num_tokens, token_dtype, force
 
 def measure(queue, cls, args, kwargs, num_tokens, token_dtype):
 
@@ -118,7 +121,7 @@ def measure(queue, cls, args, kwargs, num_tokens, token_dtype):
 
     in_features, num_classes = args
 
-    message = ''
+    message = []
     try:
         features = torch.randn((num_tokens, in_features), device=device, dtype=kwargs["dtype"], requires_grad=True)
         if token_dtype.is_floating_point:
@@ -127,14 +130,14 @@ def measure(queue, cls, args, kwargs, num_tokens, token_dtype):
             tokens = torch.randint(0, num_classes, (num_tokens,), device=device, dtype=token_dtype)
 
         module = cls(*args, **kwargs)
+        ref_module = cls(*args, **kwargs)
         loss = module(features, tokens).mean()
         _ = loss.backward()
         loss = loss.detach().item()
     except torch.OutOfMemoryError as msg:
-        message = str(msg)
+        message.append("OOM")
         loss = None
-        print(f'{message=}')
-        
+
     if device.type == "cuda":
         final_peak_mem_bytes = torch.cuda.max_memory_allocated(device=device)
     elif device.type == "cpu":
@@ -143,13 +146,14 @@ def measure(queue, cls, args, kwargs, num_tokens, token_dtype):
         assert 0, device.type
 
     cpu_final_peak_mem_bytes = resource.getrusage(resource.RUSAGE_SELF).ru_maxrss * 1e3
+    
     repeat = 10
     
     if device.type == "cuda":
         start = torch.cuda.Event(enable_timing=True)
         end = torch.cuda.Event(enable_timing=True)
         start.record()
-        if not message:
+        if "OOM" not in message:
             lst = []  # avoid gc until cuda sync is done
             for _ in range(repeat):
                 try:
@@ -163,13 +167,63 @@ def measure(queue, cls, args, kwargs, num_tokens, token_dtype):
         time_ms = start.elapsed_time(end) / repeat   
     elif device.type == "cpu":
         start = time.process_time()
-        if not message:
+        if "OOM" not in message:
             for _ in range(repeat):
                 _ = module(features, tokens).mean().backward()
         end = time.process_time()
         time_ms = (end - start) * 1e3 / repeat
     else:
         assert 0, device.type
+
+    if loss is not None:
+        # gradcheck sanity check
+        in_features, num_tokens, num_classes = (2, 64, 64)
+        args = (in_features, num_classes)
+        features = torch.randn((num_tokens, in_features), device=device, dtype=torch.float64, requires_grad=True)
+        if token_dtype.is_floating_point:
+            tokens = torch.randn((num_tokens, num_classes), device=device, dtype=torch.float64).softmax(dim=1)
+        else:
+            tokens = torch.randint(0, num_classes, (num_tokens,), device=device, dtype=token_dtype)
+        module = cls(*args, **kwargs).to(torch.float64)
+        try:
+            torch.autograd.gradcheck(module, (features, tokens))
+        except RuntimeError as msg:
+            print(f'gradcheck failed: {msg}')
+            message.append("GRADCHECKFAILED")
+
+    if cls is not nn.LinearCrossEntropyLoss:
+        # sanity check against reference
+        in_features, num_tokens, num_classes = (2, 64, 64)
+        args = (in_features, num_classes)
+        features = torch.randn((num_tokens, in_features), device=device, dtype=torch.float64, requires_grad=True)
+        if token_dtype.is_floating_point:
+            tokens = torch.randn((num_tokens, num_classes), device=device, dtype=torch.float64).softmax(dim=1)
+        else:
+            tokens = torch.randint(0, num_classes, (num_tokens,), device=device, dtype=token_dtype)
+
+        torch.manual_seed(678)
+        module = cls(*args, **kwargs).to(torch.float64)
+        torch.manual_seed(678)
+        kwargs = deepcopy(kwargs)
+        kwargs.pop('n_loop_iters', None)
+        ref_module = nn.LinearCrossEntropyLoss(*args, **kwargs).to(torch.float64)
+
+        l = module(features, tokens).sum()
+        l.backward()
+        ref_features = features.detach().requires_grad_(True)
+        ref_l = ref_module(ref_features, tokens).sum()
+        ref_l.backward()
+        l_err = abs(ref_l - l)
+        atol, rtol = 1e-12, 1e-9
+        if not (l_err <= atol):
+            message.append(f"LOSSABSERROR[{l_err}>{atol}]")
+        g_err = (abs(features.grad - ref_features.grad)).max()
+        if not (g_err <= atol):
+            message.append(f"GRADABSERROR[{g_err}>{atol}]")
+
+    message="-".join(message)
+    if message:
+        print(message)
 
     queue.put(dict(
         message=message,
@@ -252,14 +306,23 @@ def save_measurements(path, data):
             writer.writerow(dict([(k, serialize(k, v)) for k, v in row.items()]))
 
 
-def filter_measurements(data, match):
+def filter_measurements(data, match, with_indices=False):
     result = []
-    for row in data:
+    indices = []
+    for i, row in enumerate(data):
         for k, v in match.items():
-            if row.get(k) != v:
-                break
+            r = row.get(k)
+            if isinstance(v, (list, set, tuple)) and type(r) != type(v):
+                if r not in v:
+                    break
+            else:
+                if r != v:
+                    break
         else:
             result.append(row)
+            indices.append(i)
+    if with_indices:
+        return result, indices
     return result
 
 
@@ -274,7 +337,7 @@ def select_measurements(data, match):
     return result
 
 
-def compute(data):
+def compute(data, force=False):
     if torch.cuda.is_available():
         p = torch.cuda.get_device_properties()
         gpu_name = f"{p.name}-CC{p.major}.{p.minor}-{p.total_memory // 2**20}MB"
@@ -284,14 +347,15 @@ def compute(data):
     cpu_name = p[p.index("model name"):].split("\n", 1)[0].split(":")[1].strip()
     print(f'{gpu_name=} {cpu_name=}')
     try:
-        for label, cls, kwargs, extra_kwargs, num_tokens, token_dtype in configs():
+        for label, cls, kwargs, extra_kwargs, num_tokens, token_dtype, force in configs(default_force=force):
             device_name = dict(cpu=cpu_name, cuda=gpu_name)[kwargs["device"]]
             match_dct = dict(device_name=device_name, label=label, num_tokens=num_tokens, token_dtype=token_dtype, **kwargs)
-            row = filter_measurements(data, match_dct)
+            row, indices = filter_measurements(data, match_dct, with_indices=True)
             if row:
-                assert len(row) == 1
-                continue
-
+                if not force:
+                    continue
+                for i in reversed(indices):
+                    del data[i]
             args = (kwargs.pop("in_features"), kwargs.pop("num_classes"))
             kwargs = dict(kwargs, **extra_kwargs)
 
@@ -333,7 +397,8 @@ def get_series(data, field, ignore=['device_name', 'device']):
     for p in product(*[tuple((k, v) for v in s) for k, s in field_values.items()]):
         m = filter_measurements(data, dict(p))
         if len(m) > 1:
-            x, m = list(zip(*sorted([[row[field], row] for row in m])))
+            x, i = list(zip(*sorted([[row[field], i] for i, row in enumerate(m)])))
+            m = [m[i_] for i_ in i]
             x = list(x)
             values = dict()
             params = dict()
@@ -420,7 +485,7 @@ def plot(data, plot_params):
         xfields = ["in_features", "num_classes", "num_tokens"]
         xfields = list(config_defaults)
         xfields_complementary = dict((k, dict((k1, config_defaults[k1]) for k1 in xfields if k1 != k)) for k in xfields)
-        yfields = [dict(cuda="cuda_mem_gb", cpu="cpu_mem_gb")[device], "time_ms"]
+        yfields = [dict(cuda="cuda_mem_gb", cpu="cpu_mem_gb")[device], "time_ms", "loss"]
 
         all_series = []
         common_params = dict()
@@ -474,6 +539,7 @@ def plot(data, plot_params):
         fig.suptitle(f'{device_name}\n{suptitle}')
         plt.tight_layout()
         plt.savefig(path)
+        print(f'created {path}')
         plt.close()
 
     return paths
@@ -481,11 +547,26 @@ def plot(data, plot_params):
 def main():
     measurements_path = Path('measurements.csv')
     data = load_measurements(measurements_path)
+    if 0:
+        data = compute(data, force=not True)
+        if 1:
+            save_measurements(measurements_path, data)
+
     if 1:
-        data = compute(data)
-        save_measurements(measurements_path, data)
-    plot(data, dict(reduction="mean", token_dtype=torch.float32))
-    plot(data, dict(reduction="mean", token_dtype=torch.int64))
+        data = filter_measurements(data, dict(label=["MyLinearCrossEntropyLoss",
+                                                     "LinearCrossEntropyLoss",
+                                                     "FusedProjectionPlusCrossEntropyLoss[n_loop_iters=1]",
+                                                     "FusedProjectionPlusCrossEntropyLoss[n_loop_iters=2]",
+                                                     "FusedProjectionPlusCrossEntropyLoss[n_loop_iters=4]",
+                                                     "FusedProjectionPlusCrossEntropyLoss[n_loop_iters=8]",
+                                                     # "PyTorchProjectionPlusCrossEntropyLoss",
+                                                     ]))
+    if 0:
+        plot(data, dict(reduction="mean", token_dtype=torch.float32))
+    if 1:
+        plot(data, dict(reduction="mean", token_dtype=torch.int64))
+    if 1:
+        plot(data, dict(reduction="sum", token_dtype=torch.int64))
 
 
 if __name__ == "__main__":
