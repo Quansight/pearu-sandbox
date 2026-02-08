@@ -1156,6 +1156,7 @@ class MyLinearCrossEntropyLoss(LinearCrossEntropyLossBase):
                     params["chunks_classes"] = max(1, self.projection.shape[0] // size)
             if "grad_in_forward" not in params and params.get("grad_inplace", False):
                 params["grad_in_forward"] = True
+        print(f'{params=}')
         return MyLinearCrossEntropyFunction.apply(
             x, self.projection, targ, self.weight, self.reduction, params
         )
@@ -1354,9 +1355,9 @@ if __name__ == "__main__":
     ]:
         test_function(cls)
 
-    for cls, ref_cls, dtype in [
-        (MyLinearCrossEntropyLoss, nn.LinearCrossEntropyLoss, torch.float64),
-        (VoLinearCrossEntropyLoss, nn.LinearCrossEntropyLoss, torch.float32),
-        (LiLinearCrossEntropyLoss, nn.LinearCrossEntropyLoss, torch.float32),
+    for cls, ref_cls, dtype, device in [
+        (MyLinearCrossEntropyLoss, nn.LinearCrossEntropyLoss, torch.float64, 'cpu'),
+        (VoLinearCrossEntropyLoss, nn.LinearCrossEntropyLoss, torch.float32, 'cuda'),
+        (LiLinearCrossEntropyLoss, nn.LinearCrossEntropyLoss, torch.float32, 'cuda'),
     ]:
-        test_module(cls, ref_cls, dtype=dtype)
+        test_module(cls, ref_cls, device=device, dtype=dtype)
