@@ -533,11 +533,202 @@ def _validate_params(params):
             "chunk_size_features",
             "chunk_size_classes",
             "chunk_size",
+            "max_numel",
+            "max_memory_gb",
         ]:
             print(f"Warning: unknown parameter {k}")
 
 
+def chunk_length(size: int, chunks: int, mod: int = None):
+    length = max(1, (size + chunks - 1) // chunks)
+    if mod is not None:
+        # length == mod * k + rem, abs(rem) < mod / 2
+        k = (length // mod + 1) if length % mod >= mod // 2 else max(length // mod, 1)
+        length = mod * k
+    return min(length, size)
+
+
+def chunk_iter(
+    size: int, chunks: int, mod: int = None, merge_last_if_small: bool = False
+):
+    """Defined by equivalence of
+
+      [torch.narrow(tensor, dim, start, length) for start, length in chunk_iter(tensor.shape[dim], chunks)]
+
+    and
+
+      torch.chunk(tensor, chunks, dim)
+
+    If merge_last_if_small is True, the last chunk is merged with the
+    second last chunk if the last length would be smaller that quarter
+    of the second last length.
+
+    When mod is specified, the chunking length is divisible by mod,
+    possibly except the one corresponding to the last chunk.
+
+    Useful when chunking several tensors with the same chunking strategy.
+
+    """
+    length = chunk_length(size, chunks, mod=mod)
+    max_length = length + length // 4 * int(merge_last_if_small)
+    for start in range(0, size, length):
+        if size < start + max_length:
+            length = size - start
+            assert start + length <= size, (start, length, size)
+            yield start, length
+            break
+        assert start + length <= size, (start, length, size)
+        yield start, length
+
+
 class MyLinearCrossEntropyFunction(LinearCrossEntropyFunctionBase):
+
+    @staticmethod
+    def update_chunking_parameters(
+        params: dict,
+        num_batches: int,
+        in_features: int,
+        num_classes: int,
+        input_requires_grad: bool,
+        linear_requires_grad: bool,
+        device: torch.device,
+        dtype: torch.dtype,
+    ):
+        """Updates chunking parameters according to specified
+        restrictions.
+
+        The chunking strategy is fully defined by the following three
+        parameters:
+
+        - chunks_batches
+        - chunks_features
+        - chunks_classes
+
+        that define the number of chunks along the corresponding
+        dimensions of inputs. The sizes of inputs and their
+        require_grad properties together with the three chunking
+        parameters define the total memory usage of calling the linear
+        cross entropy operation that can be restricted with higher
+        number of chunks. On the other hand, using more chunks means
+        lower processing performance. In fact, chunking along classes
+        dimensions requires extra operations that will reduce the
+        performance more that chunking along batches or features
+        dimensions.
+
+        This method computes chunking parameters that minimizes the
+        overhead from chunking while keeping the total memory usage
+        restricted.
+        """
+        grad_inplace = params.get("grad_inplace", False)
+        grad_in_forward = params.get("grad_in_forward", False)
+        min_chunk_size = params.get("min_chunk_size", 1024)
+
+        def get_numel(chunks_batches, chunks_features, chunks_classes):
+            # keep this func in sync with forward and backward methods
+            count = 0
+            count += num_batches * in_features  # input
+            count += num_classes * in_features  # linear weight
+            count += int(
+                num_batches * torch.int64.itemsize / dtype.itemsize
+            )  # target, int64
+            count += num_classes  # weight
+            if input_requires_grad or linear_requires_grad:
+                if grad_in_forward:
+                    # X:
+                    count += chunk_length(
+                        num_batches, chunks_batches, mod=min_chunk_size
+                    ) * chunk_length(num_classes, chunks_classes, mod=min_chunk_size)
+                    if input_requires_grad:
+                        if grad_inplace:
+                            count += num_batches * in_features  # grad_input
+                        else:
+                            count += (
+                                num_batches * in_features * 2
+                            )  # grad_input * grad_outout
+                    if linear_requires_grad:
+                        if grad_inplace:
+                            count += num_classes * in_features  # grad_linear
+                        else:
+                            count += (
+                                num_classes * in_features * 2
+                            )  # grad_linear * grad_outout
+                        # G:
+                        count += chunk_length(
+                            in_features, chunks_features, mod=min_chunk_size
+                        ) * chunk_length(
+                            num_classes, chunks_classes, mod=min_chunk_size
+                        )
+                else:
+                    count += num_batches * num_classes  # X
+                    if input_requires_grad:
+                        count += num_batches * in_features  # grad_input
+                    if linear_requires_grad:
+                        count += num_classes * in_features  # grad_linear
+                        # G:
+                        count += (
+                            chunk_length(
+                                in_features, chunks_features, mod=min_chunk_size
+                            )
+                            * num_classes
+                        )
+            return count
+
+        max_memory_gb = params.get("max_memory_gb")
+        if max_memory_gb is None:
+            if device.type == "cuda":
+                max_memory_gb = int(torch.cuda.mem_get_info(device)[0] * 0.85 / 1e9)
+            else:
+                max_memory_gb = 8
+        # print(f'{max_memory_gb=} {dtype=}')
+        max_total_numel = int(max_memory_gb * 1e9 / dtype.itemsize)
+
+        min_numel = get_numel(num_batches, in_features, num_classes)
+
+        chunks_classes = params.get("chunks_classes", 1)
+        chunks_batches = params.get("chunks_batches", 1)
+        chunks_features = params.get("chunks_features", 1)
+
+        if min_numel >= max_total_numel:
+            print(
+                f"WARNING: Exceeding memory usage by {(min_numel - max_total_numel) * dtype.itemsize / 1e9} GB"
+            )
+        if 1:
+            chunks_batches, chunks_features, chunks_classes = 1, 1, 1
+            min_s = None
+            min_r = None
+            count = 0
+            for ci in range(1, num_classes + 1):
+                if num_classes // ci < min_chunk_size:
+                    break
+                for fi in range(1, in_features + 1):
+                    if in_features // fi < min_chunk_size:
+                        break
+                    for bi in range(1, num_batches + 1):
+                        if num_batches // bi < min_chunk_size:
+                            break
+                        count += 1
+                        n = get_numel(bi, fi, ci)
+                        s = (
+                            2 * max(in_features, num_batches) // min_chunk_size * ci
+                            + fi
+                            + bi
+                        )
+                        if n > max_total_numel:
+                            s += n - max_total_numel
+                        if min_s is None or s < min_s:
+                            min_s = s
+                            min_r = (ci, fi, bi)
+                            print(f"{min_s=} {ci=} {fi=} {bi=} {n=}")
+            if min_r is not None:
+                chunks_batches, chunks_features, chunks_classes = min_r
+            params["chunks_batches"] = chunks_batches
+            params["chunks_features"] = chunks_features
+            params["chunks_classes"] = chunks_classes
+
+            print(f"{count=} {min_r=}")
+        numel = get_numel(chunks_batches, chunks_features, chunks_classes)
+        print(f"{min_numel=} {numel=} {max_total_numel=}")
+        return params
 
     @staticmethod
     def samples(device=None, dtype=None):
@@ -671,30 +862,6 @@ class MyLinearCrossEntropyFunction(LinearCrossEntropyFunctionBase):
         num_classes, _ = L.shape
         _validate_params(params)
 
-        def chunk_iter(size, chunks):
-            """Defined by equivalence of
-
-              [torch.narrow(tensor, dim, start, length) for start, length in chunk_iter(tensor.shape[dim], chunks)]
-
-            and
-
-              torch.chunk(tensor, chunks, dim)
-
-            Useful when chunking several tensors with the same chunking strategy.
-            """
-            if chunks == 1:
-                yield 0, size
-                return
-            length = max(1, size // chunks)
-            start = 0
-            size_ = 0
-            while start < size:
-                size_ += length
-                if size_ > size:
-                    length -= size_ - size
-                yield start, length
-                start += length
-
         def make_zeros(*shape):
             return torch.zeros(shape, device=device, dtype=dtype, requires_grad=False)
 
@@ -706,9 +873,11 @@ class MyLinearCrossEntropyFunction(LinearCrossEntropyFunctionBase):
                 return input.narrow(dim, 0, size)
             return input
 
+        min_chunk_size = params.get("min_chunk_size")
+        chunks_batches = params.get("chunks_batches", 1)
+        chunks_features = params.get("chunks_features", 1)
+        chunks_classes = params.get("chunks_classes", 1)
         ctx.params = params
-        if not params.get("grad_in_forward", False):
-            ctx.chunk_iter = chunk_iter
 
         output = make_zeros()
         X = None
@@ -716,8 +885,8 @@ class MyLinearCrossEntropyFunction(LinearCrossEntropyFunctionBase):
             if params.get("grad_in_forward", False):
                 # A chunk buffer used to hold logits, softmax of logits:
                 X = make_empty(
-                    max(1, num_batches // params.get("chunks_batches", 1)),
-                    max(1, num_classes // params.get("chunks_classes", 1)),
+                    chunk_length(num_batches, chunks_batches, mod=min_chunk_size),
+                    chunk_length(num_classes, chunks_classes, mod=min_chunk_size),
                 )
                 # grad_input and grad_L contain initial gradients
                 # (grad_output==1) to be passed over to backward.
@@ -727,8 +896,8 @@ class MyLinearCrossEntropyFunction(LinearCrossEntropyFunctionBase):
                     grad_L = make_zeros(*L.shape)
                     # A chunk buffer used in grad_L computation:
                     G = make_empty(
-                        max(1, num_classes // params.get("chunks_classes", 1)),
-                        max(1, in_features // params.get("chunks_features", 1)),
+                        chunk_length(num_classes, chunks_classes, mod=min_chunk_size),
+                        chunk_length(in_features, chunks_features, mod=min_chunk_size),
                     )
             else:
                 # X will contain pre-computed gradient data to be
@@ -746,7 +915,7 @@ class MyLinearCrossEntropyFunction(LinearCrossEntropyFunctionBase):
             weight_target = weight.index_select(0, target)
 
         for bchunk_start, bchunk_size in chunk_iter(
-            num_batches, params.get("chunks_batches", 1)
+            num_batches, chunks_batches, mod=min_chunk_size
         ):
             x = input.narrow(0, bchunk_start, bchunk_size)
             t = target.narrow(0, bchunk_start, bchunk_size)
@@ -757,7 +926,7 @@ class MyLinearCrossEntropyFunction(LinearCrossEntropyFunctionBase):
                 X_ = X.narrow(0, bchunk_start, bchunk_size)
 
             for cchunk_start, cchunk_size in chunk_iter(
-                num_classes, params.get("chunks_classes", 1)
+                num_classes, chunks_classes, mod=min_chunk_size
             ):
                 L_ = L.narrow(0, cchunk_start, cchunk_size)
                 X__ = ensure_size(X_, 1, cchunk_size)
@@ -823,7 +992,7 @@ class MyLinearCrossEntropyFunction(LinearCrossEntropyFunctionBase):
                     grad_x.mul_(-weight_t.unsqueeze(1))
 
                 for cchunk_start, cchunk_size in chunk_iter(
-                    num_classes, params.get("chunks_classes", 1)
+                    num_classes, chunks_classes, mod=min_chunk_size
                 ):
                     if cchunk_size == num_classes:
                         t_ = t
@@ -850,7 +1019,7 @@ class MyLinearCrossEntropyFunction(LinearCrossEntropyFunctionBase):
                         G_ = ensure_size(G, 0, cchunk_size)
                         grad_L_ = grad_L.narrow(0, cchunk_start, cchunk_size)
                         for fchunk_start, fchunk_size in chunk_iter(
-                            in_features, params.get("chunks_features", 1)
+                            in_features, chunks_features, mod=min_chunk_size
                         ):
                             x_ = x.narrow(1, fchunk_start, fchunk_size)
                             G__ = ensure_size(G_, 1, fchunk_size)
@@ -911,7 +1080,9 @@ class MyLinearCrossEntropyFunction(LinearCrossEntropyFunctionBase):
             assert (
                 ctx.params.get("chunks_classes", 1) == 1
             )  # chunking along num_classes dimension not implemented
-
+            min_chunk_size = ctx.params.get("min_chunk_size")
+            chunks_batches = ctx.params.get("chunks_batches", 1)
+            chunks_features = ctx.params.get("chunks_features", 1)
             if ctx.needs_input_grad[0]:
                 grad_input = torch.empty_like(input, requires_grad=False)
             if ctx.needs_input_grad[1]:
@@ -919,15 +1090,15 @@ class MyLinearCrossEntropyFunction(LinearCrossEntropyFunctionBase):
                 G = torch.zeros(
                     (
                         num_classes,
-                        max(1, in_features // ctx.params.get("chunks_features", 1)),
+                        chunk_length(in_features, chunks_features, mod=min_chunk_size),
                     ),
                     device=L.device,
                     dtype=L.dtype,
                     requires_grad=False,
                 )
 
-            for bchunk_start, bchunk_size in ctx.chunk_iter(
-                num_batches, ctx.params.get("chunks_batches", 1)
+            for bchunk_start, bchunk_size in chunk_iter(
+                num_batches, chunks_batches, min_chunk_size
             ):
                 x = input.narrow(0, bchunk_start, bchunk_size)
                 t = target.narrow(0, bchunk_start, bchunk_size)
@@ -941,12 +1112,11 @@ class MyLinearCrossEntropyFunction(LinearCrossEntropyFunctionBase):
                     grad_x.addmm_(X_, L, alpha=-grad_output, beta=-grad_output)
 
                 if ctx.needs_input_grad[1]:
-                    G_ = G
-                    for fchunk_start, fchunk_size in ctx.chunk_iter(
-                        in_features, ctx.params.get("chunks_features", 1)
+                    for fchunk_start, fchunk_size in chunk_iter(
+                        in_features, chunks_features, mod=min_chunk_size
                     ):
                         x1 = x.narrow(1, fchunk_start, fchunk_size)
-                        if G_.shape[1] != fchunk_size:
+                        if G.shape[1] != fchunk_size:
                             G_ = G.narrow(1, 0, fchunk_size)
                         else:
                             G_ = G
@@ -1140,8 +1310,36 @@ class MyLinearCrossEntropyLoss(LinearCrossEntropyLossBase):
 
     def forward(self, x, targ):
         assert targ.dtype == torch.int64
-        params = self.params
-        if params is not None:
+        num_batches, in_features = x.shape
+        num_classes = self.projection.shape[0]
+        params = self.params or dict()
+        if params is not None and 0:
+            if "max_numel" in params:
+                # Ensure that maximal tensor numel is max_numel or less.
+                # chunks_classes = max(num_classes // sqrt(max_numel), 1), +1, +2, ...
+                # chunks_features >= in_features // chunk_size = in_features * chunk_size_classes // max_numel = in_features * num_classes // (max_numel * chunks_classes)
+                # chunks_batches >= num_batches // chunk_size = num_batches * chunk_size_classes // max_numel = num_batches * num_classes // (max_numel * chunks_classes)
+                max_numel = params["max_numel"]
+
+                if "chunks_classes" not in params:
+                    chunks_classes = max(1, int(num_classes / math.sqrt(max_numel)))
+                    print(f"{max_numel=}, {chunks_classes=}")
+                    params["chunks_classes"] = chunks_classes
+                else:
+                    chunks_classes = params["chunks_classes"]
+
+                if "chunks_features" not in params:
+                    chunks_features = max(
+                        1, in_features * num_classes // (max_numel * chunks_classes)
+                    )
+                    params["chunks_features"] = chunks_features
+
+                if "chunks_batches" not in params:
+                    chunks_batches = max(
+                        1, num_batches * num_classes // (max_numel * chunks_classes)
+                    )
+                    params["chunks_batches"] = chunks_batches
+
             if "chunks_batches" not in params:
                 size = params.get("chunk_size_batches", params.get("chunk_size"))
                 if size is not None:
@@ -1154,9 +1352,23 @@ class MyLinearCrossEntropyLoss(LinearCrossEntropyLossBase):
                 size = params.get("chunk_size_classes", params.get("chunk_size"))
                 if size is not None:
                     params["chunks_classes"] = max(1, self.projection.shape[0] // size)
-            if "grad_in_forward" not in params and params.get("grad_inplace", False):
-                params["grad_in_forward"] = True
-        print(f'{params=}')
+
+        # print(f'1: {params=}')
+
+        if "grad_in_forward" not in params and params.get("grad_inplace", False):
+            params["grad_in_forward"] = True
+
+        params = MyLinearCrossEntropyFunction.update_chunking_parameters(
+            params,
+            num_batches,
+            in_features,
+            num_classes,
+            x.requires_grad,
+            self.projection.requires_grad,
+            device=x.device,
+            dtype=x.dtype,
+        )
+        # print(f'2: {params=}')
         return MyLinearCrossEntropyFunction.apply(
             x, self.projection, targ, self.weight, self.reduction, params
         )
@@ -1284,7 +1496,125 @@ class LiLinearCrossEntropyLoss(LinearCrossEntropyLossBase):
         return l
 
 
-def test_function(cls, device="cpu", dtype=torch.float64):
+def test_chunk_iter():
+
+    assert list(chunk_iter(4, 2)) == [(0, 2), (2, 2)]
+    assert list(chunk_iter(5, 2)) == [(0, 3), (3, 2)]
+    assert list(chunk_iter(6, 2)) == [(0, 3), (3, 3)]
+    assert list(chunk_iter(7, 2)) == [(0, 4), (4, 3)]
+    assert list(chunk_iter(8, 2)) == [(0, 4), (4, 4)]
+    assert list(chunk_iter(9, 2)) == [(0, 5), (5, 4)]
+
+    assert list(chunk_iter(4, 2, mod=2)) == [(0, 2), (2, 2)]
+    assert list(chunk_iter(4, 2, mod=3)) == [(0, 3), (3, 1)]
+    assert list(chunk_iter(4, 2, mod=4)) == [(0, 4)]
+    assert list(chunk_iter(5, 2, mod=2)) == [(0, 4), (4, 1)]
+    assert list(chunk_iter(5, 2, mod=3)) == [(0, 3), (3, 2)]
+    assert list(chunk_iter(5, 2, mod=4)) == [(0, 4), (4, 1)]
+    assert list(chunk_iter(5, 2, mod=5)) == [(0, 5)]
+    assert list(chunk_iter(6, 2, mod=2)) == [(0, 4), (4, 2)]
+    assert list(chunk_iter(6, 2, mod=3)) == [(0, 3), (3, 3)]
+    assert list(chunk_iter(6, 2, mod=4)) == [(0, 4), (4, 2)]
+    assert list(chunk_iter(6, 2, mod=5)) == [(0, 5), (5, 1)]
+    assert list(chunk_iter(6, 2, mod=6)) == [(0, 6)]
+    assert list(chunk_iter(7, 2, mod=2)) == [(0, 4), (4, 3)]
+    assert list(chunk_iter(7, 2, mod=3)) == [(0, 6), (6, 1)]
+    assert list(chunk_iter(7, 2, mod=4)) == [(0, 4), (4, 3)]
+    assert list(chunk_iter(7, 2, mod=5)) == [(0, 5), (5, 2)]
+    assert list(chunk_iter(7, 2, mod=6)) == [(0, 6), (6, 1)]
+    assert list(chunk_iter(7, 2, mod=7)) == [(0, 7)]
+    assert list(chunk_iter(8, 2, mod=2)) == [(0, 4), (4, 4)]
+    assert list(chunk_iter(9, 2, mod=2)) == [(0, 6), (6, 3)]
+    assert list(chunk_iter(10, 2, mod=2)) == [(0, 6), (6, 4)]
+    assert list(chunk_iter(11, 2, mod=2)) == [(0, 6), (6, 5)]
+
+    assert list(chunk_iter(8, 4)) == [(0, 2), (2, 2), (4, 2), (6, 2)]
+    assert list(chunk_iter(8, 4, mod=2)) == [(0, 2), (2, 2), (4, 2), (6, 2)]
+    assert list(chunk_iter(8, 4, mod=3)) == [(0, 3), (3, 3), (6, 2)]
+    assert list(chunk_iter(8, 4, mod=4)) == [(0, 4), (4, 4)]
+    assert list(chunk_iter(8, 4, mod=5)) == [(0, 5), (5, 3)]
+    assert list(chunk_iter(8, 4, mod=6)) == [(0, 6), (6, 2)]
+    assert list(chunk_iter(8, 4, mod=7)) == [(0, 7), (7, 1)]
+    assert list(chunk_iter(8, 4, mod=8)) == [(0, 8)]
+    assert list(chunk_iter(9, 4)) == [(0, 3), (3, 3), (6, 3)]
+    assert list(chunk_iter(9, 4, mod=2)) == [(0, 4), (4, 4), (8, 1)]
+    assert list(chunk_iter(9, 4, mod=3)) == [(0, 3), (3, 3), (6, 3)]
+    assert list(chunk_iter(9, 4, mod=4)) == [(0, 4), (4, 4), (8, 1)]
+    assert list(chunk_iter(9, 4, mod=5)) == [(0, 5), (5, 4)]
+    assert list(chunk_iter(10, 4)) == [(0, 3), (3, 3), (6, 3), (9, 1)]
+    assert list(chunk_iter(10, 4, mod=2)) == [(0, 4), (4, 4), (8, 2)]
+    assert list(chunk_iter(10, 4, mod=3)) == [(0, 3), (3, 3), (6, 3), (9, 1)]
+    assert list(chunk_iter(10, 4, mod=4)) == [(0, 4), (4, 4), (8, 2)]
+    assert list(chunk_iter(11, 4)) == [(0, 3), (3, 3), (6, 3), (9, 2)]
+    assert list(chunk_iter(11, 4, mod=2)) == [(0, 4), (4, 4), (8, 3)]
+    assert list(chunk_iter(11, 4, mod=3)) == [(0, 3), (3, 3), (6, 3), (9, 2)]
+    assert list(chunk_iter(11, 4, mod=4)) == [(0, 4), (4, 4), (8, 3)]
+    assert list(chunk_iter(12, 4)) == [(0, 3), (3, 3), (6, 3), (9, 3)]
+    assert list(chunk_iter(12, 4, mod=2)) == [(0, 4), (4, 4), (8, 4)]
+    assert list(chunk_iter(12, 4, mod=3)) == [(0, 3), (3, 3), (6, 3), (9, 3)]
+    assert list(chunk_iter(12, 4, mod=4)) == [(0, 4), (4, 4), (8, 4)]
+    assert list(chunk_iter(13, 4)) == [(0, 4), (4, 4), (8, 4), (12, 1)]
+
+    assert list(chunk_iter(64, 4)) == [(0, 16), (16, 16), (32, 16), (48, 16)]
+    assert list(chunk_iter(65, 4)) == [(0, 17), (17, 17), (34, 17), (51, 14)]
+    assert list(chunk_iter(65, 4, mod=2)) == [(0, 18), (18, 18), (36, 18), (54, 11)]
+    assert list(chunk_iter(65, 4, mod=4, merge_last_if_small=False)) == [
+        (0, 16),
+        (16, 16),
+        (32, 16),
+        (48, 16),
+        (64, 1),
+    ]
+    assert list(chunk_iter(65, 4, mod=4, merge_last_if_small=True)) == [
+        (0, 16),
+        (16, 16),
+        (32, 16),
+        (48, 17),
+    ]
+    assert list(chunk_iter(66, 4, mod=4, merge_last_if_small=True)) == [
+        (0, 16),
+        (16, 16),
+        (32, 16),
+        (48, 18),
+    ]
+    assert list(chunk_iter(67, 4, mod=4, merge_last_if_small=True)) == [
+        (0, 16),
+        (16, 16),
+        (32, 16),
+        (48, 19),
+    ]
+    assert list(chunk_iter(68, 4, mod=4)) == [
+        (0, 16),
+        (16, 16),
+        (32, 16),
+        (48, 16),
+        (64, 4),
+    ]
+    assert list(chunk_iter(69, 4, mod=4)) == [(0, 20), (20, 20), (40, 20), (60, 9)]
+    assert list(chunk_iter(69, 4, mod=8)) == [
+        (0, 16),
+        (16, 16),
+        (32, 16),
+        (48, 16),
+        (64, 5),
+    ]
+    assert list(chunk_iter(70, 4, mod=8)) == [
+        (0, 16),
+        (16, 16),
+        (32, 16),
+        (48, 16),
+        (64, 6),
+    ]
+    assert list(chunk_iter(71, 4, mod=8)) == [
+        (0, 16),
+        (16, 16),
+        (32, 16),
+        (48, 16),
+        (64, 7),
+    ]
+
+
+def _test_function(cls, device="cpu", dtype=torch.float64):
     torch.manual_seed(5431)
     print(f"{cls.__name__}")
     f = cls.apply
@@ -1301,7 +1631,7 @@ def test_function(cls, device="cpu", dtype=torch.float64):
     print()
 
 
-def test_module(cls, ref_cls, device="cuda", dtype=torch.float64):
+def _test_module(cls, ref_cls, device="cuda", dtype=torch.float64):
     print(f"{cls.__name__} {ref_cls.__name__}")
 
     for module_args, module_kwargs, forward_args in cls.samples(
@@ -1353,11 +1683,11 @@ if __name__ == "__main__":
         NNLLossFunction,
         MyLinearCrossEntropyFunction,
     ]:
-        test_function(cls)
+        _test_function(cls)
 
     for cls, ref_cls, dtype, device in [
-        (MyLinearCrossEntropyLoss, nn.LinearCrossEntropyLoss, torch.float64, 'cpu'),
-        (VoLinearCrossEntropyLoss, nn.LinearCrossEntropyLoss, torch.float32, 'cuda'),
-        (LiLinearCrossEntropyLoss, nn.LinearCrossEntropyLoss, torch.float32, 'cuda'),
+        (MyLinearCrossEntropyLoss, nn.LinearCrossEntropyLoss, torch.float64, "cpu"),
+        (VoLinearCrossEntropyLoss, nn.LinearCrossEntropyLoss, torch.float32, "cuda"),
+        (LiLinearCrossEntropyLoss, nn.LinearCrossEntropyLoss, torch.float32, "cuda"),
     ]:
-        test_module(cls, ref_cls, device=device, dtype=dtype)
+        _test_module(cls, ref_cls, device=device, dtype=dtype)

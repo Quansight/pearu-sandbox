@@ -5,7 +5,7 @@ from pathlib import Path
 import time
 import os
 import resource
-
+import math
 
 import torch
 import multiprocessing as mp
@@ -71,6 +71,15 @@ class PyTorchProjectionPlusCrossEntropyLoss(nn.Module):
 config_defaults = dict(num_classes=[32768, 8192][1], num_tokens=8192, in_features=2048)
 
 
+def pair2str(key, value):
+    if key == "max_numel" and isinstance(value, int):
+        e = math.log(value, 2)
+        if e.is_integer():
+            e = int(e)
+            return f"{key}=2**{e}"
+    return f"{key}={value}"
+
+
 def configs(default_force=False):
     params = dict(
         dtype=[torch.float32],
@@ -78,7 +87,7 @@ def configs(default_force=False):
         device=["cuda", "cpu"][:1],
         in_features=[1024, 2048, 4096, 8192, 16384],
         num_classes=[2048, 4096, 8192, 16384, 32768, 65536][:-1],
-        num_tokens=[1024, 2048, 4096, 8192, 16384],
+        num_tokens=[1024, 2048, 4096, 8192, 16384, 32768],
         bias=[False],
         reduction=["mean", "sum"][1:],
         ignore_index=[-100],
@@ -95,10 +104,43 @@ def configs(default_force=False):
                     modules.MyLinearCrossEntropyLoss,
                     dict(
                         force=not True,
-                        params=dict(chunk_size=1024 * k, grad_inplace=True),
+                        params=dict(
+                            chunk_size=512 * k,
+                            grad_inplace=True,
+                            chunks_classes=chunks_classes,
+                        ),
                     ),
                 )
                 for k in [1, 2, 4, 8]
+                for chunks_classes in [1, 2]
+            ),
+            *(
+                (
+                    modules.MyLinearCrossEntropyLoss,
+                    dict(
+                        force=not True,
+                        params=dict(
+                            max_numel=(1024 * k) ** 2,
+                            grad_inplace=True,
+                        ),
+                    ),
+                )
+                for k in [1, 2, 4, 8, 16]
+            ),
+            *(
+                (
+                    modules.MyLinearCrossEntropyLoss,
+                    dict(
+                        force=not True,
+                        params=dict(
+                            grad_inplace=True,
+                            max_memory_gb=0.5 * k,
+                            min_chunk_size=min_chunk_size,
+                        ),
+                    ),
+                )
+                for k in [1, 2, 3, 4, 5, 6][1:2]
+                for min_chunk_size in [256, 512, 1024]
             ),
             # (modules.MyLinearCrossEntropyLoss, dict(force=True, num_chunks=2)),
             # (modules.MyLinearCrossEntropyLoss, dict(force=True, num_chunks=4)),
@@ -145,7 +187,7 @@ def configs(default_force=False):
                     kwargs[key] = value
                 label = " ".join(
                     [f"{k}={v}" for k, v in extra_kwargs.items() if k != "params"]
-                    + [f"{k}={v}" for k, v in params_.items()]
+                    + [pair2str(k, v) for k, v in params_.items()]
                 )
                 label = f"{cls.__name__}[{label}]" if label else cls.__name__
                 if (
@@ -159,11 +201,20 @@ def configs(default_force=False):
 def measure(queue, cls, args, kwargs, num_tokens, token_dtype):
 
     torch.manual_seed(321)
-
+    in_features, num_classes = args
     device = torch.device(kwargs["device"])
     cpu_initial_peak_mem_bytes = (
         resource.getrusage(resource.RUSAGE_SELF).ru_maxrss * 1e3
     )
+
+    if token_dtype.is_floating_point:
+        tokens = torch.randn(
+            (num_tokens, num_classes), device=device, dtype=token_dtype
+        ).softmax(dim=1)
+    else:
+        tokens = torch.randint(
+            0, num_classes, (num_tokens,), device=device, dtype=token_dtype
+        )
     if device.type == "cuda":
         torch.cuda.reset_peak_memory_stats()
         initial_peak_mem_bytes = torch.cuda.max_memory_allocated(device=device)
@@ -172,25 +223,16 @@ def measure(queue, cls, args, kwargs, num_tokens, token_dtype):
     else:
         assert 0, device.type
 
-    in_features, num_classes = args
-
+    dtype = kwargs["dtype"]
     message = []
     try:
         features = torch.randn(
             (num_tokens, in_features),
             device=device,
-            dtype=kwargs["dtype"],
+            dtype=dtype,
             requires_grad=True,
         )
-        if token_dtype.is_floating_point:
-            tokens = torch.randn(
-                (num_tokens, num_classes), device=device, dtype=token_dtype
-            ).softmax(dim=1)
-        else:
-            tokens = torch.randint(
-                0, num_classes, (num_tokens,), device=device, dtype=token_dtype
-            )
-
+        tokens = tokens.clone()
         module = cls(*args, **kwargs)
         ref_module = cls(*args, **kwargs)
         loss = module(features, tokens).mean()
@@ -237,7 +279,7 @@ def measure(queue, cls, args, kwargs, num_tokens, token_dtype):
     else:
         assert 0, device.type
 
-    if loss is not None:
+    if loss is not None and 0:
         # gradcheck sanity check
         in_features, num_tokens, num_classes = (2, 64, 64)
         args = (in_features, num_classes)
@@ -261,8 +303,14 @@ def measure(queue, cls, args, kwargs, num_tokens, token_dtype):
         except RuntimeError as msg:
             print(f"gradcheck failed: {msg}")
             message.append("GRADCHECKFAILED")
+    else:
+        print("gradcheck skipped")
+        message.append("GRADCHECKSKIPPED")
 
-    if cls in {modules.VoLinearCrossEntropyLoss, modules.LiLinearCrossEntropyLoss}:
+    if (
+        cls in {modules.VoLinearCrossEntropyLoss, modules.LiLinearCrossEntropyLoss}
+        or dtype != torch.float64
+    ):
         message.append("SKIPSANITYCHECK")
     elif cls is not nn.LinearCrossEntropyLoss:
         # sanity check against reference
@@ -311,6 +359,8 @@ def measure(queue, cls, args, kwargs, num_tokens, token_dtype):
     if message:
         print(message)
 
+    cuda_mem_gb = (final_peak_mem_bytes - initial_peak_mem_bytes) / 1e9
+    print(f"{int(cuda_mem_gb * 1e9 / dtype.itemsize)=}")
     queue.put(
         dict(
             message=message,
@@ -795,8 +845,18 @@ def main():
                     # *(f"MyLinearCrossEntropyLoss[splits=(None, None, {1024 * k})]" for k in [1, 2, 4, 8, 16, 32]),
                     # *(f"MyLinearCrossEntropyLoss[splits=(None, None, {1024 * k}) inplace_grad=True]" for k in [1, 4, 8, 16, 32][:-2]),
                     *(
-                        f"MyLinearCrossEntropyLoss[chunk_size={1024 * k} grad_inplace=True]"
-                        for k in [1, 4, 8]
+                        f"MyLinearCrossEntropyLoss[chunk_size={512 * k} grad_inplace=True chunks_classes={chunks_classes}]"
+                        for k in [1, 2, 4, 8]
+                        for chunks_classes in [1, 2][:0]
+                    ),
+                    *(
+                        f"MyLinearCrossEntropyLoss[{pair2str('max_numel', (512 * k) ** 2)} grad_inplace=True]"
+                        for k in [1, 2, 4, 8, 16, 32][:0]
+                    ),
+                    *(
+                        f"MyLinearCrossEntropyLoss[grad_inplace=True max_memory_gb={0.5 * k} {min_chunk_size=}]"
+                        for k in [1, 2, 3, 4, 5, 6][1:2]
+                        for min_chunk_size in [256, 512, 1024][1:2]
                     ),
                     # "MyLinearCrossEntropyLoss[splits=(1, 1, 1)]",
                     # "MyLinearCrossEntropyLoss[splits=(1, 8, 1)]",
