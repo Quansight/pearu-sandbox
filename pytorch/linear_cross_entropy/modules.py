@@ -464,6 +464,7 @@ class LinearCrossEntropyFunctionBase(torch.autograd.Function):
                                     weight=w,
                                     ignore_index=ii,
                                     reduction=reduction,
+                                    options={},
                                 )
                                 w = None
                                 yield (
@@ -481,6 +482,7 @@ class LinearCrossEntropyFunctionBase(torch.autograd.Function):
                                     weight=w,
                                     ignore_index=ii,
                                     reduction=reduction,
+                                    options={},
                                 )
 
 
@@ -725,9 +727,7 @@ class MyLinearCrossEntropyFunction(LinearCrossEntropyFunctionBase):
             params["chunks_features"] = chunks_features
             params["chunks_classes"] = chunks_classes
 
-            print(f"{count=} {min_r=}")
         numel = get_numel(chunks_batches, chunks_features, chunks_classes)
-        print(f"{min_numel=} {numel=} {max_total_numel=}")
         return params
 
     @staticmethod
@@ -797,6 +797,7 @@ class MyLinearCrossEntropyFunction(LinearCrossEntropyFunctionBase):
                         num_classes, device=device, dtype=dtype, requires_grad=False
                     )
                 )
+                label_smoothing = 0.0
                 for w in [None, w1, w2]:
                     unnormalized_weight = (
                         MyLinearCrossEntropyFunction.get_unnormalized_weight(
@@ -809,9 +810,16 @@ class MyLinearCrossEntropyFunction(LinearCrossEntropyFunctionBase):
                         t,
                         unnormalized_weight,
                         reduction,
+                        label_smoothing,
                         params,
                     ), torch.nn.functional.linear_cross_entropy(
-                        x, L, t, weight=w, ignore_index=ii, reduction=reduction
+                        x,
+                        L,
+                        t,
+                        weight=w,
+                        ignore_index=ii,
+                        reduction=reduction,
+                        options=None,
                     )
 
     @staticmethod
@@ -842,8 +850,10 @@ class MyLinearCrossEntropyFunction(LinearCrossEntropyFunctionBase):
         target: torch.Tensor,
         unnormalized_weight: torch.Tensor,
         reduction: str,
+        label_smoothing: float,
         params: dict,
     ):
+        assert label_smoothing == 0.0, label_smoothing
         # input: (num_batches, in_features)
         # L: (num_classes, in_features)
         # target: (num_batches,)
@@ -1051,7 +1061,7 @@ class MyLinearCrossEntropyFunction(LinearCrossEntropyFunctionBase):
 
     @staticmethod
     def backward(ctx, grad_output):
-        result = [None] * 6
+        result = [None] * 7
         if ctx.params.get("grad_in_forward", False):
             if ctx.needs_input_grad[0] or ctx.needs_input_grad[1]:
                 saved = ctx.saved_tensors
@@ -1133,6 +1143,31 @@ class MyLinearCrossEntropyFunction(LinearCrossEntropyFunctionBase):
         return tuple(result)
 
 
+class NewLinearCrossEntropyFunction(
+    torch.nn.modules._functions.LinearCrossEntropyFunction
+):
+
+    @staticmethod
+    def samples(device=None, dtype=None):
+        for args, ref in MyLinearCrossEntropyFunction.samples(
+            device=device, dtype=dtype
+        ):
+            input, linear_weight, target = args[:3]
+            num_classes = linear_weight.shape[0]
+            options = NewLinearCrossEntropyFunction.optimal_chunking(
+                dict(grad_inplace=False),
+                input.shape[0],
+                input.shape[1],
+                num_classes,
+                input.requires_grad,
+                linear_weight.requires_grad,
+                input.device,
+                input.dtype,
+                target.dtype,
+            )
+            yield (*args[:-1], options), ref
+
+
 class LinearCrossEntropyLossBase(nn.Module):
 
     @staticmethod
@@ -1164,13 +1199,26 @@ class LinearCrossEntropyLossBase(nn.Module):
                                     ignore_index=ii,
                                     reduction=reduction,
                                     label_smoothing=0.0,
-                                    bias=False,
                                     device=device,
                                     dtype=dtype,
                                 ),
                                 (input, target),
                             )
                             yield module_args, module_kwargs, forward_args
+
+
+class NewLinearCrossEntropyLoss(torch.nn.LinearCrossEntropyLoss):
+
+    @staticmethod
+    def samples(device=None, dtype=None):
+        for (
+            module_args,
+            module_kwargs,
+            forward_args,
+        ) in MyLinearCrossEntropyLoss.samples(device=device, dtype=dtype):
+            params = module_kwargs.pop("params", None)
+            if not params:
+                yield module_args, module_kwargs, forward_args
 
 
 class MyLinearCrossEntropyLoss(LinearCrossEntropyLossBase):
@@ -1254,7 +1302,6 @@ class MyLinearCrossEntropyLoss(LinearCrossEntropyLossBase):
                             ignore_index=ii,
                             reduction=reduction,
                             label_smoothing=0.0,
-                            bias=False,
                             params=params,
                             device=device,
                             dtype=dtype,
@@ -1272,7 +1319,6 @@ class MyLinearCrossEntropyLoss(LinearCrossEntropyLossBase):
         ignore_index: int = -100,
         reduction: str = "mean",
         label_smoothing: float = 0.0,
-        bias: bool = False,
         weight: torch.Tensor | None = None,
         device=None,
         dtype=None,
@@ -1281,7 +1327,6 @@ class MyLinearCrossEntropyLoss(LinearCrossEntropyLossBase):
         super().__init__()
         assert reduction in {"sum", "mean"}, reduction
         assert label_smoothing == 0.0
-        assert not bias
         _validate_params(params)
         # params: dict(
         #   grad_in_forward: bool,   # when True, pre-compute gradients data in forward, default is False
@@ -1323,7 +1368,6 @@ class MyLinearCrossEntropyLoss(LinearCrossEntropyLossBase):
 
                 if "chunks_classes" not in params:
                     chunks_classes = max(1, int(num_classes / math.sqrt(max_numel)))
-                    print(f"{max_numel=}, {chunks_classes=}")
                     params["chunks_classes"] = chunks_classes
                 else:
                     chunks_classes = params["chunks_classes"]
@@ -1370,7 +1414,13 @@ class MyLinearCrossEntropyLoss(LinearCrossEntropyLossBase):
         )
         # print(f'2: {params=}')
         return MyLinearCrossEntropyFunction.apply(
-            x, self.projection, targ, self.weight, self.reduction, params
+            x,
+            self.projection,
+            targ,
+            self.weight,
+            self.reduction,
+            self.label_smoothing,
+            params,
         )
 
 
@@ -1405,7 +1455,6 @@ class VoLinearCrossEntropyLoss(nn.Module):
                                     ignore_index=ii,
                                     reduction=reduction,
                                     label_smoothing=0.0,
-                                    bias=False,
                                     device=device,
                                     dtype=dtype,
                                 ),
@@ -1420,7 +1469,6 @@ class VoLinearCrossEntropyLoss(nn.Module):
         ignore_index: int = -100,
         reduction: str = "mean",
         label_smoothing: float = 0.0,
-        bias: bool = False,
         weight: torch.Tensor | None = None,
         device=None,
         dtype=None,
@@ -1428,7 +1476,6 @@ class VoLinearCrossEntropyLoss(nn.Module):
         super().__init__()
         assert reduction in {"sum", "mean"}, reduction
         assert label_smoothing == 0.0
-        assert not bias
         assert ignore_index == -100
         assert weight is None
         self.projection = Parameter(
@@ -1467,13 +1514,11 @@ class LiLinearCrossEntropyLoss(LinearCrossEntropyLossBase):
         ignore_index: int = -100,
         reduction: str = "mean",
         label_smoothing: float = 0.0,
-        bias: bool = False,
         weight: torch.Tensor | None = None,
         device=None,
         dtype=None,
     ):
         super().__init__()
-        assert not bias, bias
         self.module = LigerFusedLinearCrossEntropyLoss(
             ce_weight=weight,
             ignore_index=ignore_index,
@@ -1682,6 +1727,7 @@ if __name__ == "__main__":
         SoftmaxFunction,
         NNLLossFunction,
         MyLinearCrossEntropyFunction,
+        NewLinearCrossEntropyFunction,
     ]:
         _test_function(cls)
 
@@ -1689,5 +1735,6 @@ if __name__ == "__main__":
         (MyLinearCrossEntropyLoss, nn.LinearCrossEntropyLoss, torch.float64, "cpu"),
         (VoLinearCrossEntropyLoss, nn.LinearCrossEntropyLoss, torch.float32, "cuda"),
         (LiLinearCrossEntropyLoss, nn.LinearCrossEntropyLoss, torch.float32, "cuda"),
+        (NewLinearCrossEntropyLoss, nn.LinearCrossEntropyLoss, torch.float64, "cpu"),
     ]:
         _test_module(cls, ref_cls, device=device, dtype=dtype)

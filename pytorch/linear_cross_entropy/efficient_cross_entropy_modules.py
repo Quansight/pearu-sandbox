@@ -27,7 +27,9 @@ def fused_cross_entropy_fwd_bwd_kernel(
 ):
     # Get pointers to current row for all inputs/outputs
     row_idx = tl.program_id(0)
-    logit_grad_row_start_ptr = output_logit_grad_ptr + row_idx * output_logit_grad_stride
+    logit_grad_row_start_ptr = (
+        output_logit_grad_ptr + row_idx * output_logit_grad_stride
+    )
     logit_row_start_ptr = input_logit_ptr + row_idx * input_logit_stride
     targ_ptr = input_targ_ptr + row_idx * input_targ_stride
     loss_ptr = output_loss_ptr + row_idx * output_loss_stride
@@ -60,7 +62,7 @@ def fused_cross_entropy_fwd_bwd_kernel(
 
     # Compute gradients
     targ_one_hot = tl.where(targ == col_offsets, 1.0, 0.0)
-    grad = (exp_logit_row / sum_exp_logit_row - targ_one_hot)
+    grad = exp_logit_row / sum_exp_logit_row - targ_one_hot
     grad = grad / divisor
     grad = tl.where(targ == ignore_index, 0.0, grad)
     tl.store(logit_grad_row_ptrs, grad, mask=col_offsets < n_cols)
@@ -88,7 +90,9 @@ class FusedCrossEntropyLossFunction(torch.autograd.Function):
         assert in_feat.ndim == 2, in_feat.ndim
         assert proj_weight.ndim == 2, proj_weight.ndim
         assert targ.ndim == 1, targ.shape
-        assert in_feat.shape[0] == targ.shape[0], f"Number of tokens in in_feat and targ is not equal: {(in_feat.shape, targ.shape) = }"
+        assert (
+            in_feat.shape[0] == targ.shape[0]
+        ), f"Number of tokens in in_feat and targ is not equal: {(in_feat.shape, targ.shape) = }"
         assert reduction in ("mean", "sum"), reduction
         assert n_loop_iters > 0, n_loop_iters
         assert n_tokens % n_loop_iters == 0, (n_tokens, n_loop_iters)
@@ -98,7 +102,11 @@ class FusedCrossEntropyLossFunction(torch.autograd.Function):
         BLOCK_SIZE = triton.next_power_of_2(n_classes)
 
         loss = torch.empty(n_tokens, dtype=in_feat.dtype, device=in_feat.device)
-        dtype = torch.get_autocast_gpu_dtype() if torch.is_autocast_enabled() else in_feat.dtype
+        dtype = (
+            torch.get_autocast_gpu_dtype()
+            if torch.is_autocast_enabled()
+            else in_feat.dtype
+        )
 
         if proj_weight.requires_grad:
             grad_proj_weight = torch.zeros_like(proj_weight, dtype=dtype)
@@ -110,13 +118,19 @@ class FusedCrossEntropyLossFunction(torch.autograd.Function):
         else:
             grad_in_feat = None
 
-        divisor = (targ != ignore_index).sum().to(dtype) if reduction == "mean" else torch.ones(1, dtype=dtype, device=in_feat.device)
+        divisor = (
+            (targ != ignore_index).sum().to(dtype)
+            if reduction == "mean"
+            else torch.ones(1, dtype=dtype, device=in_feat.device)
+        )
 
         # Divide the input into chunks of size num_tokens // n_loop_iters, then compute the loss for each of these groups
         proj_weight_cast = proj_weight.to(dtype)
 
         loop_chunk_size = triton.cdiv(n_tokens, n_loop_iters)
-        logits_chunk_cast = torch.zeros((loop_chunk_size, n_classes), dtype=dtype, device=in_feat.device)
+        logits_chunk_cast = torch.zeros(
+            (loop_chunk_size, n_classes), dtype=dtype, device=in_feat.device
+        )
         for i, in_feat_chunk in enumerate(torch.split(in_feat, loop_chunk_size)):
             token_start_idx = i * loop_chunk_size
             token_end_idx = (i + 1) * loop_chunk_size
@@ -132,7 +146,9 @@ class FusedCrossEntropyLossFunction(torch.autograd.Function):
             targ_chunk = targ[token_start_idx:token_end_idx]
 
             n_tokens_chunk = logits_chunk.shape[0]
-            grad_logits_chunk = logits_chunk  # NOTE: we override the logits with their gradients
+            grad_logits_chunk = (
+                logits_chunk  # NOTE: we override the logits with their gradients
+            )
             fused_cross_entropy_fwd_bwd_kernel[(n_tokens_chunk,)](
                 loss_chunk,
                 grad_logits_chunk,
@@ -152,7 +168,9 @@ class FusedCrossEntropyLossFunction(torch.autograd.Function):
             grad_logits_chunk = grad_logits_chunk.to(dtype)
 
             if in_feat.requires_grad:
-                grad_in_feat[token_start_idx:token_end_idx] = grad_logits_chunk @ proj_weight_cast
+                grad_in_feat[token_start_idx:token_end_idx] = (
+                    grad_logits_chunk @ proj_weight_cast
+                )
 
             if proj_weight.requires_grad:
                 torch.addmm(
@@ -185,9 +203,9 @@ class FusedCrossEntropyLossFunction(torch.autograd.Function):
         if ctx.in_feat_requires_grad and ctx.proj_weight_requires_grad:
             grad_in_feat, grad_proj_weight = ctx.saved_tensors
         elif not ctx.in_feat_requires_grad and ctx.proj_weight_requires_grad:
-            grad_proj_weight, = ctx.saved_tensors
+            (grad_proj_weight,) = ctx.saved_tensors
         elif ctx.in_feat_requires_grad and not ctx.proj_weight_requires_grad:
-            grad_in_feat, = ctx.saved_tensors
+            (grad_in_feat,) = ctx.saved_tensors
         else:
             assert 0  # unreachable
 
@@ -236,7 +254,13 @@ class FusedProjectionPlusCrossEntropyLoss(nn.Module):
 class PyTorchProjectionPlusCrossEntropyLoss(nn.Module):
     """Simple PyTorch implementation of linear projection + cross entropy loss. Intended only for testing and benchmarking."""
 
-    def __init__(self, dim: int, n_classes: int, ignore_index: int = -100, reduction: str = "mean"):
+    def __init__(
+        self,
+        dim: int,
+        n_classes: int,
+        ignore_index: int = -100,
+        reduction: str = "mean",
+    ):
         super().__init__()
         self.proj = nn.Linear(dim, n_classes, bias=False)
         self.loss = nn.CrossEntropyLoss(ignore_index=ignore_index, reduction=reduction)

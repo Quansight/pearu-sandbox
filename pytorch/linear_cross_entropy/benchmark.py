@@ -23,7 +23,7 @@ class FusedProjectionPlusCrossEntropyLoss(nn.Module):
         super().__init__()
         dtype = kwargs.pop("dtype")
         device = kwargs.pop("device")
-        assert kwargs.pop("bias") == False
+        # assert kwargs.pop("bias") == False
         assert kwargs.pop("label_smoothing") == 0.0
         module = efficient_cross_entropy_modules.FusedProjectionPlusCrossEntropyLoss(
             dim, n_classes, **kwargs
@@ -51,11 +51,12 @@ class PyTorchProjectionPlusCrossEntropyLoss(nn.Module):
         ignore_index: int = -100,
         reduction: str = "mean",
         label_smoothing: float = 0.0,
-        bias: bool = True,
+        # bias: bool = True,
         device=None,
         dtype=None,
     ):
         super().__init__()
+        bias = False
         self.proj = nn.Linear(dim, n_classes, bias=bias, device=device, dtype=dtype)
         self.loss = nn.CrossEntropyLoss(
             ignore_index=ignore_index,
@@ -68,7 +69,9 @@ class PyTorchProjectionPlusCrossEntropyLoss(nn.Module):
         return self.loss(logits, targ)
 
 
-config_defaults = dict(num_classes=[32768, 8192][1], num_tokens=8192, in_features=2048)
+config_defaults = dict(
+    num_classes=[32768, 8192][1], num_tokens=8192, in_features=[2048, 4096, 8192][1]
+)
 
 
 def pair2str(key, value):
@@ -85,9 +88,38 @@ def configs(default_force=False):
         dtype=[torch.float32],
         token_dtype=[torch.long, torch.float32][:1],
         device=["cuda", "cpu"][:1],
-        in_features=[1024, 2048, 4096, 8192, 16384],
-        num_classes=[2048, 4096, 8192, 16384, 32768, 65536][:-1],
-        num_tokens=[1024, 2048, 4096, 8192, 16384, 32768],
+        in_features=[
+            1024,
+            2048,
+            4096,
+            8192,
+            (8192 + 16384) // 2,
+            16384,
+            16384 + 4096,
+            16384 + 2 * 4096,
+        ],
+        num_classes=[
+            2048,
+            4096,
+            8192,
+            16384,
+            (16384 + 32768) // 2,
+            32768,
+            32768 + 8192,
+            32768 + 2 * 8192,
+            65536,
+        ][:-1],
+        num_tokens=[
+            1024,
+            2048,
+            4096,
+            8192,
+            16384,
+            (16384 + 32768) // 2,
+            32768,
+            32768 + 8192,
+            32768 + 2 * 8192,
+        ],
         bias=[False],
         reduction=["mean", "sum"][1:],
         ignore_index=[-100],
@@ -112,7 +144,7 @@ def configs(default_force=False):
                     ),
                 )
                 for k in [1, 2, 4, 8]
-                for chunks_classes in [1, 2]
+                for chunks_classes in [1, 2][:0]
             ),
             *(
                 (
@@ -125,7 +157,7 @@ def configs(default_force=False):
                         ),
                     ),
                 )
-                for k in [1, 2, 4, 8, 16]
+                for k in [1, 2, 4, 8, 16][:0]
             ),
             *(
                 (
@@ -140,22 +172,31 @@ def configs(default_force=False):
                     ),
                 )
                 for k in [1, 2, 3, 4, 5, 6][1:2]
-                for min_chunk_size in [256, 512, 1024]
+                for min_chunk_size in [256, 512, 1024][:0]
             ),
             # (modules.MyLinearCrossEntropyLoss, dict(force=True, num_chunks=2)),
             # (modules.MyLinearCrossEntropyLoss, dict(force=True, num_chunks=4)),
             # (modules.MyLinearCrossEntropyLoss, dict(force=True, num_chunks=8)),
             # (modules.MyLinearCrossEntropyLoss, dict(force=True, num_chunks=16)),
             # (modules.MyLinearCrossEntropyLoss2, dict(force=True)),
-            (nn.LinearCrossEntropyLoss, dict()),
+            (nn.LinearCrossEntropyLoss, dict(options=None)),
             (PyTorchProjectionPlusCrossEntropyLoss, dict()),
-            (FusedProjectionPlusCrossEntropyLoss, dict(n_loop_iters=1)),
-            (FusedProjectionPlusCrossEntropyLoss, dict(n_loop_iters=2)),
-            (FusedProjectionPlusCrossEntropyLoss, dict(n_loop_iters=4)),
+            # (FusedProjectionPlusCrossEntropyLoss, dict(n_loop_iters=1)),
+            # (FusedProjectionPlusCrossEntropyLoss, dict(n_loop_iters=2)),
+            # (FusedProjectionPlusCrossEntropyLoss, dict(n_loop_iters=4)),
             (FusedProjectionPlusCrossEntropyLoss, dict(n_loop_iters=8)),
-            (FusedProjectionPlusCrossEntropyLoss, dict(n_loop_iters=16)),
+            # (FusedProjectionPlusCrossEntropyLoss, dict(n_loop_iters=16)),
             (modules.VoLinearCrossEntropyLoss, dict()),
             (modules.LiLinearCrossEntropyLoss, dict()),
+            (modules.NewLinearCrossEntropyLoss, dict(force=not True, options=dict())),
+            # (modules.NewLinearCrossEntropyLoss, dict(force=not True, options=dict(max_memory_gb=1))),
+            (
+                modules.NewLinearCrossEntropyLoss,
+                dict(
+                    force=not True, options=dict(max_memory_gb=1.5, grad_inplace=True)
+                ),
+            ),
+            # (modules.NewLinearCrossEntropyLoss, dict(force=not True, options=dict(max_memory_gb=1, grad_inplace=True, features_chunk_size=8192))),
         ],
     )
 
@@ -175,10 +216,20 @@ def configs(default_force=False):
             for value in config[key]:
                 kwargs = deepcopy(config)
                 cls, extra_kwargs = kwargs.pop("module_extra_kwargs")
+                extra_kwargs.pop("bias", None)
                 force = extra_kwargs.pop("force", default_force)
                 num_tokens = kwargs.pop("num_tokens")
                 token_dtype = kwargs.pop("token_dtype")
-                params_ = extra_kwargs.get("params", dict())
+                skip_keys = ["params"]
+                if "options" in extra_kwargs and extra_kwargs["options"] is None:
+                    params_ = extra_kwargs.get(
+                        "params", dict()
+                    )  # leave `options=None` alone
+                else:
+                    params_ = extra_kwargs.get(
+                        "options", extra_kwargs.get("params", dict())
+                    )
+                    skip_keys.append("options")
                 if key == "num_tokens":
                     num_tokens = value
                 elif key == "token_dtype":
@@ -186,13 +237,14 @@ def configs(default_force=False):
                 else:
                     kwargs[key] = value
                 label = " ".join(
-                    [f"{k}={v}" for k, v in extra_kwargs.items() if k != "params"]
+                    [f"{k}={v}" for k, v in extra_kwargs.items() if k not in skip_keys]
                     + [pair2str(k, v) for k, v in params_.items()]
                 )
                 label = f"{cls.__name__}[{label}]" if label else cls.__name__
                 if (
                     issubclass(cls, FusedProjectionPlusCrossEntropyLoss)
                     or issubclass(cls, modules.MyLinearCrossEntropyLoss)
+                    or issubclass(cls, modules.NewLinearCrossEntropyLoss)
                 ) and token_dtype != torch.int64:
                     continue
                 yield label, cls, kwargs, extra_kwargs, num_tokens, token_dtype, force
@@ -234,7 +286,6 @@ def measure(queue, cls, args, kwargs, num_tokens, token_dtype):
         )
         tokens = tokens.clone()
         module = cls(*args, **kwargs)
-        ref_module = cls(*args, **kwargs)
         loss = module(features, tokens).mean()
         _ = loss.backward()
         loss = loss.detach().item()
@@ -340,6 +391,8 @@ def measure(queue, cls, args, kwargs, num_tokens, token_dtype):
         kwargs.pop("splits", None)
         kwargs.pop("inplace_grad", None)
         kwargs.pop("params", None)
+        kwargs.pop("bias", None)
+        kwargs.pop("options", None)
         ref_module = nn.LinearCrossEntropyLoss(*args, **kwargs).to(torch.float64)
 
         l = module(features, tokens).sum()
@@ -360,7 +413,7 @@ def measure(queue, cls, args, kwargs, num_tokens, token_dtype):
         print(message)
 
     cuda_mem_gb = (final_peak_mem_bytes - initial_peak_mem_bytes) / 1e9
-    print(f"{int(cuda_mem_gb * 1e9 / dtype.itemsize)=}")
+    # print(f"{int(cuda_mem_gb * 1e9 / dtype.itemsize)=}")
     queue.put(
         dict(
             message=message,
@@ -389,7 +442,7 @@ def unserialize(fieldname, rawvalue):
     if fieldname in float_fields:
         return float(rawvalue)
     if fieldname in bool_fields:
-        return {"False": False, "True": True}[rawvalue]
+        return {"False": False, "True": True, "": "N/A", "N/A": "N/A"}[rawvalue]
     if ":" not in rawvalue:
         return rawvalue
     typename, value = rawvalue.split(":", 1)
@@ -424,7 +477,7 @@ def load_measurements(path):
             reader = csv.DictReader(csvfile, delimiter=";")
             for row in reader:
                 row = dict([(k, unserialize(k, v)) for k, v in row.items()])
-                if row.get("num_classes", 0) <= 32768:
+                if row.get("num_classes", 0) <= 32768 or 1:
                     data.append(row)
     return data
 
@@ -512,7 +565,15 @@ def compute(data, force=False):
                     del data[i]
             args = (kwargs.pop("in_features"), kwargs.pop("num_classes"))
             kwargs = dict(kwargs, **extra_kwargs)
-            print(f"{cls=}")
+            if cls in {
+                modules.NewLinearCrossEntropyLoss,
+                torch.nn.modules.loss.LinearCrossEntropyLoss,
+                PyTorchProjectionPlusCrossEntropyLoss,
+                FusedProjectionPlusCrossEntropyLoss,
+                modules.VoLinearCrossEntropyLoss,
+                modules.LiLinearCrossEntropyLoss,
+            }:
+                assert kwargs.pop("bias", False) in {False, "N/A", ""}
             q = mp_ctx.Queue()
             # executing measure in mp.Process enables correct CPU memory
             # usage measurement
@@ -704,7 +765,6 @@ def plot(data, plot_params, reference_label=None):
         suptitle = tolabel(
             common_params, ignore=["device_name", "device", "token_dtype"]
         )
-
         fig, axes = plt.subplots(len(yfields), len(xfields), figsize=(24, 12), dpi=300)
 
         def base_model(in_features, num_tokens, num_classes, dtype):
@@ -731,7 +791,10 @@ def plot(data, plot_params, reference_label=None):
         for xi, (params, series) in enumerate(all_series):
             title = tolabel(params, ignore=common_params)
             for yi, yfield in enumerate(yfields):
-                ax = axes[yi][xi]
+                if len(xfields) == 1 and xi == 0:
+                    ax = axes[yi]
+                else:
+                    ax = axes[yi][xi]
                 if reference_label is not None:
                     ((xfield, x)), ydata = series[reference_label]
                     z = np.polyfit(x, ydata[yfield], 1)
@@ -749,9 +812,9 @@ def plot(data, plot_params, reference_label=None):
                     )
                     if reference is not None:
                         y = np.array(y) - reference(np.array(x))
-                    ax.plot(x, y, "--o", label=label)
+                    ax.plot(x, y, "-o", label=label)
                 if yfield == "cuda_mem_gb":
-                    x1, x2 = min(x) * 0.0, max(x) * 1.1
+                    x1, x2 = min(x) * 1, max(x) * 1
                     if xfield == "in_features":
                         y1 = base_model(
                             x1,
@@ -795,7 +858,7 @@ def plot(data, plot_params, reference_label=None):
                         assert 0, xfield
                     if reference is not None:
                         y1, y2 = np.array([y1, y2]) - reference(np.array([x1, x2]))
-                    ax.plot([x1, x2], [y1, y2], "k-", label="Theoretical infima")
+                    ax.plot([x1, x2], [y1, y2], "k-.", label="Theoretical infima")
                 ax.set_xlabel(toxlabel(xfield))
                 ax.set_ylabel(toxlabel(yfield, reference=reference))
                 ax.set_title(title)
@@ -856,7 +919,7 @@ def main():
                     *(
                         f"MyLinearCrossEntropyLoss[grad_inplace=True max_memory_gb={0.5 * k} {min_chunk_size=}]"
                         for k in [1, 2, 3, 4, 5, 6][1:2]
-                        for min_chunk_size in [256, 512, 1024][1:2]
+                        for min_chunk_size in [256, 512, 1024][:0]
                     ),
                     # "MyLinearCrossEntropyLoss[splits=(1, 1, 1)]",
                     # "MyLinearCrossEntropyLoss[splits=(1, 8, 1)]",
@@ -868,7 +931,8 @@ def main():
                     # "MyLinearCrossEntropyLoss[num_chunks=4]",
                     # "MyLinearCrossEntropyLoss[num_chunks=8]",
                     # "MyLinearCrossEntropyLoss[num_chunks=16]",
-                    "LinearCrossEntropyLoss",
+                    # "LinearCrossEntropyLoss",
+                    "LinearCrossEntropyLoss[options=None]",
                     "VoLinearCrossEntropyLoss",
                     "LiLinearCrossEntropyLoss",
                     # "FusedProjectionPlusCrossEntropyLoss[n_loop_iters=1]",
@@ -877,6 +941,11 @@ def main():
                     "FusedProjectionPlusCrossEntropyLoss[n_loop_iters=8]",
                     # "FusedProjectionPlusCrossEntropyLoss[n_loop_iters=16]",
                     # "PyTorchProjectionPlusCrossEntropyLoss",
+                    # "NewLinearCrossEntropyLoss",
+                    # "NewLinearCrossEntropyLoss[max_memory_gb=1]",
+                    "NewLinearCrossEntropyLoss[max_memory_gb=1.5 grad_inplace=True]",
+                    # "NewLinearCrossEntropyLoss[max_memory_gb=1 grad_inplace=True features_chunk_size=8192]",
+                    # "NewLinearCrossEntropyLoss[max_memory_gb=2]",
                 ]
             ),
         )

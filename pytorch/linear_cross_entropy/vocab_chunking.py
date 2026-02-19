@@ -5,9 +5,10 @@ import ctypes
 from functools import cache
 
 import torch
-#import torch.distributed._functional_collectives as funcol
-#from torch.distributed.distributed_c10d import _resolve_process_group
-#from torch.distributed.tensor import DTensor, Replicate, Shard
+
+# import torch.distributed._functional_collectives as funcol
+# from torch.distributed.distributed_c10d import _resolve_process_group
+# from torch.distributed.tensor import DTensor, Replicate, Shard
 from torch.utils.flop_counter import register_flop_formula
 
 WEIGHT_BLOCK = 4096
@@ -28,6 +29,7 @@ CUBLAS_GEMM_DEFAULT = ctypes.c_int(-1)
 float_dtype = torch.bfloat16
 float_dtype = torch.float32
 float32_dtype = torch.float32
+
 
 def addmm_fp32(
     a: torch.Tensor,
@@ -219,7 +221,7 @@ def fused_matmul_cross_entropy_fwd(
     pg_name: str | None,
 ) -> tuple[torch.Tensor, torch.Tensor, torch.Tensor]:
     tp_size = 1
-    #pg: torch.distributed.ProcessGroup | None = None
+    # pg: torch.distributed.ProcessGroup | None = None
     pg = None
     if pg_name is not None:
         pg = _resolve_process_group(pg_name)
@@ -341,7 +343,7 @@ def fused_matmul_cross_entropy_bwd(
     pg_name: str | None,
 ) -> tuple[torch.Tensor, torch.Tensor]:
     tp_size = 1
-    #pg: torch.distributed.ProcessGroup | None = None
+    # pg: torch.distributed.ProcessGroup | None = None
     pg = None
     if pg_name is not None:
         pg = _resolve_process_group(pg_name)
