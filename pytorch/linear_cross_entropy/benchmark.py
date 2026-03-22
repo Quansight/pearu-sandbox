@@ -188,14 +188,13 @@ def configs(default_force=False):
             # (FusedProjectionPlusCrossEntropyLoss, dict(n_loop_iters=16)),
             (modules.VoLinearCrossEntropyLoss, dict()),
             (modules.LiLinearCrossEntropyLoss, dict()),
-            (modules.NewLinearCrossEntropyLoss, dict(force=not True, options=dict())),
+            (modules.NewLinearCrossEntropyLoss, dict(force=not True, options=torch.nn.functional.LinearCrossEntropyOptions(grad_inplace=True, chunking_method="liger"))),
+            (modules.NewLinearCrossEntropyLoss, dict(force=not True, options=torch.nn.functional.LinearCrossEntropyOptions(grad_inplace=False, chunking_method="liger"))),
+            (modules.NewLinearCrossEntropyLoss, dict(force=not True, options=torch.nn.functional.LinearCrossEntropyOptions())),
+            (modules.NewLinearCrossEntropyLoss, dict(force=not True, options=torch.nn.functional.LinearCrossEntropyOptions(grad_inplace=True))),
+            *((modules.NewLinearCrossEntropyLoss, dict(force=not True, options=torch.nn.functional.LinearCrossEntropyOptions(grad_inplace=True, batch_chunk_size=1024 * k ))) for k in [1, 2, 4]),
             # (modules.NewLinearCrossEntropyLoss, dict(force=not True, options=dict(max_memory_gb=1))),
-            (
-                modules.NewLinearCrossEntropyLoss,
-                dict(
-                    force=not True, options=dict(max_memory_gb=1.5, grad_inplace=True)
-                ),
-            ),
+            # (modules.NewLinearCrossEntropyLoss,dict(force=not True, options=dict(max_memory_gb=1.5, grad_inplace=True))),
             # (modules.NewLinearCrossEntropyLoss, dict(force=not True, options=dict(max_memory_gb=1, grad_inplace=True, features_chunk_size=8192))),
         ],
     )
@@ -229,6 +228,9 @@ def configs(default_force=False):
                     params_ = extra_kwargs.get(
                         "options", extra_kwargs.get("params", dict())
                     )
+                    if isinstance(params_, torch.nn.functional.LinearCrossEntropyOptions):
+                        import dataclasses
+                        params_ = dataclasses.asdict(params_)
                     skip_keys.append("options")
                 if key == "num_tokens":
                     num_tokens = value
@@ -238,7 +240,7 @@ def configs(default_force=False):
                     kwargs[key] = value
                 label = " ".join(
                     [f"{k}={v}" for k, v in extra_kwargs.items() if k not in skip_keys]
-                    + [pair2str(k, v) for k, v in params_.items()]
+                    + [pair2str(k, v) for k, v in params_.items() if (v is not None or k not in {"batch_chunk_size", "chunking_method"})]
                 )
                 label = f"{cls.__name__}[{label}]" if label else cls.__name__
                 if (
@@ -709,6 +711,7 @@ def toxlabel(field, reference=None):
 
 
 def plot(data, plot_params, reference_label=None):
+    print(f'{plot_params=}')
     import matplotlib.pyplot as plt
 
     paths = []
@@ -721,6 +724,7 @@ def plot(data, plot_params, reference_label=None):
             data, dict(device_name=device_name, **plot_params)
         )
         if not device_data:
+            print(f'no data: {plot_params=}')
             continue
         device = get_values(device_data, "device")
         assert len(device) == 1, device
@@ -932,26 +936,32 @@ def main():
                     # "MyLinearCrossEntropyLoss[num_chunks=8]",
                     # "MyLinearCrossEntropyLoss[num_chunks=16]",
                     # "LinearCrossEntropyLoss",
-                    "LinearCrossEntropyLoss[options=None]",
-                    "VoLinearCrossEntropyLoss",
+                    #"LinearCrossEntropyLoss[options=None]",
+                    # "VoLinearCrossEntropyLoss",
                     "LiLinearCrossEntropyLoss",
                     # "FusedProjectionPlusCrossEntropyLoss[n_loop_iters=1]",
                     # "FusedProjectionPlusCrossEntropyLoss[n_loop_iters=2]",
                     # "FusedProjectionPlusCrossEntropyLoss[n_loop_iters=4]",
-                    "FusedProjectionPlusCrossEntropyLoss[n_loop_iters=8]",
+                    # "FusedProjectionPlusCrossEntropyLoss[n_loop_iters=8]",
                     # "FusedProjectionPlusCrossEntropyLoss[n_loop_iters=16]",
                     # "PyTorchProjectionPlusCrossEntropyLoss",
                     # "NewLinearCrossEntropyLoss",
                     # "NewLinearCrossEntropyLoss[max_memory_gb=1]",
-                    "NewLinearCrossEntropyLoss[max_memory_gb=1.5 grad_inplace=True]",
+                    # "NewLinearCrossEntropyLoss[max_memory_gb=1.5 grad_inplace=True]",
                     # "NewLinearCrossEntropyLoss[max_memory_gb=1 grad_inplace=True features_chunk_size=8192]",
                     # "NewLinearCrossEntropyLoss[max_memory_gb=2]",
+                    # "NewLinearCrossEntropyLoss[grad_inplace=False batch_chunk_size=None]",
+                    # "NewLinearCrossEntropyLoss[grad_inplace=True batch_chunk_size=None]",
+                    "NewLinearCrossEntropyLoss[grad_inplace=True chunking_method=liger]",
+                    #"NewLinearCrossEntropyLoss[grad_inplace=False batch_chunk_size=liger]",
+                    *(f"NewLinearCrossEntropyLoss[grad_inplace=True batch_chunk_size={1024*k}]" for k in [1, 2][:0]),
                 ]
             ),
         )
+
     if 0:
         plot(data, dict(reduction="mean", token_dtype=torch.float32))
-    if 1:
+    if 0:
         plot(data, dict(reduction="mean", token_dtype=torch.int64))
     if 1:
         plot(

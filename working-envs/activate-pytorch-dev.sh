@@ -59,7 +59,7 @@ then
     else
         # when using cuda version different from 10.1, say 10.2, then run
         #   conda install -c conda-forge nvcc_linux-64=10.2 magma-cuda102
-        CUDA_VERSION=${CUDA_VERSION:-13.0.2}
+        CUDA_VERSION=${CUDA_VERSION:-13.1.0}
         . /usr/local/cuda-${CUDA_VERSION}/env.sh
     fi
 

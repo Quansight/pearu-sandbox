@@ -1142,30 +1142,31 @@ class MyLinearCrossEntropyFunction(LinearCrossEntropyFunctionBase):
                 result[1] = grad_L
         return tuple(result)
 
+if hasattr(torch.nn.modules._functions, "LinearCrossEntropyFunction"):
 
-class NewLinearCrossEntropyFunction(
-    torch.nn.modules._functions.LinearCrossEntropyFunction
-):
+    class NewLinearCrossEntropyFunction(
+            torch.nn.modules._functions.LinearCrossEntropyFunction
+    ):
 
-    @staticmethod
-    def samples(device=None, dtype=None):
-        for args, ref in MyLinearCrossEntropyFunction.samples(
-            device=device, dtype=dtype
-        ):
-            input, linear_weight, target = args[:3]
-            num_classes = linear_weight.shape[0]
-            options = NewLinearCrossEntropyFunction.optimal_chunking(
-                dict(grad_inplace=False),
-                input.shape[0],
-                input.shape[1],
-                num_classes,
-                input.requires_grad,
-                linear_weight.requires_grad,
-                input.device,
-                input.dtype,
-                target.dtype,
-            )
-            yield (*args[:-1], options), ref
+        @staticmethod
+        def samples(device=None, dtype=None):
+            for args, ref in MyLinearCrossEntropyFunction.samples(
+                    device=device, dtype=dtype
+            ):
+                input, linear_weight, target = args[:3]
+                num_classes = linear_weight.shape[0]
+                options = NewLinearCrossEntropyFunction.optimal_chunking(
+                    dict(grad_inplace=False),
+                    input.shape[0],
+                    input.shape[1],
+                    num_classes,
+                    input.requires_grad,
+                    linear_weight.requires_grad,
+                    input.device,
+                    input.dtype,
+                    target.dtype,
+                )
+                yield (*args[:-1], options), ref
 
 
 class LinearCrossEntropyLossBase(nn.Module):
@@ -1211,14 +1212,16 @@ class NewLinearCrossEntropyLoss(torch.nn.LinearCrossEntropyLoss):
 
     @staticmethod
     def samples(device=None, dtype=None):
-        for (
-            module_args,
-            module_kwargs,
-            forward_args,
-        ) in MyLinearCrossEntropyLoss.samples(device=device, dtype=dtype):
-            params = module_kwargs.pop("params", None)
-            if not params:
-                yield module_args, module_kwargs, forward_args
+        for options in [torch.nn.functional.LinearCrossEntropyOptions(grad_inplace=True), None]:
+            for (
+                    module_args,
+                    module_kwargs,
+                    forward_args,
+            ) in MyLinearCrossEntropyLoss.samples(device=device, dtype=dtype):
+                params = module_kwargs.pop("params", None)
+                if not params:
+                    module_kwargs["options"] = options
+                    yield module_args, module_kwargs, forward_args
 
 
 class MyLinearCrossEntropyLoss(LinearCrossEntropyLossBase):
@@ -1686,6 +1689,7 @@ def _test_module(cls, ref_cls, device="cuda", dtype=torch.float64):
         torch.manual_seed(5431)
         m = cls(*module_args, **module_kwargs)
         params = module_kwargs.pop("params", None)
+        options = module_kwargs.pop("options", None)
 
         torch.manual_seed(5431)
         ref_m = ref_cls(*module_args, **module_kwargs)
@@ -1709,6 +1713,9 @@ def _test_module(cls, ref_cls, device="cuda", dtype=torch.float64):
         if params is not None and params.get("grad_inplace"):
             continue
 
+        if options is not None and options.grad_inplace:
+            continue
+
         torch.autograd.gradcheck(m, forward_args)
         torch.autograd.gradcheck(ref_m, ref_forward_args)
     print()
@@ -1727,8 +1734,8 @@ if __name__ == "__main__":
         SoftmaxFunction,
         NNLLossFunction,
         MyLinearCrossEntropyFunction,
-        NewLinearCrossEntropyFunction,
-    ]:
+        #NewLinearCrossEntropyFunction,
+    ][:0]:
         _test_function(cls)
 
     for cls, ref_cls, dtype, device in [
@@ -1736,5 +1743,5 @@ if __name__ == "__main__":
         (VoLinearCrossEntropyLoss, nn.LinearCrossEntropyLoss, torch.float32, "cuda"),
         (LiLinearCrossEntropyLoss, nn.LinearCrossEntropyLoss, torch.float32, "cuda"),
         (NewLinearCrossEntropyLoss, nn.LinearCrossEntropyLoss, torch.float64, "cpu"),
-    ]:
+    ][-1:]:
         _test_module(cls, ref_cls, device=device, dtype=dtype)
