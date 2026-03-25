@@ -85,7 +85,7 @@ def pair2str(key, value):
 
 def configs(default_force=False):
     params = dict(
-        dtype=[torch.float32],
+        dtype=[torch.float32, torch.bfloat16][1:],
         token_dtype=[torch.long, torch.float32][:1],
         device=["cuda", "cpu"][:1],
         in_features=[
@@ -876,6 +876,8 @@ def plot(data, plot_params, reference_label=None):
             else:
                 suffix.append("indices")
                 suptitle = f"{suptitle}\nclass indices targets"
+        if "dtype" in plot_params:
+            suffix.append(str(plot_params["dtype"]).split(".")[-1])
         suffix = "-".join(suffix)
 
         filename = device_name.replace(" ", "_") + f"{suffix}.png"
@@ -964,8 +966,7 @@ def main():
     if 1:
         plot(
             data,
-            dict(reduction="sum", token_dtype=torch.int64),
-            # reference_label="MyLinearCrossEntropyLoss[splits=(1, 1, 1)]"
+            dict(reduction="sum", token_dtype=torch.int64, dtype=torch.bfloat16),
         )
 
 
