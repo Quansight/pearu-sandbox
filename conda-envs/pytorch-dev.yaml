@@ -27,4 +27,5 @@ dependencies:
   - psutil
   - hypothesis
   - mypy=0.770
+  - six
 

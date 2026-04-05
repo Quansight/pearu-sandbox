@@ -32,6 +32,7 @@ dependencies:
   - expecttest
   - ruff
   - ufmt
+  - six
   # Fix `ssh -V` -> OpenSSL version mismatch. Built against 30000020, you have 30100030
   - openssl  # =3.0
   # check out here
