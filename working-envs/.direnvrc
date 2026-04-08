@@ -31,11 +31,12 @@ install_envrc() {
     # Author: Pearu Peterson
     # Created: November 2019
     #
-    local MY_DIRENV="${HOME}/git/Quansight/pearu-sandbox/working-envs"
+    local MY_DIRENV="${HOME}/git/openteams-ai/pearu-sandbox/working-envs"
     if [[ -n "$1" ]]; then
         if [[ -d $1 ]]; then
             MY_DIRENV=$1
         else
+            (>&2 echo $MY_DIRENV does not exists!);
             return 1
         fi
     fi
@@ -45,6 +46,7 @@ install_envrc() {
         local ENVSH2="${MY_DIRENV}/activate-$(basename $d).sh"
         local ENVSH_PYTORCH="${MY_DIRENV}/activate-pytorch-dev.sh"
         local ENVSH_HEAVYDB="${MY_DIRENV}/activate-heavydb-internal-dev.sh"
+        local ENVSH_LITT="${MY_DIRENV}/activate-litt-dev.sh"
         local ENVSH_JAX="${MY_DIRENV}/activate-jax-dev.sh"
         if [[ -f $ENVSH && ! -f $d/.envrc ]]
         then
@@ -62,6 +64,14 @@ install_envrc() {
             then
                 (>&2 echo Using heavydb-internal-dev for $d);
                 ln -svf $ENVSH_HEAVYDB $d/.envrc
+            elif [[ $d == *"litt"* ]]
+            then
+                (>&2 echo Using litt-dev for $d);
+                ln -svf $ENVSH_LITT $d/.envrc
+            elif [[ $d == *"LITT"* ]]
+            then
+                (>&2 echo Using litt-dev for $d);
+                ln -svf $ENVSH_LITT $d/.envrc
             elif [[ $d == *"flax"* ]]
             then
                 (>&2 echo Using jax-dev for $d);
