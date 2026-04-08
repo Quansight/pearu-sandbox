@@ -1,0 +1,31 @@
+name: litt-dev
+channels:
+  - conda-forge
+  - nodefaults
+dependencies:
+  - python=3.13
+  - setuptools
+  - pip
+  - numba
+  - llvmlite
+  - pytest
+  - pytest-xdist
+  - hypothesis
+  - pandas
+  - filelock
+  - more-itertools
+  - networkx
+  - git-lfs
+  - scipy
+  - lenses
+  - dask
+  - pyinstrument
+  - matplotlib
+  - tqdm
+  - tabulate
+  - pandera
+  - scikit-image
+  - jsonschema
+  - cython
+  - mypy
+  - chardet
