@@ -39,7 +39,14 @@
 #                                           visible inside it:
 #     $HOME/.claude                         read-write (claude's state dir)
 #     $HOME/.claude.json                    read-write (claude's config file)
-#     $CONDA_PREFIX  (if set)               read-only, env stays activated
+#     $CONDA_PREFIX  (if set)               read-only by default; the base
+#                                           conda install (where conda/mamba
+#                                           live) is also bound so those
+#                                           commands work. Set
+#                                           CLAUDE_SANDBOX_CONDA_WRITE=1 to
+#                                           bind both read-write — required
+#                                           for `mamba install`/`pip install`
+#                                           into the active env.
 #     $CWD                                  read-write (unless CWD == $HOME,
 #                                           in which case nothing extra is
 #                                           bound — refuse to expose all of
@@ -65,6 +72,10 @@
 #   CLAUDE_SANDBOX_RW=/path/c           extra read-write paths (colon-sep)
 #   CLAUDE_SANDBOX_PASSENV="A B C"      extra env vars to forward (space-
 #                                       or colon-separated names)
+#   CLAUDE_SANDBOX_CONDA_WRITE=1        bind the active conda env (and its
+#                                       base install) read-write, so claude
+#                                       can `mamba install`, `pip install`,
+#                                       etc. Default 0 (read-only) is safer.
 #   CLAUDE_SANDBOX_NET=proxy|strict|open|none  network mode (default: proxy)
 #       proxy  : --share-net plus HTTPS_PROXY pointing at a host-side
 #                mitmproxy that enforces ~/.config/claude-sandbox/allowlist.txt.
@@ -448,16 +459,52 @@ claude() (
   fi
   args+=( --chdir "$cwd" )
 
-  # Active conda/mamba environment (read-only). The caller's PATH already
-  # has the env's bin at the front, so claude finds env-installed tools.
+  # Active conda/mamba environment. Mode is controlled by
+  # CLAUDE_SANDBOX_CONDA_WRITE:
+  #   unset/0  : env is read-only — claude can run tools from it but cannot
+  #              install/uninstall packages (`mamba install` will fail).
+  #   1        : env (and the base conda install) is read-write — claude
+  #              can mutate the environment, including installing software.
+  # The base conda install (where the conda/mamba binaries live) is bound
+  # in the same mode so commands like `mamba install` and `conda list`
+  # actually find their executables and package cache.
   if [[ -n "${CONDA_PREFIX:-}" && -d "$CONDA_PREFIX" ]]; then
+    if [[ "${CLAUDE_SANDBOX_CONDA_WRITE:-0}" == "1" ]]; then
+      _conda_mode="--bind"
+    else
+      _conda_mode="--ro-bind"
+    fi
+
+    # Find the base conda install (where condabin/, bin/conda, bin/mamba,
+    # and the package cache pkgs/ live). Try several signals, in order.
+    _conda_base=""
+    if [[ -n "${MAMBA_ROOT_PREFIX:-}" && -d "${MAMBA_ROOT_PREFIX}" ]]; then
+      _conda_base="$MAMBA_ROOT_PREFIX"
+    elif [[ -n "${CONDA_ROOT_PREFIX:-}" && -d "${CONDA_ROOT_PREFIX}" ]]; then
+      _conda_base="$CONDA_ROOT_PREFIX"
+    elif [[ -n "${CONDA_PYTHON_EXE:-}" && -x "${CONDA_PYTHON_EXE}" ]]; then
+      _conda_base="$(dirname "$(dirname "$CONDA_PYTHON_EXE")")"
+    elif [[ "$CONDA_PREFIX" == */envs/* ]]; then
+      _conda_base="${CONDA_PREFIX%/envs/*}"
+    fi
+
     args+=(
-      --ro-bind "$CONDA_PREFIX" "$CONDA_PREFIX"
-      --setenv  CONDA_PREFIX    "$CONDA_PREFIX"
+      "$_conda_mode" "$CONDA_PREFIX" "$CONDA_PREFIX"
+      --setenv CONDA_PREFIX "$CONDA_PREFIX"
     )
-    [[ -n "${CONDA_DEFAULT_ENV:-}"  ]] && args+=( --setenv CONDA_DEFAULT_ENV  "$CONDA_DEFAULT_ENV"  )
-    [[ -n "${CONDA_SHLVL:-}"        ]] && args+=( --setenv CONDA_SHLVL        "$CONDA_SHLVL"        )
-    [[ -n "${MAMBA_ROOT_PREFIX:-}"  ]] && args+=( --setenv MAMBA_ROOT_PREFIX  "$MAMBA_ROOT_PREFIX"  )
+    [[ -n "${CONDA_DEFAULT_ENV:-}" ]] && args+=( --setenv CONDA_DEFAULT_ENV "$CONDA_DEFAULT_ENV" )
+    [[ -n "${CONDA_SHLVL:-}"       ]] && args+=( --setenv CONDA_SHLVL       "$CONDA_SHLVL"       )
+    [[ -n "${MAMBA_ROOT_PREFIX:-}" ]] && args+=( --setenv MAMBA_ROOT_PREFIX "$MAMBA_ROOT_PREFIX" )
+    [[ -n "${CONDA_ROOT_PREFIX:-}" ]] && args+=( --setenv CONDA_ROOT_PREFIX "$CONDA_ROOT_PREFIX" )
+    [[ -n "${CONDA_PYTHON_EXE:-}"  ]] && args+=( --setenv CONDA_PYTHON_EXE  "$CONDA_PYTHON_EXE"  )
+
+    # Bind the base prefix separately, but only if it's distinct from
+    # $CONDA_PREFIX (otherwise we'd try to bind the same path twice and
+    # bwrap would error).
+    if [[ -n "$_conda_base" && "$_conda_base" != "$CONDA_PREFIX" \
+          && -d "$_conda_base" ]]; then
+      args+=( "$_conda_mode" "$_conda_base" "$_conda_base" )
+    fi
   fi
 
   # User-supplied extra paths.
