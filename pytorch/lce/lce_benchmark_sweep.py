@@ -378,12 +378,15 @@ def main() -> int:
 
     if device_type == "cuda":
         axes_table = dict(CUDA_AXES)
-        defaults = CUDA_DEFAULTS
+        defaults = dict(CUDA_DEFAULTS)
     else:
         axes_table = dict(CPU_AXES)
-        defaults = CPU_DEFAULTS
+        defaults = dict(CPU_DEFAULTS)
 
-    # CLI overrides for the swept axis values.
+    # CLI overrides update both the swept axis values AND the default
+    # used when that axis is NOT the swept one (otherwise non-swept axes
+    # would still pull from CUDA_DEFAULTS / CPU_DEFAULTS even when the
+    # user expected a uniform shift).
     for key, override in (
         ("num_tokens", args.num_tokens),
         ("in_features", args.in_features),
@@ -391,6 +394,10 @@ def main() -> int:
     ):
         if override is not None:
             axes_table[key] = override
+            # Preserve the original default if it's still in the override
+            # list; otherwise pick the median of the new range.
+            if defaults[key] not in override:
+                defaults[key] = sorted(override)[len(override) // 2]
 
     csv_paths: list[Path] = []
     for dtype in args.dtypes:
