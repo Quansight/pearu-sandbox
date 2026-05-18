@@ -335,6 +335,28 @@ def _parse_args():
     p.add_argument("--out-dir", default=str(_THIS_DIR / "sweep_out"))
     p.add_argument("--data-subdir", default="data")
     p.add_argument("--axes", nargs="+", default=list(AXIS_NAMES))
+    p.add_argument(
+        "--num-tokens",
+        nargs="+",
+        type=int,
+        default=None,
+        help="override the swept values for num_tokens (defaults to "
+        "CUDA_AXES / CPU_AXES depending on --device)",
+    )
+    p.add_argument(
+        "--in-features",
+        nargs="+",
+        type=int,
+        default=None,
+        help="override the swept values for in_features",
+    )
+    p.add_argument(
+        "--num-classes",
+        nargs="+",
+        type=int,
+        default=None,
+        help="override the swept values for num_classes",
+    )
     p.add_argument("--warmup", type=int, default=2)
     p.add_argument("--iters", type=int, default=5)
     p.add_argument("--force", action="store_true", help="re-run even if CSV exists")
@@ -355,11 +377,20 @@ def main() -> int:
         device_type = args.device
 
     if device_type == "cuda":
-        axes_table = CUDA_AXES
+        axes_table = dict(CUDA_AXES)
         defaults = CUDA_DEFAULTS
     else:
-        axes_table = CPU_AXES
+        axes_table = dict(CPU_AXES)
         defaults = CPU_DEFAULTS
+
+    # CLI overrides for the swept axis values.
+    for key, override in (
+        ("num_tokens", args.num_tokens),
+        ("in_features", args.in_features),
+        ("num_classes", args.num_classes),
+    ):
+        if override is not None:
+            axes_table[key] = override
 
     csv_paths: list[Path] = []
     for dtype in args.dtypes:

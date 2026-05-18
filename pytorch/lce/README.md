@@ -68,6 +68,17 @@ Restrict to one axis (cheaper smoke test):
 python lce_benchmark_sweep.py --dtypes bfloat16 --axes num_classes
 ```
 
+Override the swept values for one or more axes (e.g. push num_classes
+into LLaMA-3 / Qwen3 territory):
+
+```bash
+python lce_benchmark_sweep.py --dtypes bfloat16 \
+    --num-classes 4096 8192 16384 32000 65536 128000 256000
+```
+
+Same idea for `--num-tokens` and `--in-features`. Omitted axes fall back
+to the device-specific defaults in `CUDA_AXES` / `CPU_AXES`.
+
 Re-run points whose CSVs already exist:
 
 ```bash
