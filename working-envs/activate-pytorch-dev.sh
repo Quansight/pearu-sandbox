@@ -60,7 +60,11 @@ then
         # when using cuda version different from 10.1, say 10.2, then run
         #   conda install -c conda-forge nvcc_linux-64=10.2 magma-cuda102
         CUDA_VERSION=${CUDA_VERSION:-13.1.0}
-        . /usr/local/cuda-${CUDA_VERSION}/env.sh
+        if [[ -d "/usr/local/cuda-${CUDA_VERSION}" ]]; then
+            . /usr/local/cuda-${CUDA_VERSION}/env.sh
+        else
+            . /usr/local/cuda/env.sh
+        fi
     fi
 
     if [[ $CONDA_ENV_LIST = *"$USE_ENV"* ]]
@@ -72,7 +76,7 @@ then
         fi
     else
         echo "conda environment does not exist. To create $USE_ENV, run:"
-        echo "conda env create --file=~/git/Quansight/pearu-sandbox/conda-envs/pytorch-cuda-dev.yaml -n $USE_ENV"
+        echo "mamba env create --file=~/git/openteams-ai/pearu-sandbox/conda-envs/pytorch-cuda-dev.yaml -n $USE_ENV"
         exit 1
     fi
 
@@ -167,7 +171,7 @@ else
         fi
     else
         echo "conda environment does not exist. To create $USE_ENV, run:"
-        echo "mamba env create --file=~/git/Quansight/pearu-sandbox/conda-envs/pytorch-dev.yaml -n $USE_ENV"
+        echo "mamba env create --file=~/git/openteams-ai/pearu-sandbox/conda-envs/pytorch-dev.yaml -n $USE_ENV"
         exit 1
     fi
     # Don't set *FLAGS before activating the conda environment.
@@ -216,11 +220,6 @@ CXXFLAGS=\"-shared-libasan -pthread -D_GLIBCXX_USE_CXX11_ABI=0\" \
 USE_CUDA=0 USE_OPENMP=0 BUILD_CAFFE2_OPS=0 USE_DISTRIBUTED=0 DEBUG=1"
 fi
 
-if [[ "" && ! -n "$(type -t layout_conda)" ]]; then
-    cd ~/git/Quansight/pytorch${Python-}
-fi
-
-
 if [[ "$(git rev-parse --is-inside-work-tree 2>&1)" = "true" ]]
 then
     echo -e "Local branches:\n"
@@ -230,14 +229,7 @@ else
 Not inside a git repository.
 
 To clone pytorch from Quansight fork, run:
-
-  git clone git@github.com:Quansight/pytorch.git
-  cd pytorch
-  git remote add upstream https://github.com/pytorch/pytorch.git
-  git remote add Quansight git@github.com:Quansight/pytorch.git
-  git fetch upstream
-  git rebase upstream/main
-
+  ...
 EndOfMessage
 fi
 

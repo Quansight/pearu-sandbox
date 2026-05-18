@@ -9,7 +9,7 @@ name: pytorch-cuda-dev
 channels:
   - conda-forge
   - pytorch
-  - defaults
+  - nodefaults
 dependencies:
   - python=3
   - pip
