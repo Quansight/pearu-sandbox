@@ -358,10 +358,14 @@ def _worker_main(payload: dict) -> None:
         try:
             if device_type == "cuda":
                 free_bytes, _ = torch.cuda.mem_get_info()
-                # fp64 tensors: ref_input (N*D), ref_weight (V*D), logits (N*V),
-                # ref_input.grad (N*D), ref_weight.grad (V*D), plus intermediates.
-                # Factor ~3x for safety.
-                needed = (N * D + V * D + N * V + N * D + V * D) * 8 * 3
+                # Peak fp64 footprint of the reference call: ref_input
+                # (N*D) + ref_weight (V*D) + logits (N*V) from F.linear +
+                # grad_logits/softmax temp (N*V) from F.cross_entropy
+                # backward + ref_input.grad (N*D) + ref_weight.grad (V*D),
+                # times 8 (fp64). 1.5x leaves headroom for small temps the
+                # allocator may carry; tighter caused false skips on
+                # small-V configs that would fit.
+                needed = (2 * N * D + 2 * V * D + 2 * N * V) * 8 * 1.5
                 if needed > free_bytes:
                     raise torch.OutOfMemoryError(
                         f"grad-error check would need ~{needed / (1024 ** 3):.1f} GiB, "
