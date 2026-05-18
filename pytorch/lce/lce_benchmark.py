@@ -1,0 +1,575 @@
+"""Inner benchmark for linear_cross_entropy.
+
+Measures time, memory, and (optionally) gradient errors for a single
+(num_tokens, in_features, num_classes, dtype, device, reduction, acc_policy,
+chunking_method) point. Writes one CSV row per (acc_policy, chunking_method)
+config plus a 'reference' row (non-chunked F.linear + F.cross_entropy) and,
+when available on CUDA, a 'liger' row.
+
+Used by lce_benchmark_sweep.py. Can also be invoked directly for a single
+point.
+"""
+from __future__ import annotations
+
+import argparse
+import csv
+import gc
+import json
+import os
+import subprocess
+import sys
+import time
+from dataclasses import dataclass, field
+from typing import Optional
+
+import torch
+import torch.nn.functional as F
+
+
+# ---------------------------------------------------------------------------
+# Liger detection (optional dep)
+# ---------------------------------------------------------------------------
+
+def _liger_callable():
+    try:
+        from liger_kernel.transformers.fused_linear_cross_entropy import (
+            LigerFusedLinearCrossEntropyFunction,
+        )
+    except Exception:
+        return None
+
+    def _liger(input, linear_weight, target, reduction="mean"):
+        # Positional order: _input, weight, target, bias, ce_weight,
+        # ignore_index, lse_square_scale, label_smoothing, reduction.
+        return LigerFusedLinearCrossEntropyFunction.apply(
+            input, linear_weight, target, None, None, -100, 0.0, 0.0, reduction
+        )
+
+    return _liger
+
+
+# ---------------------------------------------------------------------------
+# CPU device name (best-effort, used to slugify CPU device subdirs)
+# ---------------------------------------------------------------------------
+
+def _cpu_device_name() -> str:
+    # /proc/cpuinfo "model name" line
+    try:
+        with open("/proc/cpuinfo") as f:
+            for line in f:
+                if line.lower().startswith("model name"):
+                    return line.split(":", 1)[1].strip()
+    except Exception:
+        pass
+    return "cpu"
+
+
+# ---------------------------------------------------------------------------
+# CUDA peak memory tracking (absolute)
+# ---------------------------------------------------------------------------
+
+class _CUDAPeakMonitor:
+    """Records ``torch.cuda.max_memory_allocated()`` over the context body
+    as an absolute peak, not a transient one. To make the number
+    comparable across configurations, the caller must clear any in-flight
+    gradients before entering so the peak isn't biased by warmup-populated
+    state (which would otherwise bloat the caching-allocator baseline
+    and let the in-context allocations slot into the freed blocks
+    invisibly).
+    """
+
+    def __init__(self):
+        self.peak = 0
+
+    def __enter__(self):
+        torch.cuda.synchronize()
+        torch.cuda.empty_cache()
+        torch.cuda.reset_peak_memory_stats()
+        return self
+
+    def __exit__(self, *exc):
+        torch.cuda.synchronize()
+        self.peak = torch.cuda.max_memory_allocated()
+
+    @property
+    def peak_bytes(self) -> int:
+        return self.peak
+
+
+# ---------------------------------------------------------------------------
+# CPU RSS peak monitor (total RSS, not transient)
+# ---------------------------------------------------------------------------
+
+class _RSSPeakMonitor:
+    """Polls /proc/self/status VmHWM in a background thread."""
+
+    def __init__(self, interval: float = 0.005):
+        self.interval = interval
+        self.peak = 0
+        self._stop = False
+        self._thread = None
+
+    def _read_rss_kb(self) -> int:
+        try:
+            with open("/proc/self/status") as f:
+                for line in f:
+                    if line.startswith("VmRSS:"):
+                        return int(line.split()[1])
+        except Exception:
+            pass
+        return 0
+
+    def __enter__(self):
+        import threading
+
+        self.peak = self._read_rss_kb()
+        self._stop = False
+
+        def _loop():
+            while not self._stop:
+                cur = self._read_rss_kb()
+                if cur > self.peak:
+                    self.peak = cur
+                time.sleep(self.interval)
+
+        self._thread = threading.Thread(target=_loop, daemon=True)
+        self._thread.start()
+        return self
+
+    def __exit__(self, *exc):
+        self._stop = True
+        if self._thread is not None:
+            self._thread.join(timeout=1.0)
+
+    @property
+    def peak_bytes(self) -> int:
+        return self.peak * 1024
+
+
+# ---------------------------------------------------------------------------
+# Config
+# ---------------------------------------------------------------------------
+
+@dataclass(frozen=True)
+class Config:
+    label: str
+    acc_policy: Optional[str]  # None for reference / liger
+    chunking_method: Optional[str]
+    use_chunked: bool = True
+    acc_dtype: Optional[str] = None  # "float32" forces mixed-precision path
+
+
+def _build_configs(dtype: str, include_acc_none: bool = False) -> list[Config]:
+    """Build the config matrix.
+
+    For fp16/bf16 input the default is to emit only the ``_fp32`` variants
+    that pin ``acc_dtype=torch.float32`` (the realistic training setup,
+    exercising the cuBLAS out_dtype= / explicit-cast mixed-precision path).
+    Pass ``include_acc_none=True`` to also include the input-dtype-only
+    variants (acc_dtype=None resolves to the input dtype).
+
+    For fp32 input, acc_dtype=fp32 collapses to the input dtype, so only
+    the non-fp32 variants are emitted regardless of ``include_acc_none``.
+    """
+    cfgs: list[Config] = [Config("reference", None, None, use_chunked=False)]
+    fp32_acc = dtype in ("float16", "bfloat16")
+    emit_acc_none = include_acc_none or not fp32_acc
+    for policy in ("accurate", "balanced", "compact"):
+        for cm in ("aspect_ratio", "aspect_ratio:2", "aspect_ratio:4"):
+            if emit_acc_none:
+                cfgs.append(Config(f"{policy}_{cm}", policy, cm))
+            if fp32_acc:
+                cfgs.append(
+                    Config(f"{policy}_{cm}_fp32", policy, cm, acc_dtype="float32")
+                )
+    if emit_acc_none:
+        cfgs.append(Config("auto", "auto", "aspect_ratio:2"))
+    if fp32_acc:
+        cfgs.append(Config("auto_fp32", "auto", "aspect_ratio:2", acc_dtype="float32"))
+    return cfgs
+
+
+# ---------------------------------------------------------------------------
+# Reference path (full materialization)
+# ---------------------------------------------------------------------------
+
+def _reference_forward_backward(input, linear_weight, target, reduction):
+    logits = F.linear(input, linear_weight)
+    loss = F.cross_entropy(logits, target, reduction=reduction)
+    if reduction == "none":
+        loss.sum().backward()
+    else:
+        loss.backward()
+    return loss
+
+
+def _chunked_forward_backward(
+    input, linear_weight, target, reduction, options
+):
+    loss = F.linear_cross_entropy(input, linear_weight, target, reduction=reduction, options=options)
+    if reduction == "none":
+        loss.sum().backward()
+    else:
+        loss.backward()
+    return loss
+
+
+# ---------------------------------------------------------------------------
+# Single-config measurement (runs in subprocess to isolate memory)
+# ---------------------------------------------------------------------------
+
+def _measure_in_subprocess(
+    *,
+    num_tokens: int,
+    in_features: int,
+    num_classes: int,
+    dtype: str,
+    device_type: str,
+    reduction: str,
+    config: Config,
+    allow_retain_graph: bool,
+    warmup: int,
+    iters: int,
+    grad_error_check: bool,
+    seed: int,
+) -> dict:
+    payload = {
+        "num_tokens": num_tokens,
+        "in_features": in_features,
+        "num_classes": num_classes,
+        "dtype": dtype,
+        "device_type": device_type,
+        "reduction": reduction,
+        "label": config.label,
+        "acc_policy": config.acc_policy,
+        "chunking_method": config.chunking_method,
+        "use_chunked": config.use_chunked,
+        "acc_dtype": config.acc_dtype,
+        "allow_retain_graph": allow_retain_graph,
+        "warmup": warmup,
+        "iters": iters,
+        "grad_error_check": grad_error_check,
+        "seed": seed,
+    }
+
+    proc = subprocess.run(
+        [sys.executable, __file__, "--worker", json.dumps(payload)],
+        capture_output=True,
+        text=True,
+    )
+
+    # Identifier fields that pin this row to its point even on subprocess crash.
+    ident = {
+        "label": config.label,
+        "acc_policy": config.acc_policy,
+        "chunking_method": config.chunking_method,
+        "acc_dtype": config.acc_dtype,
+        "num_tokens": num_tokens,
+        "in_features": in_features,
+        "num_classes": num_classes,
+        "dtype": dtype,
+        "device_type": device_type,
+        "reduction": reduction,
+        "allow_retain_graph": allow_retain_graph,
+    }
+    if proc.returncode != 0:
+        return {
+            **ident,
+            "error": proc.stderr.strip() or proc.stdout.strip() or "subprocess failed",
+        }
+    try:
+        parsed = json.loads(proc.stdout.strip().splitlines()[-1])
+        return {**ident, **parsed}
+    except Exception as e:
+        return {**ident, "error": f"parse failed: {e!r}\nstdout: {proc.stdout}"}
+
+
+def _worker_main(payload: dict) -> None:
+    """Runs inside the subprocess; prints a single JSON line on stdout."""
+    torch.manual_seed(payload["seed"])
+
+    device_type = payload["device_type"]
+    dtype_map = {
+        "float16": torch.float16,
+        "bfloat16": torch.bfloat16,
+        "float32": torch.float32,
+    }
+    dtype = dtype_map[payload["dtype"]]
+    device = torch.device("cuda") if device_type == "cuda" else torch.device("cpu")
+
+    N = payload["num_tokens"]
+    D = payload["in_features"]
+    V = payload["num_classes"]
+    reduction = payload["reduction"]
+    label = payload["label"]
+
+    input = torch.randn(N, D, dtype=dtype, device=device, requires_grad=True)
+    linear_weight = torch.randn(V, D, dtype=dtype, device=device, requires_grad=True) * (1.0 / (D ** 0.5))
+    linear_weight = linear_weight.detach().requires_grad_(True)
+    target = torch.randint(0, V, (N,), device=device)
+
+    if label == "liger":
+        liger = _liger_callable()
+        if liger is None:
+            print(json.dumps({"label": label, "error": "liger not installed"}))
+            return
+        call = lambda: liger(input, linear_weight, target, reduction=reduction)
+    elif payload["use_chunked"]:
+        from torch.nn import LinearCrossEntropyOptions
+        acc_dtype = dtype_map[payload["acc_dtype"]] if payload.get("acc_dtype") else None
+        options = LinearCrossEntropyOptions(
+            acc_policy=payload["acc_policy"],
+            chunking_method=payload["chunking_method"],
+            acc_dtype=acc_dtype,
+            allow_retain_graph=payload["allow_retain_graph"],
+        )
+        call = lambda: _chunked_forward_backward(input, linear_weight, target, reduction, options)
+    else:
+        call = lambda: _reference_forward_backward(input, linear_weight, target, reduction)
+
+    # Warmup
+    for _ in range(payload["warmup"]):
+        if input.grad is not None:
+            input.grad = None
+        if linear_weight.grad is not None:
+            linear_weight.grad = None
+        call()
+        if device_type == "cuda":
+            torch.cuda.synchronize()
+
+    # Optional grad-error check vs reference. Done before timing so its tensors
+    # are freed before the timing-loop peak measurement. Skip with NaN if the
+    # fp64 reference wouldn't fit in available VRAM, or if any OOM occurs.
+    grad_input_error = float("nan")
+    grad_linear_weight_error = float("nan")
+    if payload["grad_error_check"]:
+        try:
+            if device_type == "cuda":
+                free_bytes, _ = torch.cuda.mem_get_info()
+                # fp64 tensors: ref_input (N*D), ref_weight (V*D), logits (N*V),
+                # ref_input.grad (N*D), ref_weight.grad (V*D), plus intermediates.
+                # Factor ~3x for safety.
+                needed = (N * D + V * D + N * V + N * D + V * D) * 8 * 3
+                if needed > free_bytes:
+                    raise torch.OutOfMemoryError(
+                        f"grad-error check would need ~{needed / (1024 ** 3):.1f} GiB, "
+                        f"have ~{free_bytes / (1024 ** 3):.1f} GiB free"
+                    )
+
+            # Run chunked call FIRST so its peak transient memory doesn't
+            # overlap with the held fp64 reference grads.
+            if input.grad is not None:
+                input.grad = None
+            if linear_weight.grad is not None:
+                linear_weight.grad = None
+            call()
+            gi = input.grad.detach().to(torch.float64) if input.grad is not None else None
+            gw = linear_weight.grad.detach().to(torch.float64) if linear_weight.grad is not None else None
+
+            ref_input = input.detach().to(torch.float64).requires_grad_(True)
+            ref_weight = linear_weight.detach().to(torch.float64).requires_grad_(True)
+            ref_loss = F.cross_entropy(F.linear(ref_input, ref_weight), target, reduction=reduction)
+            if reduction == "none":
+                ref_loss.sum().backward()
+            else:
+                ref_loss.backward()
+            ref_gi = ref_input.grad
+            ref_gw = ref_weight.grad
+
+            if gi is not None and ref_gi is not None:
+                grad_input_error = float((gi - ref_gi).norm() / (ref_gi.norm() + 1e-30))
+            if gw is not None and ref_gw is not None:
+                grad_linear_weight_error = float((gw - ref_gw).norm() / (ref_gw.norm() + 1e-30))
+
+            del ref_input, ref_weight, ref_loss, ref_gi, ref_gw, gi, gw
+        except torch.OutOfMemoryError:
+            pass
+        finally:
+            if device_type == "cuda":
+                torch.cuda.empty_cache()
+
+    # Time + memory. Tolerate OOM mid-loop: emit whatever timing samples we
+    # have, NaN for missing fields.
+    times_ms: list[float] = []
+    memory_peak_bytes = 0
+    timing_error: Optional[str] = None
+    try:
+        if device_type == "cuda":
+            # Clear warmup-populated grads BEFORE entering the monitor so
+            # the peak is comparable across configs (otherwise the caching
+            # allocator absorbs in-call allocations into the freed warmup
+            # blocks and biases the metric).
+            if input.grad is not None:
+                input.grad = None
+            if linear_weight.grad is not None:
+                linear_weight.grad = None
+            with _CUDAPeakMonitor() as mem:
+                for _ in range(payload["iters"]):
+                    if input.grad is not None:
+                        input.grad = None
+                    if linear_weight.grad is not None:
+                        linear_weight.grad = None
+                    torch.cuda.synchronize()
+                    t0 = time.perf_counter()
+                    call()
+                    torch.cuda.synchronize()
+                    times_ms.append(1000.0 * (time.perf_counter() - t0))
+            memory_peak_bytes = mem.peak_bytes
+        else:
+            gc.collect()
+            with _RSSPeakMonitor() as mem:
+                for _ in range(payload["iters"]):
+                    if input.grad is not None:
+                        input.grad = None
+                    if linear_weight.grad is not None:
+                        linear_weight.grad = None
+                    t0 = time.perf_counter()
+                    call()
+                    times_ms.append(1000.0 * (time.perf_counter() - t0))
+            memory_peak_bytes = mem.peak_bytes
+    except torch.OutOfMemoryError as e:
+        timing_error = f"OOM: {e}"
+        if device_type == "cuda":
+            torch.cuda.empty_cache()
+
+    if times_ms:
+        times_ms.sort()
+        median = times_ms[len(times_ms) // 2]
+    else:
+        median = float("nan")
+    if memory_peak_bytes == 0 and timing_error is not None:
+        memory_peak_bytes_out: float = float("nan")
+    else:
+        memory_peak_bytes_out = memory_peak_bytes
+
+    result = {
+        "label": label,
+        "acc_policy": payload["acc_policy"],
+        "chunking_method": payload["chunking_method"],
+        "acc_dtype": payload.get("acc_dtype"),
+        "time_ms": median,
+        "memory_peak_bytes": memory_peak_bytes_out,
+        "grad_input_error": grad_input_error,
+        "grad_linear_weight_error": grad_linear_weight_error,
+        "num_tokens": N,
+        "in_features": D,
+        "num_classes": V,
+        "dtype": payload["dtype"],
+        "device_type": device_type,
+        "reduction": reduction,
+        "allow_retain_graph": payload["allow_retain_graph"],
+    }
+    if timing_error is not None:
+        result["timing_error"] = timing_error
+    print(json.dumps(result))
+
+
+# ---------------------------------------------------------------------------
+# Main driver
+# ---------------------------------------------------------------------------
+
+def _parse_args():
+    p = argparse.ArgumentParser()
+    p.add_argument("--worker", default=None, help="(internal) run a single config")
+    p.add_argument("--num-tokens", type=int, default=4096)
+    p.add_argument("--in-features", type=int, default=4096)
+    p.add_argument("--num-classes", type=int, default=32000)
+    p.add_argument("--dtype", choices=("float16", "bfloat16", "float32", "both"), default="bfloat16")
+    p.add_argument("--device", choices=("auto", "cuda", "cpu"), default="auto")
+    p.add_argument("--reduction", choices=("mean", "sum", "none"), default="mean")
+    p.add_argument("--allow-retain-graph", action="store_true")
+    p.add_argument(
+        "--include-acc-none",
+        action="store_true",
+        help="for fp16/bf16 input, also include configs with acc_dtype=None "
+        "(the input-dtype-only path). By default only the _fp32 variants "
+        "(acc_dtype=torch.float32, the realistic training path) are emitted.",
+    )
+    p.add_argument("--no-grad-error-check", action="store_true")
+    p.add_argument("--warmup", type=int, default=2)
+    p.add_argument("--iters", type=int, default=5)
+    p.add_argument("--seed", type=int, default=0)
+    p.add_argument("--out", default=None, help="CSV file to append rows to")
+    return p.parse_args()
+
+
+def main() -> int:
+    args = _parse_args()
+
+    if args.worker is not None:
+        _worker_main(json.loads(args.worker))
+        return 0
+
+    if args.device == "auto":
+        device_type = "cuda" if torch.cuda.is_available() else "cpu"
+    else:
+        device_type = args.device
+
+    if args.dtype == "both":
+        dtypes = ["float16", "bfloat16"]
+    else:
+        dtypes = [args.dtype]
+
+    has_liger = device_type == "cuda" and _liger_callable() is not None
+
+    rows: list[dict] = []
+    for dtype in dtypes:
+        configs = _build_configs(dtype, include_acc_none=args.include_acc_none)
+        if has_liger:
+            configs.append(Config("liger", None, None, use_chunked=False))
+        for cfg in configs:
+            row = _measure_in_subprocess(
+                num_tokens=args.num_tokens,
+                in_features=args.in_features,
+                num_classes=args.num_classes,
+                dtype=dtype,
+                device_type=device_type,
+                reduction=args.reduction,
+                config=cfg,
+                allow_retain_graph=args.allow_retain_graph,
+                warmup=args.warmup,
+                iters=args.iters,
+                grad_error_check=not args.no_grad_error_check,
+                seed=args.seed,
+            )
+            rows.append(row)
+            print(json.dumps(row))
+
+    if args.out is not None:
+        if not rows:
+            return 0
+        # Canonical column list so every CSV has consistent headers regardless
+        # of which configs failed at this point. Unknown keys are dropped via
+        # extrasaction='ignore'.
+        keys = [
+            "label",
+            "acc_policy",
+            "chunking_method",
+            "acc_dtype",
+            "num_tokens",
+            "in_features",
+            "num_classes",
+            "dtype",
+            "device_type",
+            "reduction",
+            "allow_retain_graph",
+            "time_ms",
+            "memory_peak_bytes",
+            "grad_input_error",
+            "grad_linear_weight_error",
+            "error",
+            "timing_error",
+        ]
+        write_header = not os.path.exists(args.out)
+        with open(args.out, "a", newline="") as f:
+            w = csv.DictWriter(f, fieldnames=keys, extrasaction="ignore")
+            if write_header:
+                w.writeheader()
+            for row in rows:
+                w.writerow(row)
+
+    return 0
+
+
+if __name__ == "__main__":
+    sys.exit(main())
