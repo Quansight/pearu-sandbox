@@ -1,0 +1,12 @@
+label,acc_policy,chunking_method,acc_dtype,num_tokens,in_features,num_classes,dtype,device_type,reduction,allow_retain_graph,time_ms,memory_peak_bytes,grad_input_error,grad_linear_weight_error,error,timing_error
+reference,,,,2048,4096,32000,bfloat16,cuda,mean,False,6.6211838722229,838091776,0.0023558507500818374,0.0014119143864540292,,
+accurate_aspect_ratio_fp32,accurate,aspect_ratio,float32,2048,4096,32000,bfloat16,cuda,mean,False,74.29325103759766,1694020096,0.0016616524068671806,0.0018035930853271915,,
+accurate_aspect_ratio:2_fp32,accurate,aspect_ratio:2,float32,2048,4096,32000,bfloat16,cuda,mean,False,79.79212951660156,1675537920,0.0016616524080694446,0.001890468031423364,,
+accurate_aspect_ratio:4_fp32,accurate,aspect_ratio:4,float32,2048,4096,32000,bfloat16,cuda,mean,False,99.87379455566406,1666297344,0.0016616524080694446,0.0019499385855925174,,
+balanced_aspect_ratio_fp32,balanced,aspect_ratio,float32,2048,4096,32000,bfloat16,cuda,mean,False,43.45036697387695,1168945664,0.0028769568272070554,0.0018035930853271915,,
+balanced_aspect_ratio:2_fp32,balanced,aspect_ratio:2,float32,2048,4096,32000,bfloat16,cuda,mean,False,53.12409591674805,1134145024,0.0041005847169067935,0.001890468031423364,,
+balanced_aspect_ratio:4_fp32,balanced,aspect_ratio:4,float32,2048,4096,32000,bfloat16,cuda,mean,False,75.29881286621094,1116646912,0.001661829658990683,0.0019499385855925174,,
+compact_aspect_ratio_fp32,compact,aspect_ratio,float32,2048,4096,32000,bfloat16,cuda,mean,False,14.219264030456543,853820416,0.0028769568272070554,0.0018181661547399378,,
+compact_aspect_ratio:2_fp32,compact,aspect_ratio:2,float32,2048,4096,32000,bfloat16,cuda,mean,False,17.83603286743164,853820416,0.0041005847169067935,0.001899994063511575,,
+compact_aspect_ratio:4_fp32,compact,aspect_ratio:4,float32,2048,4096,32000,bfloat16,cuda,mean,False,31.17158317565918,853820416,0.001661829658990683,0.0019560595354926064,,
+auto_fp32,auto,aspect_ratio:2,float32,2048,4096,32000,bfloat16,cuda,mean,False,17.82579231262207,853820416,0.0041005847169067935,0.0018999946750925152,,

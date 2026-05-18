@@ -1,0 +1,12 @@
+label,acc_policy,chunking_method,acc_dtype,num_tokens,in_features,num_classes,dtype,device_type,reduction,allow_retain_graph,time_ms,memory_peak_bytes,grad_input_error,grad_linear_weight_error,error,timing_error
+reference,,,,4096,4096,4096,bfloat16,cuda,mean,False,1.9824639558792114,218399744,0.0017248940286687428,0.0017218617373746116,,
+accurate_aspect_ratio_fp32,accurate,aspect_ratio,float32,4096,4096,4096,bfloat16,cuda,mean,False,19.947519302368164,520475136,0.0016614435036825211,0.001658683972795216,,
+accurate_aspect_ratio:2_fp32,accurate,aspect_ratio:2,float32,4096,4096,4096,bfloat16,cuda,mean,False,20.540416717529297,419795456,0.0016614435031530545,0.002032194886953207,,
+accurate_aspect_ratio:4_fp32,accurate,aspect_ratio:4,float32,4096,4096,4096,bfloat16,cuda,mean,False,21.168127059936523,386232832,0.0016614435044154557,0.002623024483890453,,
+balanced_aspect_ratio_fp32,balanced,aspect_ratio,float32,4096,4096,4096,bfloat16,cuda,mean,False,11.616255760192871,419820032,0.0016619935880926924,0.001658683972795216,,
+balanced_aspect_ratio:2_fp32,balanced,aspect_ratio:2,float32,4096,4096,4096,bfloat16,cuda,mean,False,12.087295532226562,319136256,0.0016619935880926924,0.002032194886953207,,
+balanced_aspect_ratio:4_fp32,balanced,aspect_ratio:4,float32,4096,4096,4096,bfloat16,cuda,mean,False,11.791359901428223,268794368,0.0016619935880926924,0.002623024483890453,,
+compact_aspect_ratio_fp32,compact,aspect_ratio,float32,4096,4096,4096,bfloat16,cuda,mean,False,3.3556480407714844,352711168,0.0016619935880926924,0.0021376117130950745,,
+compact_aspect_ratio:2_fp32,compact,aspect_ratio:2,float32,4096,4096,4096,bfloat16,cuda,mean,False,3.9639039039611816,252027392,0.0016619935880926924,0.0024368507316103404,,
+compact_aspect_ratio:4_fp32,compact,aspect_ratio:4,float32,4096,4096,4096,bfloat16,cuda,mean,False,4.512767791748047,218399744,0.0016619935880926924,0.0029471326016828887,,
+auto_fp32,auto,aspect_ratio:2,float32,4096,4096,4096,bfloat16,cuda,mean,False,4.099071979522705,252027392,0.0016619935880926924,0.002436929108543518,,

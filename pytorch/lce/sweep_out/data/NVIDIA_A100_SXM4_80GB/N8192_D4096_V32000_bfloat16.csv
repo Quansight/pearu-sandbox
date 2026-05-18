@@ -1,0 +1,12 @@
+label,acc_policy,chunking_method,acc_dtype,num_tokens,in_features,num_classes,dtype,device_type,reduction,allow_retain_graph,time_ms,memory_peak_bytes,grad_input_error,grad_linear_weight_error,error,timing_error
+reference,,,,8192,4096,32000,bfloat16,cuda,mean,False,26.388479232788086,2443510784,0.002363960751769055,0.0016541598170178638,,
+accurate_aspect_ratio_fp32,accurate,aspect_ratio,float32,8192,4096,32000,bfloat16,cuda,mean,False,255.678466796875,2006368768,0.0016612215943582116,0.0027677574195475577,,
+accurate_aspect_ratio:2_fp32,accurate,aspect_ratio:2,float32,8192,4096,32000,bfloat16,cuda,mean,False,264.40191650390625,1932440064,0.0016612215943582116,0.0031386463789416534,,
+accurate_aspect_ratio:4_fp32,accurate,aspect_ratio:4,float32,8192,4096,32000,bfloat16,cuda,mean,False,292.7544250488281,1895475712,0.0016612215943582116,0.003440372355316778,,
+balanced_aspect_ratio_fp32,balanced,aspect_ratio,float32,8192,4096,32000,bfloat16,cuda,mean,False,145.00863647460938,1478935040,0.002876707055425398,0.0027677574195475577,,
+balanced_aspect_ratio:2_fp32,balanced,aspect_ratio:2,float32,8192,4096,32000,bfloat16,cuda,mean,False,153.29689025878906,1339470336,0.002876707055425398,0.0031386463789416534,,
+balanced_aspect_ratio:4_fp32,balanced,aspect_ratio:4,float32,8192,4096,32000,bfloat16,cuda,mean,False,170.58714294433594,1269737984,0.002876707055425398,0.003440372355316778,,
+compact_aspect_ratio_fp32,compact,aspect_ratio,float32,8192,4096,32000,bfloat16,cuda,mean,False,35.36383819580078,1004864512,0.002876707055425398,0.002827951385341086,,
+compact_aspect_ratio:2_fp32,compact,aspect_ratio:2,float32,8192,4096,32000,bfloat16,cuda,mean,False,38.1767692565918,1004864512,0.002876707055425398,0.0031806720843281923,,
+compact_aspect_ratio:4_fp32,compact,aspect_ratio:4,float32,8192,4096,32000,bfloat16,cuda,mean,False,46.34009552001953,1004864512,0.002876707055425398,0.003468718283807591,,
+auto_fp32,auto,aspect_ratio:2,float32,8192,4096,32000,bfloat16,cuda,mean,False,38.340606689453125,1004864512,0.002876707055425398,0.003180658489182142,,
