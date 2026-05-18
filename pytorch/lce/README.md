@@ -105,6 +105,12 @@ python lce_benchmark_sweep.py --plot-only --include-acc-none ...
   GPU memory needed to execute the workload, including the persistent
   input + linear_weight + target tensors — directly comparable across
   configs.
+- **CUDA timing uses `torch.cuda.Event(enable_timing=True)`** with one
+  start/end event pair per iter. Iters are queued back-to-back with a
+  single `synchronize()` after the loop; per-iter elapsed times come
+  from `start.elapsed_time(end)` (GPU-side, no CPU jitter). Median of
+  N iters is reported. Memory and timing run in separate phases so the
+  event overhead doesn't bias the peak.
 - Grad-error rows compare the chunked op against an fp64 reference
   jacobian. The reference is budget-checked against free VRAM and
   **skipped (NaN) when it would not fit** — common at the largest swept

@@ -50,6 +50,26 @@ def _policy_factor_to_label(policy: str, factor: int, fp32: bool = False) -> str
     return base + ("_fp32" if fp32 else "")
 
 
+def _format_axis_tick(v: float) -> str:
+    """K-suffix integer formatting for the log x-axis ticks."""
+    iv = int(round(v))
+    if iv >= 1024 and iv % 1024 == 0:
+        return f"{iv // 1024}K"
+    if iv >= 1000:
+        return f"{iv / 1024:.1f}K"
+    return str(iv)
+
+
+def _apply_log_xticks(ax, xvals) -> None:
+    """Pin major ticks to the swept x-values; suppress log-decade minor ticks."""
+    from matplotlib.ticker import FixedLocator, FuncFormatter, NullLocator
+
+    xs = sorted(set(xvals))
+    ax.xaxis.set_major_locator(FixedLocator(xs))
+    ax.xaxis.set_minor_locator(NullLocator())
+    ax.xaxis.set_major_formatter(FuncFormatter(lambda v, _: _format_axis_tick(v)))
+
+
 # ---------------------------------------------------------------------------
 # CSV loading
 # ---------------------------------------------------------------------------
@@ -176,7 +196,9 @@ def _plot_group(
             counts[a][r[a]] += 1
     defaults = {a: counts[a].most_common(1)[0][0] for a in AXIS_NAMES}
 
-    fig, axes = plt.subplots(len(YROWS), len(AXIS_NAMES), figsize=(15, 10))
+    fig, axes = plt.subplots(
+        len(YROWS), len(AXIS_NAMES), figsize=(15, 10), sharex="col"
+    )
 
     for col, axis in enumerate(AXIS_NAMES):
         slab = [r for r in rows if all(r[a] == defaults[a] for a in AXIS_NAMES if a != axis)]
@@ -185,6 +207,7 @@ def _plot_group(
             by_label[r["label"]].append(r)
         for lbl, xs in by_label.items():
             xs.sort(key=lambda r: r[axis])
+        col_xvals = sorted({r[axis] for r in slab})
         for row_idx, (yfield, ylabel, log, merged) in enumerate(YROWS):
             ax = axes[row_idx][col]
             any_positive = False
@@ -198,43 +221,75 @@ def _plot_group(
                     if not xs:
                         continue
                     ys = [x.get(yfield, float("nan")) for x in xs]
+                    xvals = [x[axis] for x in xs]
+                    # Liger pinned to black + star marker.
+                    if lbl == "liger":
+                        style = {"color": "black", "marker": "*", "markersize": 9}
+                    else:
+                        style = {"marker": "o"}
                     ax.plot(
-                        [x[axis] for x in xs],
+                        xvals,
                         ys,
-                        marker="o",
                         label=lbl,
                         linewidth=1,
+                        **style,
                     )
                     _track(ys)
             else:
-                # Merged: per-(series, metric) markers
+                # Merged: per-(series, metric) markers; same color per
+                # series so the two metrics of one config are visibly tied.
                 markers = ("o", "s")
                 for lbl in labels:
                     xs = by_label.get(lbl, [])
                     if not xs:
                         continue
+                    color = "black" if lbl == "liger" else None
                     for mi, metric in enumerate(merged):
                         ys = [x.get(metric, float("nan")) for x in xs]
                         # Skip series that are entirely NaN
                         if all(y != y for y in ys):  # NaN check
                             continue
-                        ax.plot(
-                            [x[axis] for x in xs],
+                        xvals = [x[axis] for x in xs]
+                        line, = ax.plot(
+                            xvals,
                             ys,
                             marker=markers[mi],
                             linestyle="-" if mi == 0 else "--",
                             label=f"{lbl} ({metric})",
                             linewidth=1,
+                            color=color,
                         )
+                        # Lock subsequent metric in same color as the first.
+                        if mi == 0 and color is None:
+                            color = line.get_color()
                         _track(ys)
             ax.set_xlabel(axis)
             ax.set_ylabel(ylabel)
             ax.set_xscale("log")
+            _apply_log_xticks(ax, col_xvals)
+            ax.tick_params(labelbottom=True)
             # Skip log y-scale when no positive data exists in this subplot.
             if log and any_positive:
                 ax.set_yscale("log")
             if row_idx == 0 and col == 0:
                 ax.legend(fontsize=6, loc="best")
+            # Marker legend for the merged grad-error row (col 0 only).
+            if merged is not None and col == 0:
+                from matplotlib.lines import Line2D
+
+                marker_handles = [
+                    Line2D(
+                        [0], [0],
+                        color="gray", marker=markers[mi],
+                        linestyle="-" if mi == 0 else "--",
+                        label=metric.replace("grad_", "").replace("_error", "") + " grad",
+                    )
+                    for mi, metric in enumerate(merged)
+                ]
+                ax.legend(
+                    handles=marker_handles, fontsize=6, loc="lower right",
+                    title="metric", title_fontsize=6,
+                )
 
     fig.suptitle(f"auto dispatch: {group_label}")
     fig.tight_layout()

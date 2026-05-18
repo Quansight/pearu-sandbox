@@ -160,6 +160,25 @@ def _run_point(
 # Load + plot
 # ---------------------------------------------------------------------------
 
+def _format_axis_tick(v: float) -> str:
+    """K-suffix integer formatting for the log x-axis ticks."""
+    iv = int(round(v))
+    if iv >= 1024 and iv % 1024 == 0:
+        return f"{iv // 1024}K"
+    if iv >= 1000:
+        return f"{iv / 1024:.1f}K"
+    return str(iv)
+
+
+def _apply_log_xticks(ax, xvals) -> None:
+    """Pin major ticks to the swept x-values; suppress log-decade minor ticks."""
+    from matplotlib.ticker import FixedLocator, FuncFormatter, NullLocator
+
+    xs = sorted(set(xvals))
+    ax.xaxis.set_major_locator(FixedLocator(xs))
+    ax.xaxis.set_minor_locator(NullLocator())
+    ax.xaxis.set_major_formatter(FuncFormatter(lambda v, _: _format_axis_tick(v)))
+
 def _load_rows(csv_path: Path) -> list[dict]:
     if not csv_path.exists():
         return []
@@ -235,7 +254,12 @@ def _plot(
             counts[a][r[a]] += 1
     defaults = {a: counts[a].most_common(1)[0][0] for a in AXIS_NAMES}
 
-    fig, axes = plt.subplots(len(YFIELDS), len(AXIS_NAMES), figsize=(15, 12))
+    # sharex='col' ties x-axis (scale, limits, ticks) across rows in the
+    # same column, so a subplot with missing y-data still aligns with its
+    # peers above/below.
+    fig, axes = plt.subplots(
+        len(YFIELDS), len(AXIS_NAMES), figsize=(15, 12), sharex="col"
+    )
     if len(YFIELDS) == 1:
         axes = [axes]
 
@@ -250,18 +274,32 @@ def _plot(
             series[r["label"]].append(r)
         for label, xs in series.items():
             xs.sort(key=lambda r: r[axis])
+        # Collect column-wide x-values so every row in this column gets
+        # the same ticks/limits (sharex='col' propagates the locator).
+        col_xvals = sorted({r[axis] for r in rows})
         for row_idx, (yfield, ylabel, log) in enumerate(YFIELDS):
             ax = axes[row_idx][col]
             any_positive = False
             for label, xs in sorted(series.items()):
                 ys = [x.get(yfield, float("nan")) for x in xs]
                 xvals = [x[axis] for x in xs]
-                ax.plot(xvals, ys, marker="o", label=label, linewidth=1)
+                # Pin liger to black + star marker so it's visually
+                # distinct from the auto-cycled colors / round markers
+                # used for our chunked configs.
+                if label == "liger":
+                    style = {"color": "black", "marker": "*", "markersize": 9}
+                else:
+                    style = {"marker": "o"}
+                ax.plot(xvals, ys, label=label, linewidth=1, **style)
                 if any(isinstance(y, (int, float)) and y == y and y > 0 for y in ys):
                     any_positive = True
             ax.set_xlabel(axis)
             ax.set_ylabel(ylabel)
             ax.set_xscale("log")
+            _apply_log_xticks(ax, col_xvals)
+            # sharex='col' hides tick numerals on non-bottom rows by default;
+            # re-enable so each row carries its own axis numbers.
+            ax.tick_params(labelbottom=True)
             # Skip log y-scale when no positive data exists in this subplot
             # (e.g. all grad-error fields are NaN because the fp64 reference
             # budget-check skipped on VRAM-constrained cards).

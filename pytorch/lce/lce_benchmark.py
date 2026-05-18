@@ -313,7 +313,19 @@ def _worker_main(payload: dict) -> None:
         if liger is None:
             print(json.dumps({"label": label, "error": "liger not installed"}))
             return
-        call = lambda: liger(input, linear_weight, target, reduction=reduction)
+
+        def _liger_fwd_bwd():
+            # Liger's Function.apply returns (loss, z_loss, token_accuracy);
+            # we only need the loss.
+            out = liger(input, linear_weight, target, reduction=reduction)
+            loss = out[0] if isinstance(out, tuple) else out
+            if reduction == "none":
+                loss.sum().backward()
+            else:
+                loss.backward()
+            return loss
+
+        call = _liger_fwd_bwd
     elif payload["use_chunked"]:
         from torch.nn import LinearCrossEntropyOptions
         acc_dtype = dtype_map[payload["acc_dtype"]] if payload.get("acc_dtype") else None
@@ -388,34 +400,56 @@ def _worker_main(payload: dict) -> None:
             if device_type == "cuda":
                 torch.cuda.empty_cache()
 
-    # Time + memory. Tolerate OOM mid-loop: emit whatever timing samples we
-    # have, NaN for missing fields.
+    # Time + memory. Memory and timing are measured in separate phases:
+    # the memory phase runs one fresh iter under the peak monitor (no
+    # event overhead, clean peak), the timing phase queues N iters back-
+    # to-back with cuda.Event start/end and a single sync at the end
+    # (matches the typical training loop overlap and gives GPU-side time).
     times_ms: list[float] = []
     memory_peak_bytes = 0
     timing_error: Optional[str] = None
-    try:
-        if device_type == "cuda":
-            # Clear warmup-populated grads BEFORE entering the monitor so
-            # the peak is comparable across configs (otherwise the caching
-            # allocator absorbs in-call allocations into the freed warmup
-            # blocks and biases the metric).
+
+    if device_type == "cuda":
+        # Memory phase: clear warmup-populated grads BEFORE entering the
+        # monitor so the peak isn't biased by warmup-cached blocks the
+        # in-call allocations would invisibly slot into.
+        try:
             if input.grad is not None:
                 input.grad = None
             if linear_weight.grad is not None:
                 linear_weight.grad = None
             with _CUDAPeakMonitor() as mem:
+                call()
+            memory_peak_bytes = mem.peak_bytes
+        except torch.OutOfMemoryError as e:
+            timing_error = f"OOM in memory phase: {e}"
+            torch.cuda.empty_cache()
+
+        # Timing phase: cuda.Event per iter (no per-iter sync; one sync
+        # after the loop). Mirrors the older benchmark.py methodology but
+        # keeps per-iter samples so median aggregation works.
+        if timing_error is None:
+            events: list[tuple[torch.cuda.Event, torch.cuda.Event]] = []
+            try:
                 for _ in range(payload["iters"]):
                     if input.grad is not None:
                         input.grad = None
                     if linear_weight.grad is not None:
                         linear_weight.grad = None
-                    torch.cuda.synchronize()
-                    t0 = time.perf_counter()
+                    start_ev = torch.cuda.Event(enable_timing=True)
+                    end_ev = torch.cuda.Event(enable_timing=True)
+                    start_ev.record()
                     call()
-                    torch.cuda.synchronize()
-                    times_ms.append(1000.0 * (time.perf_counter() - t0))
-            memory_peak_bytes = mem.peak_bytes
-        else:
+                    end_ev.record()
+                    events.append((start_ev, end_ev))
+            except torch.OutOfMemoryError as e:
+                timing_error = f"OOM in timing phase: {e}"
+                torch.cuda.empty_cache()
+            torch.cuda.synchronize()
+            for s, e in events:
+                times_ms.append(s.elapsed_time(e))
+    else:
+        try:
             gc.collect()
             with _RSSPeakMonitor() as mem:
                 for _ in range(payload["iters"]):
@@ -427,10 +461,8 @@ def _worker_main(payload: dict) -> None:
                     call()
                     times_ms.append(1000.0 * (time.perf_counter() - t0))
             memory_peak_bytes = mem.peak_bytes
-    except torch.OutOfMemoryError as e:
-        timing_error = f"OOM: {e}"
-        if device_type == "cuda":
-            torch.cuda.empty_cache()
+        except torch.OutOfMemoryError as e:
+            timing_error = f"OOM: {e}"
 
     if times_ms:
         times_ms.sort()
